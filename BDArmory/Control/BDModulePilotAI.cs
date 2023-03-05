@@ -552,6 +552,12 @@ namespace BDArmory.Control
             UI_FloatRange(minValue = 0.1f, maxValue = 5f, stepIncrement = 0.1f, scene = UI_Scene.All)]
         public float turnRadiusTwiddleFactorMax = 3.0f; // Minimum and maximum twiddle factors for the turn radius. Depends on roll rate and how the vessel behaves under fire.
 
+        [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_TerrainAvoidanceCriticalAngle", advancedTweakable = true, // Critical angle for inverted terrain avoidance.
+            groupName = "pilotAI_Terrain", groupDisplayName = "#LOC_BDArmory_PilotAI_Terrain", groupStartCollapsed = true),
+            UI_FloatRange(minValue = 90f, maxValue = 180f, stepIncrement = 1f, scene = UI_Scene.All)]
+        public float terrainAvoidanceCriticalAngle = 120f;
+        float terrainAvoidanceCriticalCosAngle = -0.5f;
+
         [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_WaypointTerrainAvoidance", advancedTweakable = true,//Waypoint terrain avoidance.
             groupName = "pilotAI_Terrain", groupDisplayName = "#LOC_BDArmory_PilotAI_Terrain", groupStartCollapsed = true),
             UI_FloatRange(minValue = 0f, maxValue = 1f, stepIncrement = 0.01f, scene = UI_Scene.All)]
@@ -1248,6 +1254,19 @@ namespace BDArmory.Control
             _extendAngleAirToAir = Mathf.Sin(extendAngleAirToAir * Mathf.Deg2Rad);
         }
 
+        public void SetOnTerrainAvoidanceCriticalAngleChanged()
+        {
+            UI_FloatRange field = (UI_FloatRange)Fields["terrainAvoidanceCriticalAngle"].uiControlEditor;
+            field.onFieldChanged = OnTerrainAvoidanceCriticalAngleChanged;
+            field = (UI_FloatRange)Fields["terrainAvoidanceCriticalAngle"].uiControlFlight;
+            field.onFieldChanged = OnTerrainAvoidanceCriticalAngleChanged;
+            OnTerrainAvoidanceCriticalAngleChanged(null, null);
+        }
+        public void OnTerrainAvoidanceCriticalAngleChanged(BaseField field, object obj)
+        {
+            terrainAvoidanceCriticalCosAngle = Mathf.Cos(terrainAvoidanceCriticalAngle);
+        }
+
         IEnumerator FixAltitudesSectionLayout() // Fix the layout of the Altitudes section by briefly disabling the fields underneath the one that was removed.
         {
             var maxAltitudeToggleField = Fields["maxAltitudeToggle"];
@@ -1491,6 +1510,7 @@ namespace BDArmory.Control
             ToggleDynamicDampingFields();
             ToggleMaxAltitude();
             SetOnExtendAngleA2AChanged();
+            SetOnTerrainAvoidanceCriticalAngleChanged();
             SetupAutoTuneSliders();
             if ((HighLogic.LoadedSceneIsFlight || HighLogic.LoadedSceneIsEditor) && storedSettings != null && storedSettings.ContainsKey(HighLogic.LoadedSceneIsFlight ? vessel.GetDisplayName() : EditorLogic.fetch.ship.shipName))
             {
@@ -2336,7 +2356,7 @@ namespace BDArmory.Control
             if (avoidingTerrain)
             {
                 rollTarget = terrainAlertNormal * 100;
-                if (Vector3.Dot(-vesselTransform.forward, Vector3.ProjectOnPlane(terrainAlertNormal, vesselTransform.up).normalized) < -0.5f) rollTarget = -rollTarget; // Avoid terrain fully inverted if the plane is mostly inverted (>30°) to begin with.
+                if (Vector3.Dot(-vesselTransform.forward, Vector3.ProjectOnPlane(terrainAlertNormal, vesselTransform.up).normalized) < terrainAvoidanceCriticalCosAngle) rollTarget = -rollTarget; // Avoid terrain fully inverted if the plane is mostly inverted (>30°) to begin with.
             }
             else if (belowMinAltitude && !gainAltInhibited)
                 rollTarget = vessel.upAxis * 100;
