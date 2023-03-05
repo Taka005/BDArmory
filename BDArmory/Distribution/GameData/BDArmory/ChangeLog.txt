@@ -84,7 +84,8 @@
 	- Add Kill timer for GM Altitude to give violators a chance to get back to safe altitude instead of immediate kill.
 	- Add customisable fields for the intra-team separation conditions when starting competitions (default: 800m + 100m per member) (FJRT request).
 	- Add a per-round PVP score parser.
-  - Fix accuracy calcs when using beehive ammo.
+	- Fix accuracy calcs when using beehive ammo.
+	- Fix vessel spawn altitude if RWP slider is set but not the RWP toggle.
 - RWP:
 	- Fix issue causing the web API to not report scores.
 	- Tag heats run via the web API with competition, stage and heat numbers in the file names.

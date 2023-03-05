@@ -259,7 +259,7 @@ namespace BDArmory.Settings
         [BDAPersistentSettingsField] public static Vector2d VESSEL_SPAWN_GEOCOORDS = new Vector2d(0.05096, -74.8016); // Spawning coordinates on a planetary body; Lat, Lon
         [BDAPersistentSettingsField] public static int VESSEL_SPAWN_WORLDINDEX = 1;                // Spawning planetary body: world index
         [BDAPersistentSettingsField] public static float VESSEL_SPAWN_ALTITUDE = 5f;               // Spawning altitude above the surface.
-        public static float VESSEL_SPAWN_ALTITUDE_ => RUNWAY_PROJECT_ROUND == 33 ? 10 : RUNWAY_PROJECT_ROUND == 53 ? FlightGlobals.currentMainBody.atmosphere ? (float)(FlightGlobals.currentMainBody.atmosphereDepth + (FlightGlobals.currentMainBody.atmosphereDepth / 10)) : 50000 : VESSEL_SPAWN_ALTITUDE; // Getter for handling the various RWP cases.
+        public static float VESSEL_SPAWN_ALTITUDE_ => !RUNWAY_PROJECT ? VESSEL_SPAWN_ALTITUDE : RUNWAY_PROJECT_ROUND == 33 ? 10 : RUNWAY_PROJECT_ROUND == 53 ? FlightGlobals.currentMainBody.atmosphere ? (float)(FlightGlobals.currentMainBody.atmosphereDepth + (FlightGlobals.currentMainBody.atmosphereDepth / 10)) : 50000 : VESSEL_SPAWN_ALTITUDE; // Getter for handling the various RWP cases.
         [BDAPersistentSettingsField] public static float VESSEL_SPAWN_DISTANCE_FACTOR = 20f;       // Scale factor for the size of the spawning circle.
         [BDAPersistentSettingsField] public static float VESSEL_SPAWN_DISTANCE = 10f;              // Radius of the size of the spawning circle.
         [BDAPersistentSettingsField] public static bool VESSEL_SPAWN_DISTANCE_TOGGLE = false;      // Toggle between scaling factor and absolute distance.
