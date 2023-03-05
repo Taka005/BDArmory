@@ -50,10 +50,10 @@
 	- Fix manual aim assist UI placement for fixed weapons.
 - AI / WM:
 	- AI will start evading missiles once the missile engine activates instead of waiting for 1 second after launch.
-	- When avoiding terrain and roll is inverted by more than 30°, reverse the roll target so that terrain avoidance is done while fully inverted and enable Aiming steer mode for more yaw control.
-	- Remove the 'premature dive fix', which causes weird flight behaviour when flying inverted.
 	- When orbiting, adjust altitude for terrain variation when below 1000m and account for terrain in the way when below 500m.
+	- Remove the 'premature dive fix', which causes weird flight behaviour when flying inverted.
 	- Terrain avoidance improvements:
+		- When avoiding terrain and roll is inverted by more than 30°, reverse the roll target so that terrain avoidance is done while fully inverted and enable Aiming steer mode for more yaw control.
 		- Remove the terrain avoidance cool-down period for faster recovery after avoiding terrain.
 		- Restrict the avoidance radius to the min altitude to allow cruising at min altitude despite without triggering terrain avoidance.
 		- Include all detected colliders in the terrain avoidance path and use a weighted average of normals to determine the appropriate terrain avoidance direction to fly (this helps with avoiding buildings).

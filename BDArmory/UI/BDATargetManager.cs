@@ -636,7 +636,7 @@ namespace BDArmory.UI
             var cloakInfo = FlightGlobals.ActiveVessel.gameObject.GetComponent<VesselCloakInfo>();
             debugString.AppendLine($"ECM Jammer Strength: " + (ecmjInfo != null ? ecmjInfo.jammerStrength.ToString("0.00") : "N/A"));
             debugString.AppendLine($"ECM Lockbreak Strength: " + (ecmjInfo != null ? ecmjInfo.lockBreakStrength.ToString("0.00") : "N/A"));
-            debugString.AppendLine($"Radar Lockbreak Factor: " + radarSig.radarLockbreakFactor);
+            debugString.AppendLine($"Radar Lockbreak Factor: " + radarSig.radarLockbreakFactor.ToString("0.00"));
             debugString.AppendLine("Visibility Modifiers: " + (cloakInfo != null ? $"Optical: {(cloakInfo.opticalReductionFactor * 100).ToString("0.00")}%, " +
                 $"Thermal: {(cloakInfo.thermalReductionFactor * 100).ToString("0.00")}%" : "N/A"));
             debugStringLineCount += 8;

@@ -36,6 +36,12 @@ namespace BDArmory.Weapons.Missiles
             return weaponClass;
         }
 
+        protected string shortNameBase = "";
+        public override string GetShortNameBase()
+        {
+            return string.IsNullOrEmpty(shortNameBase) ? GetShortName() : shortNameBase;
+        }
+
         public string GetMissileType()
         {
             return missileType;
@@ -1150,7 +1156,7 @@ namespace BDArmory.Weapons.Missiles
                     {
                         //if (Vector3.Distance(futureMissilePosition, futureTargetPosition) < GetBlastRadius() * 10)
                         // Replaced old proximity check with proximity check based on either detonation distance or distance traveled per frame
-                        if ((futureMissilePosition - futureTargetPosition).sqrMagnitude < 100 * (relativeSpeed > DetonationDistance ? relativeSpeed*relativeSpeed : DetonationDistance*DetonationDistance))
+                        if ((futureMissilePosition - futureTargetPosition).sqrMagnitude < 100 * (relativeSpeed > DetonationDistance ? relativeSpeed * relativeSpeed : DetonationDistance * DetonationDistance))
                         {
                             //We are now close enough to start checking the detonation distance
                             DetonationDistanceState = DetonationDistanceStates.CheckingProximity;
@@ -1162,7 +1168,7 @@ namespace BDArmory.Weapons.Missiles
                             if (bdModularGuidance == null) return;
 
                             //if (Vector3.Distance(futureMissilePosition, futureTargetPosition) > this.DetonationDistance) return;
-                            if((futureMissilePosition - futureTargetPosition).sqrMagnitude > DetonationDistance * DetonationDistance) return;
+                            if ((futureMissilePosition - futureTargetPosition).sqrMagnitude > DetonationDistance * DetonationDistance) return;
 
                             DetonationDistanceState = DetonationDistanceStates.CheckingProximity;
                         }
@@ -1187,7 +1193,7 @@ namespace BDArmory.Weapons.Missiles
                                 }
                                 if (hitCount > 0)
                                 {
-                                    Array.Sort<RaycastHit>(proximityHits,0,hitCount, RaycastHitComparer.raycastHitComparer);
+                                    Array.Sort<RaycastHit>(proximityHits, 0, hitCount, RaycastHitComparer.raycastHitComparer);
 
                                     using (var hitsEnu = proximityHits.Take(hitCount).GetEnumerator())
                                     {

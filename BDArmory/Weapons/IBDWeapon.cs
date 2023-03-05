@@ -6,6 +6,8 @@ namespace BDArmory.Weapons
 
         string GetShortName();
 
+        string GetShortNameBase();
+
         string GetSubLabel();
 
         string GetMissileType();

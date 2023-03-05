@@ -179,5 +179,10 @@ namespace BDArmory.Weapons
         {
             return shortName;
         }
+
+        public virtual string GetShortNameBase()
+        {
+            return GetShortName();
+        }
     }
 }

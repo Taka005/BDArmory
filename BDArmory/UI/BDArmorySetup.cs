@@ -1268,9 +1268,9 @@ namespace BDArmory.UI
                         string subLabel;
                         if (ActiveWeaponManager.weaponArray[i] != null)
                         {
-                            label = ActiveWeaponManager.weaponArray[i].GetShortName();
+                            label = ActiveWeaponManager.weaponArray[i].GetShortNameBase();
                             subLabel = ActiveWeaponManager.weaponArray[i].GetSubLabel();
-                            if (subLabel.Contains("Guidance")) label = label.Substring(0, label.IndexOf(";"));
+                            // if (subLabel.Contains("Guidance")) label = label.Substring(0, label.IndexOf(";"));
                         }
                         else
                         {
