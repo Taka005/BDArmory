@@ -8421,28 +8421,32 @@ namespace BDArmory.Control
                 {
                     if (currMissile.GuidanceMode != MissileBase.GuidanceModes.SLW || currMissile.GuidanceMode == MissileBase.GuidanceModes.SLW && currMissile.activeRadarRange > 0) //heatseeking missiles/torps
                     {
-                        if (_irstsEnabled)
+                        // If torpedo or missile with uncaged lock
+                        if (currMissile.GuidanceMode == MissileBase.GuidanceModes.SLW || currMissile.uncagedLock)
                         {
-                            if (targetMissile == null)
-                                heatTarget = vesselRadarData.activeIRTarget(guardTarget, this); //point seeker at active target's IR return
-                            else
-                                heatTarget = vesselRadarData.activeIRTarget(targetMissile.Vessel, this);
-                        }
-                        else
-                        {
-                            if (vesselRadarData.locked)
+                            if (_irstsEnabled)
                             {
-                                if (targetMissile == null) //uncaged radar lock
-                                    heatTarget = vesselRadarData.lockedTargetData.targetData;
-                                else //since it's probable that the Wm is locked to the current guardTarget, but not that incoming missile we're trying to acquire for intercept
+                                if (targetMissile == null)
+                                    heatTarget = vesselRadarData.activeIRTarget(guardTarget, this); //point seeker at active target's IR return
+                                else
+                                    heatTarget = vesselRadarData.activeIRTarget(targetMissile.Vessel, this);
+                            }
+                            else
+                            {
+                                if (vesselRadarData.locked)
                                 {
-                                    List<TargetSignatureData> possibleTargets = vesselRadarData.GetLockedTargets();
-                                    for (int i = 0; i < possibleTargets.Count; i++)
+                                    if (targetMissile == null) //uncaged radar lock
+                                        heatTarget = vesselRadarData.lockedTargetData.targetData;
+                                    else //since it's probable that the Wm is locked to the current guardTarget, but not that incoming missile we're trying to acquire for intercept
                                     {
-                                        if (possibleTargets[i].vessel == targetMissile.Vessel)
+                                        List<TargetSignatureData> possibleTargets = vesselRadarData.GetLockedTargets();
+                                        for (int i = 0; i < possibleTargets.Count; i++)
                                         {
-                                            heatTarget = possibleTargets[i];
-                                            break;
+                                            if (possibleTargets[i].vessel == targetMissile.Vessel)
+                                            {
+                                                heatTarget = possibleTargets[i];
+                                                break;
+                                            }
                                         }
                                     }
                                 }
@@ -8454,16 +8458,19 @@ namespace BDArmory.Control
                         heatTarget = vesselRadarData.detectedRadarTarget(guardTarget, this); //get initial direction for passive sonar torps from passive/non-locking sonar return
                     }
                 }
+
                 Vector3 forward = currMissile.GetForwardTransform();
-                Vector3 missilePos = currMissile.MissileReferenceTransform.position;
+                Vector3 adjustedPos = currMissile.MissileReferenceTransform.position + (5f * forward);
+                // Boresight check is against reference transform, but we offset the ray's origin to account for wing-mounted missiles etc. this should
+                // probably be a config parameter or something we measure via the collider
                 Vector3 direction =
-                    heatTarget.exists && VectorUtils.Angle(heatTarget.predictedPosition - missilePos, forward) < maxOffBoresight ?
-                    heatTarget.predictedPosition - missilePos
+                    heatTarget.exists && VectorUtils.Angle(heatTarget.predictedPosition - currMissile.MissileReferenceTransform.position, forward) < maxOffBoresight ?
+                    heatTarget.predictedPosition - adjustedPos
                     : forward;
                 // remove AI target check/move to a missile .cfg option to allow older gen heaters?
                 if (currMissile.GuidanceMode != MissileBase.GuidanceModes.SLW || currMissile.GuidanceMode == MissileBase.GuidanceModes.SLW && currMissile.activeRadarRange > 0)
-                    heatTarget = BDATargetManager.GetHeatTarget(vessel, vessel, new Ray(missilePos + (50 * forward), direction), TargetSignatureData.noTarget, scanRadius, currMissile.heatThreshold, currMissile.frontAspectHeatModifier, currMissile.uncagedLock, currMissile.targetCoM, currMissile.lockedSensorFOVBias, currMissile.lockedSensorVelocityBias, currMissile.lockedSensorVelocityMagnitudeBias, currMissile.lockedSensorMinAngularVelocity, this, targetMissile != null ? targetMissile : guardMode ? currentTarget : null, IFF: currMissile.hasIFF);
-                else heatTarget = BDATargetManager.GetAcousticTarget(vessel, vessel, new Ray(missilePos + (50 * forward), direction), TargetSignatureData.noTarget, scanRadius, currMissile.heatThreshold, currMissile.targetCoM, currMissile.lockedSensorFOVBias, currMissile.lockedSensorVelocityBias, currMissile.lockedSensorVelocityMagnitudeBias, currMissile.lockedSensorMinAngularVelocity, this, targetMissile != null ? targetMissile : guardMode ? currentTarget : null, IFF: currMissile.hasIFF);
+                    heatTarget = BDATargetManager.GetHeatTarget(vessel, vessel, new Ray(adjustedPos, direction), TargetSignatureData.noTarget, scanRadius, currMissile.heatThreshold, currMissile.frontAspectHeatModifier, currMissile.uncagedLock, currMissile.targetCoM, currMissile.lockedSensorFOVBias, currMissile.lockedSensorVelocityBias, currMissile.lockedSensorVelocityMagnitudeBias, currMissile.lockedSensorMinAngularVelocity, this, targetMissile != null ? targetMissile : guardMode ? currentTarget : null, IFF: currMissile.hasIFF);
+                else heatTarget = BDATargetManager.GetAcousticTarget(vessel, vessel, new Ray(adjustedPos, direction), TargetSignatureData.noTarget, scanRadius, currMissile.heatThreshold, currMissile.targetCoM, currMissile.lockedSensorFOVBias, currMissile.lockedSensorVelocityBias, currMissile.lockedSensorVelocityMagnitudeBias, currMissile.lockedSensorMinAngularVelocity, this, targetMissile != null ? targetMissile : guardMode ? currentTarget : null, IFF: currMissile.hasIFF);
             }
         }
 

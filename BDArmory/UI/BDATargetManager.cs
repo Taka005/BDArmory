@@ -584,7 +584,8 @@ namespace BDArmory.UI
                 Vector3 relativePosVessel = vessel.CoM - ray.origin;
                 //float angle = VectorUtils.Angle(vessel.CoM - ray.origin, ray.direction); at very close ranges for very narrow sensor Fovs this will cause a problem if the heatsource is an engine plume
                 float angle = VectorUtils.Angle((priorHeatTargetExists && priorHeatTarget.vessel == vessel) ? relativePosPriorHeatTarget : relativePosVessel, ray.direction);
-                if ((angle < scanRadius) || (uncagedLock && !priorHeatTargetExists)) // Allow allAspect=true missiles to find target outside of seeker FOV before launch
+                // REMINDER TO SELF -> ADD HMDs SO UNCAGED LOCK DOESN'T HAVE TO WORK LIKE THIS
+                if ((angle < scanRadius) || (uncagedLock && !priorHeatTarget.exists)) // Allow allAspect=true missiles to find target outside of seeker FOV before launch
                 {
                     if (RadarUtils.TerrainCheck(ray.origin, vessel.CoM, vessel.mainBody))
                         continue;
