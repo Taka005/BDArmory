@@ -220,7 +220,7 @@ namespace BDArmory.Targeting
             {
                 Team = mf.Team; // While the primary WM may change, the Team shouldn't.
             }
-            else
+            else if (vessel.IsMissile())
             {
                 var ml = VesselModuleRegistry.GetMissileBase(vessel, true);
                 if (ml != null)
@@ -624,7 +624,7 @@ namespace BDArmory.Targeting
             bool inRange = (vessel.CoM - myMf.vessel.CoM).sqrMagnitude < orbitalAI.interceptRanges.y * orbitalAI.interceptRanges.y;
             Vector3 relVel = vessel.Velocity() - myMf.vessel.Velocity();
             bool killVelocityNeeded = Vector3.Dot(vessel.CoM - myMf.vessel.CoM, relVel) < 0f &&
-                Vector3.Dot(o.Prograde(Planetarium.GetUniversalTime()), relVel) < 0f; // Moving away from each other in prograde direction (kill vel direction is retrograde)
+                Vector3.Dot(o.GetPrograde(Planetarium.GetUniversalTime()), relVel) < 0f; // Moving away from each other in prograde direction (kill vel direction is retrograde)
 
             return (inRange || !(unsafeDescent && killVelocityNeeded));
         }

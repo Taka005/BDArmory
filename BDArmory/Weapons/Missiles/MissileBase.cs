@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using UnityEngine;
-
-using BDArmory.Competition;
+﻿using BDArmory.Competition;
 using BDArmory.Control;
 using BDArmory.CounterMeasure;
 using BDArmory.Extensions;
@@ -15,6 +9,12 @@ using BDArmory.Settings;
 using BDArmory.Targeting;
 using BDArmory.UI;
 using BDArmory.Utils;
+using BDArmory.WeaponMounts;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using UnityEngine;
 
 namespace BDArmory.Weapons.Missiles
 {
@@ -202,6 +202,11 @@ namespace BDArmory.Weapons.Missiles
             UI_Toggle(disabledText = "#LOC_BDArmory_false", enabledText = "#LOC_BDArmory_true", affectSymCounterparts = UI_Scene.All)]//False--True
         public bool inCargoBay = false;
 
+        // This previously was in both MissileLauncher and BDModular Guidance, transferred it here
+        [KSPField(advancedTweakable = true, isPersistant = true, guiActive = false, guiActiveEditor = false, guiName = "#LOC_BDArmory_FiringPriority"),
+            UI_FloatRange(minValue = 0, maxValue = 10, stepIncrement = 1, scene = UI_Scene.All, affectSymCounterparts = UI_Scene.All)]
+        public float priority = 0; //per-weapon priority selection override
+
         [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_InCustomCargoBay"), // In custom/modded "cargo bay"
             UI_ChooseOption(
             options = new string[] {
@@ -274,6 +279,9 @@ namespace BDArmory.Weapons.Missiles
         [KSPField]
         public float activeRadarMinTrackSCR = 1f;
 
+        [KSPField]
+        public bool activeRadarCanNotch = true;
+
         [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_BallisticOvershootFactor"),//Ballistic Overshoot factor
          UI_FloatRange(minValue = 0.5f, maxValue = 1.5f, stepIncrement = 0.01f, scene = UI_Scene.Editor)]
         public float BallisticOverShootFactor = 0.7f;
@@ -297,7 +305,7 @@ namespace BDArmory.Weapons.Missiles
         public float CruisePredictionTime = 5;
 
         [KSPField(isPersistant = false, guiActive = false, guiActiveEditor = false, guiName = "#LOC_BDArmory_CruisePopup"),
-            UI_Toggle(disabledText = "#LOC_BDArmory_false", enabledText = "#LOC_BDArmory_true", scene = UI_Scene.Flight)]
+            UI_Toggle(disabledText = "#LOC_BDArmory_false", enabledText = "#LOC_BDArmory_true", scene = UI_Scene.All)]
         public bool CruisePopup = false; // Cruise Guidance Popup Attack
 
         [KSPField]
@@ -378,6 +386,10 @@ namespace BDArmory.Weapons.Missiles
         [KSPField(isPersistant = false, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_terminalHomingRange")]//Terminal Homing Range
         public float terminalHomingRange = 3000;
 
+        [KSPField(advancedTweakable = false, isPersistant = true, guiActive = false, guiActiveEditor = false, guiName = "#LOC_BDArmory_TurretID"),//Custom Turret ID
+UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene.All, affectSymCounterparts = UI_Scene.All)]
+        public float customTurretID = 0;
+
         [KSPField]
         public bool terminalHoming = false;
 
@@ -438,6 +450,10 @@ namespace BDArmory.Weapons.Missiles
         public bool TargetAcquired { get; set; }
 
         public bool ActiveRadar { get; set; }
+
+        // Boolean, used to determine whether or not to update the missile's TargetInfo, should be set
+        // to true whenever a change is to be made to the missile's RCS, like ActiveRadar or radarLOALSearching
+        public bool updateRadarCS = false;
 
         public Vessel SourceVessel
         {
@@ -528,6 +544,8 @@ namespace BDArmory.Weapons.Missiles
 
         protected ModuleTargetingCamera targetingPod;
 
+        public List<ModuleCustomTurret> customTurret = new List<ModuleCustomTurret>();
+
         //laser stuff
         public ModuleTargetingCamera lockedCamera;
         protected Vector3 lastLaserPoint;
@@ -561,7 +579,7 @@ namespace BDArmory.Weapons.Missiles
         [KSPField] public float terminalSeekerTimeout = -1;
         private float lastRWRPing = 0;
         public RadarWarningReceiver.RWRThreatTypes[] antiradTargets;
-        protected bool radarLOALSearching = false;
+        public bool radarLOALSearching { get; protected set; } = false;
         private bool hasLostLock = false;
         protected bool checkMiss = false;
         public StringBuilder debugString = new StringBuilder();
@@ -694,6 +712,7 @@ namespace BDArmory.Weapons.Missiles
             info.Team = Team;
             info.isMissile = true;
             info.MissileBaseModule = this;
+            updateRadarCS = true;
         }
 
         [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "#LOC_BDArmory_GPSTarget", active = true, name = "GPSTarget")]//GPS Target
@@ -906,14 +925,16 @@ namespace BDArmory.Weapons.Missiles
         {
             if (TargetAcquired)
             {
-                if (lockedCamera && lockedCamera.groundStabilized && !lockedCamera.gimbalLimitReached && lockedCamera.surfaceDetected) //active laser target
+                bool isCLOS = GuidanceMode == GuidanceModes.CLOS || GuidanceMode == GuidanceModes.CLOSThreePoint || GuidanceMode == GuidanceModes.CLOSLead;
+                if (lockedCamera && !lockedCamera.gimbalLimitReached && lockedCamera.groundStabilized && lockedCamera.surfaceDetected) //active laser target
                 {
                     TargetPosition = lockedCamera.groundTargetPosition;
-                    TargetVelocity = (TargetPosition - lastLaserPoint) / Time.fixedDeltaTime;
+                    TargetVelocity = isCLOS ? Vector3.zero : (TargetPosition - lastLaserPoint) / Time.fixedDeltaTime;
                     TargetAcceleration = Vector3.zero;
                     lastLaserPoint = TargetPosition;
+                    lockFailTimer = 0f;
 
-                    if (GuidanceMode == GuidanceModes.BeamRiding && TimeIndex > 0.25f && Vector3.Dot(GetForwardTransform(), part.transform.position - lockedCamera.transform.position) < 0)
+                    if (GuidanceMode == GuidanceModes.BeamRiding && TimeIndex > 0.25f && Vector3.Dot(GetForwardTransform(), vessel.CoM - lockedCamera.transform.position) < 0)
                     {
                         TargetAcquired = false;
                         lockedCamera = null;
@@ -921,25 +942,32 @@ namespace BDArmory.Weapons.Missiles
                 }
                 else //lost active laser target, home on last known position
                 {
-                    if (CMSmoke.RaycastSmoke(new Ray(transform.position, lastLaserPoint - transform.position)))
+                    Ray smokeRay = new Ray(vessel.CoM, isCLOS ? lockedCamera.transform.position : (lastLaserPoint - vessel.CoM));
+                    if (CMSmoke.RaycastSmoke(smokeRay))
                     {
-                        //Debug.Log("[BDArmory.MissileBase]: Laser missileBase affected by smoke countermeasure");
                         float angle = VectorUtils.FullRangePerlinNoise(0.75f * Time.time, 10) * BDArmorySettings.SMOKE_DEFLECTION_FACTOR;
-                        TargetPosition = VectorUtils.RotatePointAround(lastLaserPoint, transform.position, VectorUtils.GetUpDirection(transform.position), angle);
-                        TargetVelocity = Vector3.zero;
-                        TargetAcceleration = Vector3.zero;
+                        TargetPosition = isCLOS ? 
+                            VectorUtils.RotatePointAround(lockedCamera.targetPointPosition, smokeRay.origin, vessel.up, angle) :
+                            VectorUtils.RotatePointAround(lastLaserPoint, vessel.CoM, vessel.up, angle);
                         lastLaserPoint = TargetPosition;
+                        lockFailTimer = 0f;
                     }
                     else
                     {
                         TargetPosition = lastLaserPoint;
+                        lockFailTimer += Time.fixedDeltaTime;
+                        if (lockFailTimer > seekerTimeout)
+                            TargetAcquired = false;
                     }
+
+                    TargetVelocity = Vector3.zero;
+                    TargetAcceleration = Vector3.zero;
                 }
             }
             else
             {
                 ModuleTargetingCamera foundCam = null;
-                bool parentOnly = (GuidanceMode == GuidanceModes.BeamRiding);
+                bool parentOnly = GuidanceMode == GuidanceModes.BeamRiding || GuidanceMode == GuidanceModes.CLOS || GuidanceMode == GuidanceModes.CLOSThreePoint || GuidanceMode == GuidanceModes.CLOSLead;
                 foundCam = BDATargetManager.GetLaserTarget(this, parentOnly, Team);
                 float threshold = Mathf.Max(targetVessel ? targetVessel.Vessel.GetRadius() : 20, 20);
                 if (foundCam != null && foundCam.cameraEnabled && foundCam.groundStabilized && BDATargetManager.CanSeePosition(foundCam.groundTargetPosition, vessel.transform.position, MissileReferenceTransform.position, threshold))
@@ -947,6 +975,7 @@ namespace BDArmory.Weapons.Missiles
                     if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MissileBase]: Laser guided missileBase actively found laser point. Enabling guidance.");
                     lockedCamera = foundCam;
                     TargetAcquired = true;
+                    SetLaserTargeting();
                 }
             }
         }
@@ -1119,6 +1148,7 @@ namespace BDArmory.Weapons.Missiles
                                             locksCount++;
                                         }
                                         ActiveRadar = true;
+                                        updateRadarCS = true;
                                         return;
                                     }
                                 }
@@ -1132,9 +1162,10 @@ namespace BDArmory.Weapons.Missiles
                         if (radarLOAL)
                         {
                             // Lost track of target, but we can re-acquire set radarLOALSearching = true and try to re-acquire using existing target information
-                            if (radarLOALSearching)
+                            if (!radarLOALSearching)
                             {
                                 radarLOALSearching = true;
+                                updateRadarCS = true;
                                 startDirection = GetForwardTransform();
                             }
                             TargetAcquired = true;
@@ -1156,6 +1187,7 @@ namespace BDArmory.Weapons.Missiles
                             radarLOAL = false;
                             TargetAcquired = false;
                             ActiveRadar = false;
+                            updateRadarCS = true;
                         }
                     }
                 }
@@ -1206,7 +1238,7 @@ namespace BDArmory.Weapons.Missiles
                         if (CheckTargetEngagementEnvelope(scannedTargets[i].targetInfo))
                         {
                             if (hasIFF && Team.IsFriendly(scannedTargets[i].targetInfo.Team)) continue;//Don't lock friendlies
-                            
+
                             if (!useSoughtTarget)
                             {
                                 (tempDist, Vector3 currDir) = (scannedTargets[i].predictedPosition - soughtTarget).MagNorm();
@@ -1228,6 +1260,7 @@ namespace BDArmory.Weapons.Missiles
                                 smallestDist = currDist;
                                 lockedTarget = scannedTargets[i];
                                 ActiveRadar = true;
+                                updateRadarCS = true;
                                 //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileBase][Radar LOAL]: Target: {scannedTargets[i].vessel.name} selected.");
                             }
                             //return;
@@ -1271,9 +1304,10 @@ namespace BDArmory.Weapons.Missiles
                     TargetPosition = transform.position + (startDirection * 5000);
                     TargetVelocity = vessel.Velocity(); // Set the relative target velocity to 0.
                     TargetAcceleration = Vector3.zero;
-                    if (radarLOALSearching)
+                    if (!radarLOALSearching)
                     {
                         radarLOALSearching = true;
+                        updateRadarCS = true;
                         startDirection = GetForwardTransform();
                     }
                     _radarFailTimer += Time.fixedDeltaTime;
@@ -1285,6 +1319,7 @@ namespace BDArmory.Weapons.Missiles
                         radarLOALSearching = false;
                         TargetAcquired = false;
                         ActiveRadar = false;
+                        updateRadarCS = true;
                     }
                     return;
                 }
@@ -1299,6 +1334,7 @@ namespace BDArmory.Weapons.Missiles
                         if (!radarLOALSearching)
                         {
                             radarLOALSearching = true;
+                            updateRadarCS = true;
                             TargetAcquired = true;
                             startDirection = GetForwardTransform();
                         }
@@ -1429,20 +1465,10 @@ namespace BDArmory.Weapons.Missiles
                     bool radarLocked = false;
                     if (FiredByWM != null && FiredByWM.vesselRadarData)
                     {
-                        INStarget = FiredByWM._radarsEnabled || weaponClass == WeaponClasses.SLW && FiredByWM._sonarsEnabled ? FiredByWM.vesselRadarData.detectedRadarTarget(targetVessel.Vessel, FiredByWM) : TargetSignatureData.noTarget; //is the target tracked by radar or ISRT?
+                        if (FiredByWM._radarsEnabled || weaponClass == WeaponClasses.SLW && FiredByWM._sonarsEnabled)
+                            (INStarget, radarLocked) = FiredByWM.vesselRadarData.detectedRadarTargetLock(targetVessel.Vessel, FiredByWM); //is the target tracked by radar or ISRT?
                         if (INStarget.exists)
-                        {
                             detectedByRadar = true;
-                            List<TargetSignatureData> possibleTargets = FiredByWM.vesselRadarData.GetLockedTargets();
-                            for (int i = 0; i < possibleTargets.Count; i++)
-                            {
-                                if (possibleTargets[i].vessel == targetVessel.Vessel)
-                                {
-                                    radarLocked = true;
-                                    break;
-                                }
-                            }
-                        }
                         else
                             if (FiredByWM._irstsEnabled) INStarget = FiredByWM.vesselRadarData.activeIRTarget(targetVessel.Vessel, FiredByWM);
                     }
@@ -1992,14 +2018,5 @@ namespace BDArmory.Weapons.Missiles
             }
             this.part.RefreshAssociatedWindows();
         }
-    }
-
-    internal class RaycastHitComparer : IComparer<RaycastHit>
-    {
-        int IComparer<RaycastHit>.Compare(RaycastHit left, RaycastHit right)
-        {
-            return left.distance.CompareTo(right.distance);
-        }
-        public static RaycastHitComparer raycastHitComparer = new RaycastHitComparer();
     }
 }

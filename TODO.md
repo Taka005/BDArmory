@@ -4,12 +4,17 @@
 - Changing the slider resolution sometimes triggers clamping of unclamped values
 - Taking off with the global 'P' button for two VTOL craft on the runway disables their engines!
 - WM without AI or with stationary ground AI sometimes just sits there without attacking valid targets.
+- Check whether `base.OnStart(state);` in `MissileLauncher.OnStart` can be re-enabled and some common stuff be moved to MissileBase.cs.
+- Improve custom turret aiming.
+
+- Clean up invalid UTF-8 chars by searching for `[^\x00-\x7f±°ñ—α→θψφρqω₀π²·δ↔∫•∈"γgμν‽Δ↕]` (add more to exclude as necessary). Ignore localisation files.
 
 ### TODO (smaller items and specific requests / higher priority)
 - Fix bugs
 	- Sometimes the field toggles in ModuleWeapon (and elsewhere) throw InvalidCast exceptions on startup. Suspect a race condition.
 - Finish Gauntlet tournament heats if only opponent craft are left as only relative ranking of variants is relevant.
 - Resource stealing of integer amounts should consider integer amounts per container, not overall.
+- Cts spawn with NPCs
 
 - Wiki entries
 	- Auto-Tuning
@@ -56,7 +61,6 @@
 - Figure out why bullet hole decals are frequently offset behind the craft. - krakensbane or flightintegrator at time of decal attachment?
 - Inertial correction to pitch, roll, yaw errors for PID calcuations. Rotate the vessel reference transform first, computing debugPos2 from the top 
 - Low altitude AI setting should be aware of killer GM low altitude.
-- Proper 3-axis PID sliders + single PID with axis weighting
 - Memory for AI state so that it can resume once finished extending/evading instead of just scanning for new targets.
 - Tag mode should disable team icons to get colours right
 - Improve the VTOL AI:

@@ -1788,12 +1788,12 @@ namespace BDArmory.Competition
                         tournamentState.RestoreDeconflictionData(); // Restore the deconfliction data to the most recently used in the tournament (to avoid outside interference).
                     while (!competitionStarted && attempts++ < 3) // 3 attempts is plenty
                     {
-                        SpawnUtils.ResetVesselNamingDeconfliction(fightersOnly: true);
+                        SpawnUtils.ResetVesselNamingDeconfliction(fightersOnly: !fullTeams);
                         tournamentStatus = TournamentStatus.Running;
                         if (BDArmorySettings.WAYPOINTS_MODE)
                             yield return ExecuteWaypointHeat(roundIndex, heatIndex);
                         else
-                            yield return ExecuteHeat(roundIndex, heatIndex, attempts == BDArmorySettings.TOURNAMENT_START_DESPITE_FAILURES_ON_ATTEMPT && BDArmorySettings.COMPETITION_START_DESPITE_FAILURES); // On the third attempt, start despite failures if the option is set.
+                            yield return ExecuteHeat(roundIndex, heatIndex, attempts == BDArmorySettings.TOURNAMENT_START_DESPITE_FAILURES_ON_ATTEMPT && BDArmorySettings.COMPETITION_START_DESPITE_FAILURES, firstRun); // On the third attempt, start despite failures if the option is set.
                         if (!competitionStarted)
                         {
                             switch (spawnerBase.spawnFailureReason)
@@ -1944,7 +1944,7 @@ namespace BDArmory.Competition
             yield return new WaitWhile(() => TournamentCoordinator.Instance.IsRunning);
         }
 
-        IEnumerator ExecuteHeat(int roundIndex, int heatIndex, bool startDespiteFailures = false)
+        IEnumerator ExecuteHeat(int roundIndex, int heatIndex, bool startDespiteFailures = false, bool firstRun = false)
         {
             if (tournamentState.tournamentStyle == TournamentStyle.TemplateRNG)
             {
@@ -1989,6 +1989,10 @@ namespace BDArmory.Competition
                 }
             }
             yield return new WaitForFixedUpdate();
+            if (firstRun)
+            {
+                if (!BDTISettings.STORE_TEAM_COLORS) BDTISetup.Instance.ResetColors(); // Get some good colours on the first run instead of random ones.
+            }
             // NOTE: runs in separate coroutine
             if (BDArmorySettings.RUNWAY_PROJECT)
             {
@@ -2204,6 +2208,25 @@ namespace BDArmory.Competition
             {
                 if (body.isStar) return 0.5;
                 return ((lon - body.GetLongitude(sun.position - body.position, true)) % 360 / 360.0 + 1.5) % 1.0;
+            }
+        }
+
+        public IEnumerator WarpIfNeeded(SpawnConfig spawnConfig)
+        {
+            if (BDArmorySettings.TOURNAMENT_TIMEWARP_BETWEEN_ROUNDS < 0)
+            {
+                var body = FlightGlobals.Bodies[spawnConfig.worldIndex];
+                if (!EarlyBird.IsDayTime(spawnConfig.latitude, spawnConfig.longitude, body, 10))
+                {
+                    SpawnUtils.ShowSpawnPoint(spawnConfig.worldIndex, spawnConfig.latitude, spawnConfig.longitude, spawnConfig.altitude);
+                    BDACompetitionMode.Instance.competitionStatus.Add($"Warping ahead to morning, then running the next round.");
+                    yield return WarpAhead(EarlyBird.TimeToDaylight(
+                        spawnConfig.latitude,
+                        spawnConfig.longitude,
+                        body,
+                        10
+                    )); // Warp to morning +10mins.
+                }
             }
         }
         #endregion

@@ -654,11 +654,18 @@ namespace BDArmory.Targeting
 
         void UpdateRadarLock()
         {
+            // If CoMLock disable radar lock
+            if (CoMLock && lockedVessel)
+            {
+                radarLock = false;
+                return;
+            }
+
             var weaponManager = WeaponManager;
             if (weaponManager && weaponManager.vesselRadarData && weaponManager.vesselRadarData.locked)
             {
                 RadarDisplayData tgt = weaponManager.vesselRadarData.lockedTargetData;
-                Vector3 radarTargetPos = tgt.targetData.predictedPosition;
+                Vector3 radarTargetPos = tgt.targetData.predictedPositionWithChaffFactor(tgt.detectedByRadar.radarChaffClutterFactor);
                 Vector3 targetDirection = radarTargetPos - cameraParentTransform.position;
 
                 //Quaternion lookRotation = Quaternion.LookRotation(radarTargetPos-cameraParentTransform.position, VectorUtils.GetUpDirection(cameraParentTransform.position));
@@ -722,8 +729,8 @@ namespace BDArmory.Targeting
 
                 if (BDArmorySettings.DEBUG_RADAR)
                 {
-                    GUI.Label(new Rect(600, 1000, 100, 30), "Slew rate: " + finalSlewSpeed);
-                    GUI.Label(new Rect(600, 950, 200, 30), "ComLock: " + (CoMLock ? lockedVessel != null ? lockedVessel.GetName() : "null" : "false"));
+                    GUI.Label(new Rect(600, 1000, 200, 30), $"Slew rate: {finalSlewSpeed:G3}");
+                    GUI.Label(new Rect(600, 950, 200, 30), $"ComLock: {(CoMLock ? lockedVessel != null ? lockedVessel.GetName() : "null" : "false")}");
                 }
 
                 if (BDArmorySettings.DEBUG_LINES && cameraEnabled && cameraParentTransform is not null)
@@ -854,26 +861,26 @@ namespace BDArmory.Targeting
             Rect slewRightRect = new Rect(slewStartX + (2 * buttonHeight) + (gap * 2), slewStartY + ((buttonHeight + gap) / 2), buttonHeight, buttonHeight);
             if (GUI.RepeatButton(slewUpRect, "^", GUI.skin.button))
             {
-                //SlewCamera(Vector3.up);
-                slewInput.y = 1;
+                SlewCamera(Vector3.up); // OnGUI occurs after LateUpdate, so we can't set slewInput and expect it to work for the current frame.
+                // slewInput.y = 1;
             }
 
             if (GUI.RepeatButton(slewDownRect, "v", GUI.skin.button))
             {
-                //SlewCamera(Vector3.down);
-                slewInput.y = -1;
+                SlewCamera(Vector3.down);
+                // slewInput.y = -1;
             }
 
             if (GUI.RepeatButton(slewLeftRect, "<", GUI.skin.button))
             {
-                //SlewCamera(Vector3.left);
-                slewInput.x = -1;
+                SlewCamera(Vector3.left);
+                // slewInput.x = -1;
             }
 
             if (GUI.RepeatButton(slewRightRect, ">", GUI.skin.button))
             {
-                //SlewCamera(Vector3.right);
-                slewInput.x = 1;
+                SlewCamera(Vector3.right);
+                // slewInput.x = 1;
             }
         }
 
@@ -1180,9 +1187,9 @@ namespace BDArmory.Targeting
             if (weaponManager)
             {
                 weaponManager.slavingTurrets = false;
+                weaponManager.slavedPosition = Vector3.zero;
+                weaponManager.slavedTarget = TargetSignatureData.noTarget; //reset and null these so hitting the slave target button on a weapon later doesn't lock it to a legacy position/target
             }
-            weaponManager.slavedPosition = Vector3.zero;
-            weaponManager.slavedTarget = TargetSignatureData.noTarget; //reset and null these so hitting the slave target button on a weapon later doesn't lock it to a legacy position/target
         }
 
         void UpdateSlaveData()
@@ -1306,27 +1313,29 @@ namespace BDArmory.Targeting
             StopResetting();
 
             RaycastHit rayHit;
-            Ray ray = new Ray(cameraParentTransform.position + (50 * cameraParentTransform.forward), cameraParentTransform.forward);
-            bool raycasted = Physics.Raycast(ray, out rayHit, maxRayDistance - 50, (int)(LayerMasks.Parts | LayerMasks.Scenery | LayerMasks.EVA | LayerMasks.Unknown19 | LayerMasks.Unknown23 | LayerMasks.Wheels));
+            Ray ray = new Ray(cameraParentTransform.position, cameraParentTransform.forward);
+            bool raycasted = Physics.Raycast(ray, out rayHit, maxRayDistance, (int)(LayerMasks.Parts | LayerMasks.Scenery | LayerMasks.EVA | LayerMasks.Unknown19 | LayerMasks.Unknown23 | LayerMasks.Wheels));
             if (raycasted)
             {
-                if (FlightGlobals.getAltitudeAtPos(rayHit.point) < 0)
+                Part p;
+                if (FlightGlobals.getAltitudeAtPos(rayHit.point) < 0 || ((p = rayHit.collider.GetComponentInParent<Part>()) && p.vessel == vessel))
                 {
                     raycasted = false;
                 }
                 else
                 {
                     KerbalEVA hitEVA = rayHit.collider.gameObject.GetComponentUpwards<KerbalEVA>();
-                    Part p = hitEVA ? hitEVA.part : rayHit.collider.GetComponentInParent<Part>();
+                    if (hitEVA)
+                        p = hitEVA.part;
 
                     bool pCheck = false;
 
                     if (p && p.vessel)
                     {
-                        var pMissile = VesselModuleRegistry.GetModule<MissileBase>(p.vessel);
-                        if (pMissile != null)
+                        TargetInfo pInfo;
+                        if (p.vessel != lockedVessel && (pInfo = vessel.gameObject.GetComponent<TargetInfo>()) != null && pInfo.isMissile && pInfo.MissileBaseModule.FiredByWM == WeaponManager)
                         {
-                            if (pMissile.SourceVessel == vessel) return;
+                            return;
                         }
                         pCheck = true;
                     }
@@ -1396,51 +1405,59 @@ namespace BDArmory.Targeting
             if (delayedEnabling) return;
 
             RaycastHit rayHit;
-            Ray ray = new Ray(cameraParentTransform.position + (50 * cameraParentTransform.forward), cameraParentTransform.forward);
-            if (Physics.Raycast(ray, out rayHit, maxRayDistance - 50, (int)(LayerMasks.Parts | LayerMasks.Scenery | LayerMasks.EVA | LayerMasks.Unknown19 | LayerMasks.Unknown23 | LayerMasks.Wheels)))
-            {
-                targetPointPosition = rayHit.point;
-
-                if (!surfaceDetected && groundStabilized && !gimbalLimitReached)
-                {
-                    groundStabilized = true;
-                    groundTargetPosition = rayHit.point;
-
-                    if (CoMLock)
-                    {
-                        KerbalEVA hitEVA = rayHit.collider.gameObject.GetComponentUpwards<KerbalEVA>();
-                        Part p = hitEVA ? hitEVA.part : rayHit.collider.GetComponentInParent<Part>();
-                        if (p && p.vessel)
-                        {
-                            groundTargetPosition = p.vessel.CoM;
-                            lockedVessel = p.vessel;
-                        }
-                        else
-                        {
-                            lockedVessel = null;
-                        }
-                    }
-                    Vector3d newGTP = VectorUtils.WorldPositionToGeoCoords(groundTargetPosition, vessel.mainBody);
-                    if (newGTP != Vector3d.zero)
-                    {
-                        bodyRelativeGTP = newGTP;
-                    }
-                }
-
-                surfaceDetected = true;
-
-                if (groundStabilized && !gimbalLimitReached && CMDropper.smokePool != null)
-                {
-                    if (CMSmoke.RaycastSmoke(ray))
-                    {
-                        surfaceDetected = false;
-                    }
-                }
-            }
-            else
+            Ray ray = new Ray(cameraParentTransform.position, cameraParentTransform.forward);
+            if (!Physics.Raycast(ray, out rayHit, maxRayDistance, (int)(LayerMasks.Parts | LayerMasks.Scenery | LayerMasks.EVA | LayerMasks.Unknown19 | LayerMasks.Unknown23 | LayerMasks.Wheels)))
             {
                 targetPointPosition = cameraParentTransform.position + (maxRayDistance * cameraParentTransform.forward);
                 surfaceDetected = false;
+                return;
+            }
+
+            Part p = rayHit.collider.GetComponentInParent<Part>();
+            TargetInfo pInfo;
+            if (p && p.vessel == vessel || (p.vessel != lockedVessel && (pInfo = vessel.gameObject.GetComponent<TargetInfo>()) != null && pInfo.isMissile && pInfo.MissileBaseModule.FiredByWM == WeaponManager))
+            {
+                targetPointPosition = cameraParentTransform.position + (maxRayDistance * cameraParentTransform.forward);
+                surfaceDetected = false;
+                return;
+            }
+
+            targetPointPosition = rayHit.point;
+            if (!surfaceDetected && groundStabilized && !gimbalLimitReached)
+            {
+                groundStabilized = true;
+                groundTargetPosition = rayHit.point;
+
+                if (CoMLock)
+                {
+                    KerbalEVA hitEVA = rayHit.collider.gameObject.GetComponentUpwards<KerbalEVA>();
+                    if (hitEVA)
+                        p = hitEVA.part;
+                    if (p && p.vessel)
+                    {
+                        groundTargetPosition = p.vessel.CoM;
+                        lockedVessel = p.vessel;
+                    }
+                    else
+                    {
+                        lockedVessel = null;
+                    }
+                }
+                Vector3d newGTP = VectorUtils.WorldPositionToGeoCoords(groundTargetPosition, vessel.mainBody);
+                if (newGTP != Vector3d.zero)
+                {
+                    bodyRelativeGTP = newGTP;
+                }
+            }
+
+            surfaceDetected = true;
+
+            if (groundStabilized && !gimbalLimitReached && CMDropper.smokePool != null)
+            {
+                if (CMSmoke.RaycastSmoke(ray))
+                {
+                    surfaceDetected = false;
+                }
             }
         }
 
@@ -1508,15 +1525,20 @@ namespace BDArmory.Targeting
                 yield break;
             }
             var wait = new WaitForFixedUpdate();
-            while (!stopPTPR && VectorUtils.Angle(cameraParentTransform.transform.forward, (tgtVessel != null ? tgtVessel.CoM : position) - (cameraParentTransform.transform.position)) > 0.1f)
+            Vector3 cameraPos;
+            Vector3 cameraForward;
+            while (!stopPTPR && VectorUtils.Angle((cameraForward = cameraParentTransform.transform.forward), (tgtVessel != null ? tgtVessel.CoM : position) - (cameraPos = cameraParentTransform.transform.position)) > 0.1f)
             {
                 if (tgtVessel != null)
                 {
                     position = tgtVessel.CoM + tgtVessel.Velocity() * Time.fixedDeltaTime;
-                    lockedVessel = tgtVessel;
+                    if ((tgtVessel.CoM - cameraPos).sqrMagnitude < maxRayDistance * maxRayDistance)
+                        lockedVessel = tgtVessel;
+                    else
+                        lockedVessel = null;
                 }
                 else lockedVessel = null;
-                Vector3 newForward = Vector3.RotateTowards(cameraParentTransform.transform.forward, position - cameraParentTransform.transform.position, traverseRate * Mathf.Deg2Rad * Time.fixedDeltaTime, 0);
+                Vector3 newForward = Vector3.RotateTowards(cameraForward, position - cameraPos, traverseRate * Mathf.Deg2Rad * Time.fixedDeltaTime, 0);
                 //cameraParentTransform.rotation = Quaternion.LookRotation(newForward, VectorUtils.GetUpDirection(transform.position));
                 PointCameraModel(newForward);
                 yield return wait;

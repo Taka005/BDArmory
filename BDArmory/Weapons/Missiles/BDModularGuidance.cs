@@ -1,11 +1,7 @@
-using KSP.UI.Screens;
-using System.Collections.Generic;
-using System;
-using UniLinq;
-using UnityEngine;
-
 using BDArmory.Control;
+using BDArmory.CounterMeasure;
 using BDArmory.Extensions;
+using BDArmory.FX;
 using BDArmory.Guidances;
 using BDArmory.Radar;
 using BDArmory.Settings;
@@ -13,8 +9,12 @@ using BDArmory.Targeting;
 using BDArmory.UI;
 using BDArmory.Utils;
 using BDArmory.VesselSpawning;
-using BDArmory.FX;
-using BDArmory.CounterMeasure;
+using BDArmory.WeaponMounts;
+using KSP.UI.Screens;
+using System;
+using System.Collections.Generic;
+using UniLinq;
+using UnityEngine;
 
 namespace BDArmory.Weapons.Missiles
 {
@@ -63,9 +63,7 @@ namespace BDArmory.Weapons.Missiles
         [KSPField(isPersistant = true, guiActive = true, guiName = "#LOC_BDArmory_WeaponName", guiActiveEditor = true), UI_Label(affectSymCounterparts = UI_Scene.All, scene = UI_Scene.All)]//Weapon Name 
         public string WeaponName;
 
-        [KSPField(advancedTweakable = true, isPersistant = true, guiActive = false, guiActiveEditor = false, guiName = "#LOC_BDArmory_FiringPriority"),
-    UI_FloatRange(minValue = 0, maxValue = 10, stepIncrement = 1, scene = UI_Scene.All, affectSymCounterparts = UI_Scene.All)]
-        public float priority = 0; //per-weapon priority selection override
+        // priority transferred to MissileBase
 
         [KSPField(isPersistant = false, guiActive = true, guiName = "#LOC_BDArmory_GuidanceType", guiActiveEditor = true)]//Guidance Type 
         public string GuidanceLabel = "AGM/STS";
@@ -445,6 +443,12 @@ namespace BDArmory.Weapons.Missiles
                 missileCM.RemoveAll(dropper => dropper.vessel != vessel);
         }
 
+        public override void OnAwake()
+        {
+            base.OnAwake();
+            SetPersistantFields(); // Adjust persistency of various fields before they get loaded.
+        }
+
         void Update()
         {
             if (!HighLogic.LoadedSceneIsFlight) return;
@@ -653,7 +657,24 @@ namespace BDArmory.Weapons.Missiles
 
             weaponClass = WeaponClasses.Missile;
             WeaponName = GetShortName();
-            if (HighLogic.LoadedSceneIsFlight) missileName = shortName;
+            if (HighLogic.LoadedSceneIsFlight && customTurretID > 0)
+            {
+                missileName = shortName;
+                using (var servo = VesselModuleRegistry.GetModules<ModuleCustomTurret>(vessel).GetEnumerator())
+                    while (servo.MoveNext())
+                    {
+                        if (servo.Current == null) continue;
+                        if ((int)servo.Current.turretID != (int)customTurretID) continue;
+                        customTurret.Add(servo.Current);
+                        servo.Current.SetReferenceTransform(MissileReferenceTransform); //confirm this is pointing in the right direction
+                    }
+                if (customTurret.Count == 0) customTurretID = 0;
+            }
+            if (HighLogic.LoadedSceneIsEditor)
+            {
+                GameEvents.onEditorPartPlaced.Add(OnEditorPartPlaced);
+                FindTurretInParents(part);
+            }
             activeRadarRange = ActiveRadarRange;
             chaffEffectivity = ChaffEffectivity;
             missileCMRange = MissileCMRange;
@@ -760,15 +781,6 @@ namespace BDArmory.Weapons.Missiles
                 Fields["detonationTime"].guiActiveEditor = false;
             }
 
-            Fields["LoftMaxAltitude"].isPersistant = true;
-            Fields["LoftRangeOverride"].isPersistant = true;
-            Fields["LoftAltitudeAdvMax"].isPersistant = true;
-            Fields["LoftMinAltitude"].isPersistant = true;
-            Fields["LoftAngle"].isPersistant = true;
-            Fields["LoftTermAngle"].isPersistant = true;
-            Fields["LoftRangeFac"].isPersistant = true;
-            Fields["LoftVelComp"].isPersistant = true;
-            Fields["LoftVertVelComp"].isPersistant = true;
             Fields["terminalHomingRange"].guiActiveEditor = false;
 
             Fields["LoftMaxAltitude"].uiControlEditor = (UI_FloatRange)Fields["LoftMaxAltitude"].uiControlFlight;
@@ -817,6 +829,19 @@ namespace BDArmory.Weapons.Missiles
             InitializeEngagementRange(minStaticLaunchRange, maxStaticLaunchRange);
         }
 
+        private void SetPersistantFields()
+        {
+            Fields["LoftMaxAltitude"].isPersistant = true;
+            Fields["LoftRangeOverride"].isPersistant = true;
+            Fields["LoftAltitudeAdvMax"].isPersistant = true;
+            Fields["LoftMinAltitude"].isPersistant = true;
+            Fields["LoftAngle"].isPersistant = true;
+            Fields["LoftTermAngle"].isPersistant = true;
+            Fields["LoftRangeFac"].isPersistant = true;
+            Fields["LoftVelComp"].isPersistant = true;
+            Fields["LoftVertVelComp"].isPersistant = true;
+        }
+
         private void OnStageOnProximity(BaseField baseField, object o)
         {
             UI_FloatRange detonationDistance = (UI_FloatRange)Fields["DetonationDistance"].uiControlEditor;
@@ -860,12 +885,33 @@ namespace BDArmory.Weapons.Missiles
             GUIUtils.RefreshAssociatedWindows(part);
         }
 
+        void OnEditorPartPlaced(Part p)
+        {
+            if (p = part) FindTurretInParents(part);
+        }
+        private void FindTurretInParents(Part p)
+        {
+            if (p == null)
+            {
+                Fields["customTurretID"].guiActiveEditor = false;
+                return;
+            }
+            var turret = p.FindModuleImplementing<ModuleCustomTurret>();
+            if (turret != null)
+            {
+                Fields["customTurretID"].guiActiveEditor = true;
+                return;
+            }
+            FindTurretInParents(p.parent);
+        }
+
         private void OnDestroy()
         {
             if (vessel) vessel.OnFlyByWire -= GuidanceSteer;
             WeaponNameWindow.OnActionGroupEditorOpened.Remove(OnActionGroupEditorOpened);
             WeaponNameWindow.OnActionGroupEditorClosed.Remove(OnActionGroupEditorClosed);
             GameEvents.onPartDie.Remove(PartDie);
+            GameEvents.onEditorPartPlaced.Remove(OnEditorPartPlaced);
             if (_velocityTransform != null) { Destroy(_velocityTransform.gameObject); }
         }
 

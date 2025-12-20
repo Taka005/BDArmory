@@ -981,6 +981,8 @@ namespace BDArmory.Competition
                         yield break;
                     }
             }
+            // Refresh teams (after the above checks) in case fighters have split off from their motherships and we now have more pilots.
+            leaderNames = RefreshPilots(out pilots, out leaders, true);
             if (BDATargetManager.LoadedVessels.Where(v => !VesselModuleRegistry.IgnoredVesselTypes.Contains(v.vesselType)).Any(v => VesselModuleRegistry.GetModuleCount<ModuleRadar>(v) > 0)) // Update RCS if any vessels have radars.
             {
                 try
@@ -1004,7 +1006,7 @@ namespace BDArmory.Competition
                 }
             }
             // Update attack point (necessary for orbit)
-            var allPilots = GetAllPilots().Where(pilot => pilot != null && pilot.vessel != null && gameObject != null).ToList();
+            var allPilots = pilots.Values.SelectMany(p => p).Where(pilot => pilot != null && pilot.vessel != null && gameObject != null).ToList();
             foreach (var pilot in allPilots) center += pilot.vessel.CoM;
             center /= allPilots.Count;
             centerGPS = VectorUtils.WorldPositionToGeoCoords(center, FlightGlobals.currentMainBody);
@@ -3334,12 +3336,12 @@ namespace BDArmory.Competition
             var pilots = GetAllPilots();
             foreach (var pilot in pilots)
             {
-                if (pilot as BDModulePilotAI == null && pilot as BDModuleOrbitalAI == null) continue; // Ignore those without valid AIs.
+                //if (pilot as BDModulePilotAI == null && pilot as BDModuleOrbitalAI == null) continue; // Ignore those without valid AIs.
                 var targetRammingInformation = new Dictionary<string, RammingTargetInformation>();
                 foreach (var otherPilot in pilots)
                 {
                     if (otherPilot == pilot) continue; // Don't include same-vessel information.
-                    if (otherPilot as BDModulePilotAI == null && otherPilot as BDModuleOrbitalAI == null) continue; // Ignore those without valid AIs.
+                    //if (otherPilot as BDModulePilotAI == null && otherPilot as BDModuleOrbitalAI == null) continue; // Ignore those without valid AIs.
                     targetRammingInformation.Add(otherPilot.vessel.vesselName, new RammingTargetInformation { vessel = otherPilot.vessel });
                 }
                 rammingInformation.Add(pilot.vessel.vesselName, new RammingInformation

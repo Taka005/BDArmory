@@ -126,6 +126,9 @@ namespace BDArmory.Radar
         public float radarMinTrackSCR = 1f;
 
         [KSPField]
+        public bool radarCanNotch = true;
+
+        [KSPField]
         public float radarGroundClutterFactor = 0.25f; //Factor defining how effective the radar is for look-down, compensating for ground clutter (0=ineffective, 1=fully effective)
                                                        //default to 0.25, so all cross sections of landed/splashed/submerged vessels are reduced to 1/4th, as these vessel usually a quite large
         [KSPField]
@@ -136,7 +139,7 @@ namespace BDArmory.Radar
 
         [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_DynamicRadar", advancedTweakable = true),//Disable Radar vs ARMs
             UI_Toggle(enabledText = "#LOC_BDArmory_true", disabledText = "#LOC_BDArmory_false", scene = UI_Scene.All),]//Starboard (CW)--Port (CCW)
-        public bool DynamicRadar = true;
+        public bool DynamicRadar = false;
 
         public enum SonarModes
         {
@@ -525,10 +528,29 @@ namespace BDArmory.Radar
 
         public void ParseRadarLimits(in string radarLimitString, out float radarOffset, out float radarFOV, out float[] radarLimits, out float[] radarMinMaxLimits, bool elevationLimits = false)
         {
-            radarLimits = elevationLimits ? [radarAzLimits[0], radarAzLimits[1]] : [-45f, 45f];
-            radarMinMaxLimits = elevationLimits ? [radarMinMaxAzLimits[0], radarMinMaxAzLimits[1]] : [45f, 45f];
+            // If we're parsing elevation limits
+            if (elevationLimits)
+            {
+                // Then consider if it's omnidirectional or not, by default, omni radars are allowed +/- 90° FoV
+                // Otherwise the default is a square radar scan area (based on radarAZLimits)
+                radarLimits = omnidirectional ? [-90f, 90f] : [radarAzLimits[0], radarAzLimits[1]];
+                //radarMinMaxLimits = omnidirectional ? [90f, 90f] : [radarMinMaxAzLimits[0], radarMinMaxAzLimits[1]];
+                // Even if the azimuth is offset, we should start with no offset for elevation
+                radarMinMaxLimits = omnidirectional ? [90f, 90f] : [0.5f * radarAzFOV, 0.5f * radarAzFOV];
+                // Default omnidirectional FoV is 180°
+                radarFOV = omnidirectional ? 180f : radarAzFOV;
+            }
+            else
+            {
+                // If we're not parsing elevation limits, then default to a +/- 45° FoV
+                radarLimits = [-45f, 45f];
+                radarMinMaxLimits = [45f, 45f];
+                radarFOV = 90f;
+            }
+            
+            // For both az/el the dfault is 0 offset
             radarOffset = 0f;
-            radarFOV = elevationLimits ? radarAzFOV : 90f;
+            
             string[] limitStrings = radarLimitString.Split([',']);
             if (limitStrings.Length > 0)
             {
@@ -1019,17 +1041,16 @@ namespace BDArmory.Radar
                         Debug.Log("[BDArmory.ModuleRadar]: - Acquired lock on target (" + (attemptedLocks[i].vessel != null ? attemptedLocks[i].vessel.name : null) + ")");
 
                     vesselRadarData.AddRadarContact(this, lockedTarget, true);
-                    vesselRadarData.UpdateLockedTargets();
+                    //vesselRadarData.UpdateLockedTargets();
                     if (linkedToVessels.Count > 0)
                         foreach (VesselRadarData vrd in linkedToVessels)
                         {
                             if (vrd)
                             {
                                 vrd.AddRadarContact(this, lockedTarget, true, true);
-                                vrd.UpdateLockedTargets();
+                                //vrd.UpdateLockedTargets();
                             }
                         }
-                    attemptedLocks[i] = TargetSignatureData.noTarget;
                     return true;
                 }
             }
@@ -1230,6 +1251,9 @@ namespace BDArmory.Radar
             }
             Vessel rVess = lockedTargets[index].vessel;
 
+            if (rVess == null)
+                tryRelock = false;
+
             if (tryRelock)
             {
                 UnlockTargetAt(index, false);
@@ -1253,13 +1277,13 @@ namespace BDArmory.Radar
             if (vesselRadarData)
             {
                 //vesselRadarData.UnlockTargetAtPosition(position);
-                vesselRadarData.RemoveVesselFromTargets(rVess);
+                vesselRadarData.RemoveVesselFromLockedTargets(rVess);
             }
             if (linkedToVessels.Count > 0)
                 foreach (VesselRadarData vrd in linkedToVessels)
                 {
                     if (vrd)
-                        vrd.RemoveVesselFromTargets(rVess);
+                        vrd.RemoveVesselFromLockedTargets(rVess);
                 }
         }
 
@@ -1307,9 +1331,9 @@ namespace BDArmory.Radar
         {
             if (wpmr != null)
             {
-                attemptedLocks = new TargetSignatureData[wpmr.MaxradarLocks];
+                attemptedLocks = new TargetSignatureData[wpmr.MaxRadarLocks];
                 TargetSignatureData.ResetTSDArray(ref attemptedLocks);
-                //lockSuccesses = new bool[wpmr.MaxradarLocks];
+                //lockSuccesses = new bool[wpmr.MaxRadarLocks];
             }
         }
 
@@ -1493,7 +1517,8 @@ namespace BDArmory.Radar
             output.AppendLine(StringUtils.Localize("#autoLOC_bda_1000021", resourceDrain));
             if (!isLinkOnly)
             {
-                output.AppendLine(StringUtils.Localize("#autoLOC_bda_1000022", radarAzLimits[0], radarAzLimits[1]));
+                if (!omnidirectional)
+                    output.AppendLine(StringUtils.Localize("#autoLOC_bda_1000022", radarAzLimits[0], radarAzLimits[1]));
                 output.AppendLine(StringUtils.Localize("#autoLOC_bda_1000041", radarElLimits[0], radarElLimits[1]));
                 output.AppendLine(StringUtils.Localize("#autoLOC_bda_1000023", getRWRType(rwrThreatType)));
 

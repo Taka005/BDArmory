@@ -195,6 +195,7 @@
     <Compile Include="Extensions\CrewExtensions.cs" />
     <Compile Include="Extensions\DictionaryExtensions.cs" />
     <Compile Include="Extensions\FloatExtensions.cs" />
+    <Compile Include="Extensions\OrbitExtensions.cs" />
     <Compile Include="Extensions\PartExtensions.cs" />
     <Compile Include="Extensions\VectorExtensions.cs" />
     <Compile Include="Extensions\VesselExtensions.cs" />
@@ -340,6 +341,7 @@
     <Compile Include="WeaponMounts\BDDeployableRail.cs" />
     <Compile Include="WeaponMounts\BDRotaryRail.cs" />
     <Compile Include="WeaponMounts\MissileTurret.cs" />
+    <Compile Include="WeaponMounts\ModuleCustomTurret.cs" />
     <Compile Include="WeaponMounts\ModuleTurret.cs" />
     <Compile Include="WeaponMounts\WMTurretGroup.cs" />
     <Compile Include="Weapons\BDCustomWarhead.cs" />

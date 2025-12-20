@@ -59,6 +59,7 @@ namespace BDArmory.WeaponMounts
         Dictionary<string, Vector3> comOffsets;
 
         public bool slaved;
+        public bool slavedGuard = false;
         public bool manuallyControlled = false;
 
         public Vector3 slavedTargetPosition;
@@ -78,6 +79,7 @@ namespace BDArmory.WeaponMounts
         [KSPField] public bool deployBlocksYaw = false; // Turret must deploy before yawing, turret must return to yaw standby position to stow/"undeploy".
         [KSPField] public bool deployBlocksPitch = false; // Turret must deploy before pitching, turret must return to pitch standby position to stow/"undeploy".
         public bool isReloading = false;
+        [KSPField] public bool startsDeployed = false; //Turret starts in deployed position and only uses deploy anim for relaoding. TODO: proper reload anim support for turrets independent of deployAnim
 
         //animation
         [KSPField] public string deployAnimationName;
@@ -168,7 +170,7 @@ namespace BDArmory.WeaponMounts
                 Events["ReturnTurret"].guiActive = false;
             }
 
-            if (hasDeployAnimation && !(isReloading && deployBlocksReload))
+            if ((hasDeployAnimation && !startsDeployed) && !(isReloading && deployBlocksReload))
             {
                 if (deployAnimRoutine != null)
                 {
@@ -239,7 +241,7 @@ namespace BDArmory.WeaponMounts
 
             hasReturned = true;
 
-            bool retract = isDeployed() && (!turretEnabled || deployBlocksReload);
+            bool retract = isDeployed() && ((!turretEnabled && !startsDeployed) || (isReloading && deployBlocksReload));
 
             if (retract && !(deployBlocksYaw || deployBlocksPitch))
             {
@@ -290,7 +292,7 @@ namespace BDArmory.WeaponMounts
             {
                 hasDeployAnimation = true;
                 deployAnimState = GUIUtils.SetUpSingleAnimation(deployAnimationName, part);
-                if (state == StartState.Editor)
+                if (state == StartState.Editor && !startsDeployed)
                 {
                     Events["EditorToggleAnimation"].guiActiveEditor = true;
                 }
@@ -418,13 +420,19 @@ namespace BDArmory.WeaponMounts
                     slaved = true;
                     //slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(wm.CurrentMissile, wm.slavedPosition, wm.slavedVelocity);
                     slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(activeMissile, wm.slavedPosition, wm.slavedVelocity, turretLoft, turretLoftFac);
+                    return;
                 }
                 else if (wm.mainTGP != null && ModuleTargetingCamera.windowIsOpen && wm.mainTGP.slaveTurrets)
                 {
                     slaved = true;
                     //slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(wm.CurrentMissile, wm.slavedPosition, wm.slavedVelocity);
                     slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(activeMissile, wm.mainTGP.targetPointPosition, wm.mainTGP.lockedVessel ? wm.mainTGP.lockedVessel.Velocity() : Vector3.zero, turretLoft, turretLoftFac);
+                    return;
                 }
+                if (wm.guardMode)
+                    slaved = slavedGuard;
+                else
+                    slavedGuard = false;
             }
         }
 

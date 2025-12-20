@@ -150,6 +150,7 @@ namespace BDArmory.VesselSpawning
             Queue<string> spawnQueue = [];
             Queue<string> craftToSpawn = [];
             double currentUpdateTick;
+            bool hasSetTeamColours = BDTISettings.STORE_TEAM_COLORS;
             var sufficientCraftTimer = Time.time;
             while (vesselsSpawningContinuously)
             {
@@ -220,7 +221,7 @@ namespace BDArmory.VesselSpawning
                                 shufflePool.Remove(selected);
                             }
                         }
-                        foreach (var craft in shufflePool) bubbleShuffleQueue.Enqueue(craft); // Add any remaining craft in the shuffle pool.
+                        foreach (var craft in shufflePool) bubbleShuffleQueue.Enqueue(craft); // Add any remaining craft in the shuffle pool.                        
                         while (bubbleShuffleQueue.Count > 0) spawnQueue.Enqueue(bubbleShuffleQueue.Dequeue()); // Re-insert the craft into the spawn queue from the bubble shuffle queue.
                     }
                     while (craftToSpawn.Count + currentlySpawningCount + currentlyActive < spawnSlots.Count && spawnQueue.Count > 0)
@@ -251,7 +252,7 @@ namespace BDArmory.VesselSpawning
                             foreach (var vessel in vessels) spawnPoint += vessel.CoM;
                             spawnPoint /= 1 + vessels.Count;
                             radialUnitVector = (spawnPoint - FlightGlobals.currentMainBody.transform.position).normalized;
-                            spawnPoint += (spawnConfig.altitude - BodyUtils.GetTerrainAltitudeAtPos(spawnPoint)) * radialUnitVector; // Reset the altitude to the desired spawn altitude.
+                            spawnPoint += (spawnConfig.altitude - BodyUtils.GetRadarAltitudeAtPos(spawnPoint)) * radialUnitVector; // Reset the altitude to the desired spawn altitude.
                         }
                         var refDirection = Math.Abs(Vector3.Dot(Vector3.up, radialUnitVector)) < 0.71f ? Vector3.up : Vector3.forward; // Avoid that the reference direction is colinear with the local surface normal.
                         // Configure vessel spawn configs
@@ -281,6 +282,11 @@ namespace BDArmory.VesselSpawning
                     {
                         yield return new WaitWhileFixed(() => currentlySpawningCount > 0);
                         vesselsSpawning = false;
+                        if (!hasSetTeamColours)
+                        {
+                            BDTISetup.Instance.ResetColors();
+                            hasSetTeamColours = true;
+                        }
                     }
 
                     // Start the competition once we have enough craft.
@@ -290,7 +296,7 @@ namespace BDArmory.VesselSpawning
 
                 // Kill off vessels that are out of ammo for too long if we're in continuous spawning mode and a competition is active.
                 if (BDACompetitionMode.Instance.competitionIsActive)
-                    KillOffOutOfAmmoVessels();
+                    KillOffOutOfAmmoVessels();                    
 
                 if (BDACompetitionMode.Instance.competitionIsActive)
                 {
@@ -304,7 +310,7 @@ namespace BDArmory.VesselSpawning
             }
             #endregion
             vesselsSpawningContinuously = false;
-            LogMessage("[BDArmory.VesselSpawner]: Continuous vessel spawning ended.", false);
+            LogMessage("[BDArmory.VesselSpawner]: Continuous vessel spawning ended.", false);            
         }
 
         readonly List<string> currentlySpawning = [];
