@@ -372,6 +372,8 @@ namespace BDArmory.Weapons.Missiles
         private float burnRate = 0;
         private float burnedFuelMass = 0;
         public float maxCruiseSpeed = 300f;
+        public bool canCruisePopup = false;
+        public bool canDetMinDist = false;
 
         private int cruiseTerminationFrames = 0;
 
@@ -879,16 +881,26 @@ namespace BDArmory.Weapons.Missiles
             if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MissileLauncher] Start() setup complete");
         }
 
-        public void SetFields()
+        public void SetFields(bool checkBaseConfig = true)
         {
             ParseWeaponClass();
             ParseModes();
             InitializeEngagementRange(minStaticLaunchRange, maxStaticLaunchRange);
-            SetInitialDetonationDistance();
+            if (proxyDetonate)
+                SetInitialDetonationDistance();
+            else
+                DetonationDistance = 0f;
             uncagedLock = (allAspect) ? allAspect : uncagedLock;
             guidanceFailureRatePerFrame = (guidanceFailureRate >= 1) ? 1f : 1f - Mathf.Exp(Mathf.Log(1f - guidanceFailureRate) * Time.fixedDeltaTime); // Convert from per-second failure rate to per-frame failure rate
             invManeuvergLimit = 1f / maneuvergLimit;
+            // MMLs **shouldn't** be checking the base config, hence checkBaseConfig being a thing
+            MissileLauncher baseConfig = checkBaseConfig ? part.partInfo.partPrefab.FindModuleImplementing<MissileLauncher>() : null;
 
+            if (checkBaseConfig && baseConfig)
+            {
+                canDetMinDist = baseConfig.DetonateAtMinimumDistance;
+                if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: setting canDetMinDist of {part} on {(HighLogic.LoadedSceneIsFlight ? part.vessel.vesselName : EditorLogic.fetch.ship.shipName)} to {canDetMinDist}");
+            }
             if (isTimed)
             {
                 Fields["detonationTime"].guiActive = true;
@@ -914,17 +926,27 @@ namespace BDArmory.Weapons.Missiles
             }
             else
             {
-                string maxCruiseSpeedString = ConfigNodeUtils.FindPartModuleConfigNodeValue(part.partInfo.partConfig, "MissileLauncher", "CruiseSpeed");
-                if (!string.IsNullOrEmpty(maxCruiseSpeedString)) // Use the default value from the MM patch.
+                /*string baseConfigParamString = ConfigNodeUtils.FindPartModuleConfigNodeValue(part.partInfo.partConfig, "MissileLauncher", "CruiseSpeed");
+                if (!string.IsNullOrEmpty(baseConfigParamString)) // Use the default value from the MM patch.
                 {
                     try
                     {
-                        maxCruiseSpeed = float.Parse(maxCruiseSpeedString);
+                        maxCruiseSpeed = float.Parse(baseConfigParamString);
                         if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MissileLauncher]: setting maxCruiseSpeed of " + part + " on " + part.vessel.vesselName + " to " + maxCruiseSpeed);
                     }
                     catch (Exception e)
                     {
                         Debug.LogError("[BDArmory.MissileLauncher]: Failed to parse maxCruiseSpeed configNode: " + e.Message);
+                    }
+                }*/
+                if (checkBaseConfig && baseConfig)
+                {
+                    maxCruiseSpeed = baseConfig.CruiseSpeed;
+                    canCruisePopup = baseConfig.CruisePopup;
+                    if (BDArmorySettings.DEBUG_MISSILES)
+                    {
+                        Debug.Log($"[BDArmory.MissileLauncher]: setting maxCruiseSpeed of {part} on {(HighLogic.LoadedSceneIsFlight ? part.vessel.vesselName : EditorLogic.fetch.ship.shipName)} to {maxCruiseSpeed}");
+                        Debug.Log($"[BDArmory.MissileLauncher]: setting canCruisePopup of {part} on {(HighLogic.LoadedSceneIsFlight ? part.vessel.vesselName : EditorLogic.fetch.ship.shipName)} to {canCruisePopup}");
                     }
                 }
                 UI_FloatRange CruiseSpeedRange = (UI_FloatRange)Fields["CruiseSpeed"].uiControlEditor;
@@ -938,10 +960,16 @@ namespace BDArmory.Weapons.Missiles
                 Events["CruiseAltitudeRange"].guiActive = true;
                 Events["CruiseAltitudeRange"].guiActiveEditor = true;
                 Fields["CruisePredictionTime"].guiActiveEditor = true;
-                if (CruisePopup)
+                if (canCruisePopup)
+                {
                     Fields["CruisePopup"].guiActive = true;
+                    Fields["CruisePopup"].guiActiveEditor = true;
+                }
                 else
+                {
                     Fields["CruisePopup"].guiActive = false;
+                    Fields["CruisePopup"].guiActiveEditor = false;
+                }
             }
 
             if (GuidanceMode != GuidanceModes.AGM)
@@ -1014,10 +1042,6 @@ namespace BDArmory.Weapons.Missiles
                 Fields["LoftAngle"].guiActiveEditor = false;
                 Fields["LoftTermAngle"].guiActive = false;
                 Fields["LoftTermAngle"].guiActiveEditor = false;
-                Fields["LoftRangeFac"].guiActive = false;
-                Fields["LoftRangeFac"].guiActiveEditor = false;
-                Fields["LoftVertVelComp"].guiActive = false;
-                Fields["LoftVertVelComp"].guiActiveEditor = false;
             }
             else
             {
@@ -1029,15 +1053,11 @@ namespace BDArmory.Weapons.Missiles
                 {
                     Fields["LoftAngle"].guiActiveEditor = false;
                     Fields["LoftTermAngle"].guiActiveEditor = false;
-                    Fields["LoftRangeFac"].guiActiveEditor = false;
-                    Fields["LoftVertVelComp"].guiActiveEditor = false;
                 }
                 else
                 {
                     Fields["LoftAngle"].guiActiveEditor = true;
                     Fields["LoftTermAngle"].guiActiveEditor = true;
-                    Fields["LoftRangeFac"].guiActiveEditor = true;
-                    Fields["LoftVertVelComp"].guiActiveEditor = true;
                 }
 
                 if (!BDArmorySettings.DEBUG_MISSILES)
@@ -1046,8 +1066,7 @@ namespace BDArmory.Weapons.Missiles
                     Fields["LoftRangeOverride"].guiActive = false;
                     Fields["LoftAngle"].guiActive = false;
                     Fields["LoftTermAngle"].guiActive = false;
-                    Fields["LoftRangeFac"].guiActive = false;
-                    Fields["LoftVertVelComp"].guiActive = false;
+                    
                 }
                 else
                 {
@@ -1055,8 +1074,6 @@ namespace BDArmory.Weapons.Missiles
                     Fields["LoftRangeOverride"].guiActive = true;
                     Fields["LoftAngle"].guiActive = true;
                     Fields["LoftTermAngle"].guiActive = true;
-                    Fields["LoftRangeFac"].guiActive = true;
-                    Fields["LoftVertVelComp"].guiActive = true;
                 }
             }
 
@@ -1070,6 +1087,10 @@ namespace BDArmory.Weapons.Missiles
                 Fields["LoftVertVelComp"].guiActiveEditor = false;
                 Fields["LoftAltitudeAdvMax"].guiActive = false;
                 Fields["LoftAltitudeAdvMax"].guiActiveEditor = false;
+                Fields["LoftRangeFac"].guiActive = false;
+                Fields["LoftRangeFac"].guiActiveEditor = false;
+                Fields["LoftVertVelComp"].guiActive = false;
+                Fields["LoftVertVelComp"].guiActiveEditor = false;
                 //Fields["LoftAltComp"].guiActive = false;
                 //Fields["LoftAltComp"].guiActiveEditor = false;
                 //Fields["terminalHomingRange"].guiActive = false;
@@ -1086,6 +1107,7 @@ namespace BDArmory.Weapons.Missiles
                 {
                     Fields["LoftVelComp"].guiActiveEditor = false;
                     Fields["LoftVertVelComp"].guiActiveEditor = false;
+                    Fields["LoftRangeFac"].guiActiveEditor = false;
                     //Fields["LoftAltComp"].guiActive = false;
                     //Fields["LoftAltComp"].guiActiveEditor = false;
                 }
@@ -1093,6 +1115,7 @@ namespace BDArmory.Weapons.Missiles
                 {
                     Fields["LoftVelComp"].guiActiveEditor = true;
                     Fields["LoftVertVelComp"].guiActiveEditor = true;
+                    Fields["LoftRangeFac"].guiActiveEditor = true;
                     //Fields["LoftAltComp"].guiActive = true;
                     //Fields["LoftAltComp"].guiActiveEditor = true;
                 }
@@ -1103,6 +1126,7 @@ namespace BDArmory.Weapons.Missiles
                     Fields["LoftAltitudeAdvMax"].guiActive = false;
                     Fields["LoftVelComp"].guiActive = false;
                     Fields["LoftVertVelComp"].guiActive = false;
+                    Fields["LoftRangeFac"].guiActive = false;
                 }
                 else
                 {
@@ -1110,6 +1134,7 @@ namespace BDArmory.Weapons.Missiles
                     Fields["LoftAltitudeAdvMax"].guiActive = true;
                     Fields["LoftVelComp"].guiActive = true;
                     Fields["LoftVertVelComp"].guiActive = true;
+                    Fields["LoftRangeFac"].guiActive = true;
                 }
             }
             if (!terminalHoming && GuidanceMode != GuidanceModes.AAMLoft) //(GuidanceMode != GuidanceModes.AAMHybrid && GuidanceMode != GuidanceModes.AAMLoft)
@@ -1207,10 +1232,15 @@ namespace BDArmory.Weapons.Missiles
             }
 
             // Don't show detonation distance settings for kinetic warheads
-            if (warheadType == WarheadTypes.Kinetic)
+            if (warheadType == WarheadTypes.Kinetic || !proxyDetonate)
             {
                 Fields["DetonationDistance"].guiActive = false;
                 Fields["DetonationDistance"].guiActiveEditor = false;
+                Fields["DetonateAtMinimumDistance"].guiActive = false;
+                Fields["DetonateAtMinimumDistance"].guiActiveEditor = false;
+            }
+            else if (!canDetMinDist)
+            {
                 Fields["DetonateAtMinimumDistance"].guiActive = false;
                 Fields["DetonateAtMinimumDistance"].guiActiveEditor = false;
             }
@@ -1752,6 +1782,14 @@ namespace BDArmory.Weapons.Missiles
                     VacuumClearanceStates.Clearing : VacuumClearanceStates.Cleared; // Set up clearance check if missile is vacuumSteerable, and is in space, and was not launched from a turret
 
                 CruiseSpeed = Mathf.Min(CruiseSpeed, maxCruiseSpeed);
+                CruisePopup = canCruisePopup && CruisePopup;
+                if (!proxyDetonate)
+                {
+                    DetonationDistance = 0f;
+                    DetonateAtMinimumDistance = false;
+                }
+                else
+                    DetonateAtMinimumDistance = canDetMinDist && DetonateAtMinimumDistance;
 
                 StartCoroutine(MissileRoutine());
                 List<BDWarheadBase> tntList = part.FindModulesImplementing<BDWarheadBase>();
@@ -2270,7 +2308,7 @@ namespace BDArmory.Weapons.Missiles
                         }
                     }
                     else
-                        DoAero(TargetPosition);
+                        aeroTorque = MissileGuidance.DoAeroForces(this, TargetPosition, currLiftArea, currDragArea, .25f, aeroTorque, currMaxTorque, currMaxTorqueAero, 0.1f, MissileGuidance.DefaultLiftCurve, MissileGuidance.DefaultDragCurve);
                 }
                 else
                 {
@@ -3169,7 +3207,6 @@ namespace BDArmory.Weapons.Missiles
             {
                 Vector3 sensorPos;
                 Vector3 sensorVel;
-                Vector3 targetPos;
                 Vector3 targetVel;
 
                 if (TargetingMode == TargetingModes.Laser)
@@ -3181,7 +3218,6 @@ namespace BDArmory.Weapons.Missiles
                     }
                     sensorVel = targetingPod.vessel.Velocity();
                     sensorPos = targetingPod.cameraParentTransform.position + (sensorVel * Time.fixedDeltaTime);
-                    targetPos = targetingPod.targetPointPosition;
                     if (targetingPod.lockedVessel)
                         targetVel = targetingPod.lockedVessel.Velocity();
                     else
@@ -3202,7 +3238,6 @@ namespace BDArmory.Weapons.Missiles
                     }
                     sensorVel = radarTarget.lockedByRadar.vessel.Velocity();
                     sensorPos = radarTarget.lockedByRadar.transform.position + (sensorVel * Time.fixedDeltaTime);
-                    targetPos = radarTarget.predictedPositionWithChaffFactor(chaffEffectivity);
                     targetVel = radarTarget.velocity;
                 }
                 else
@@ -3234,21 +3269,21 @@ namespace BDArmory.Weapons.Missiles
                 switch (GuidanceMode)
                 {
                     case GuidanceModes.CLOS:
-                        target = MissileGuidance.GetCLOSTarget(sensorPos, vessel.CoM, vessel.Velocity(), targetPos, targetVel, beamCorrectionFactor, tempPronavGain, out currgLimit);
+                        target = MissileGuidance.GetCLOSTarget(sensorPos, vessel.CoM, vessel.Velocity(), TargetPosition, targetVel, beamCorrectionFactor, tempPronavGain, out currgLimit);
                         break;
                     case GuidanceModes.CLOSThreePoint:
-                        target = MissileGuidance.GetThreePointTarget(sensorPos, sensorVel, vessel.CoM, vessel.Velocity(), targetPos, targetVel, beamCorrectionFactor, tempPronavGain, out currgLimit);
+                        target = MissileGuidance.GetThreePointTarget(sensorPos, sensorVel, vessel.CoM, vessel.Velocity(), TargetPosition, targetVel, beamCorrectionFactor, tempPronavGain, out currgLimit);
                         break;
                     case GuidanceModes.CLOSLead:
-                        target = MissileGuidance.GetCLOSLeadTarget(sensorPos, sensorVel, vessel.CoM, vessel.Velocity(), targetPos, targetVel, beamCorrectionFactor, tempPronavGain, beamLeadFactor, out currgLimit, this);
+                        target = MissileGuidance.GetCLOSLeadTarget(sensorPos, sensorVel, vessel.CoM, vessel.Velocity(), TargetPosition, targetVel, beamCorrectionFactor, tempPronavGain, beamLeadFactor, out currgLimit, this);
                         break;
 
                     default:
-                        target = MissileGuidance.GetCLOSTarget(sensorPos, vessel.CoM, vessel.Velocity(), targetPos, targetVel, beamCorrectionFactor, tempPronavGain, out currgLimit);
+                        target = MissileGuidance.GetCLOSTarget(sensorPos, vessel.CoM, vessel.Velocity(), TargetPosition, targetVel, beamCorrectionFactor, tempPronavGain, out currgLimit);
                         break;
                 }
                 
-                if (!(GuidanceMode == GuidanceModes.CLOSLead)) DrawDebugLine(sensorPos, targetPos);
+                if (!(GuidanceMode == GuidanceModes.CLOSLead)) DrawDebugLine(sensorPos, TargetPosition);
             }
             else
             {

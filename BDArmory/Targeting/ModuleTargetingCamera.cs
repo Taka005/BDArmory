@@ -1317,23 +1317,25 @@ namespace BDArmory.Targeting
             bool raycasted = Physics.Raycast(ray, out rayHit, maxRayDistance, (int)(LayerMasks.Parts | LayerMasks.Scenery | LayerMasks.EVA | LayerMasks.Unknown19 | LayerMasks.Unknown23 | LayerMasks.Wheels));
             if (raycasted)
             {
-                if (FlightGlobals.getAltitudeAtPos(rayHit.point) < 0)
+                Part p;
+                if (FlightGlobals.getAltitudeAtPos(rayHit.point) < 0 || ((p = rayHit.collider.GetComponentInParent<Part>()) && p.vessel == vessel))
                 {
                     raycasted = false;
                 }
                 else
                 {
                     KerbalEVA hitEVA = rayHit.collider.gameObject.GetComponentUpwards<KerbalEVA>();
-                    Part p = hitEVA ? hitEVA.part : rayHit.collider.GetComponentInParent<Part>();
+                    if (hitEVA)
+                        p = hitEVA.part;
 
                     bool pCheck = false;
 
                     if (p && p.vessel)
                     {
-                        var pMissile = VesselModuleRegistry.GetModule<MissileBase>(p.vessel);
-                        if (pMissile != null)
+                        TargetInfo pInfo;
+                        if (p.vessel != lockedVessel && (pInfo = vessel.gameObject.GetComponent<TargetInfo>()) != null && pInfo.isMissile && pInfo.MissileBaseModule.FiredByWM == WeaponManager)
                         {
-                            if (pMissile.SourceVessel == vessel) return;
+                            return;
                         }
                         pCheck = true;
                     }
@@ -1404,50 +1406,58 @@ namespace BDArmory.Targeting
 
             RaycastHit rayHit;
             Ray ray = new Ray(cameraParentTransform.position, cameraParentTransform.forward);
-            if (Physics.Raycast(ray, out rayHit, maxRayDistance, (int)(LayerMasks.Parts | LayerMasks.Scenery | LayerMasks.EVA | LayerMasks.Unknown19 | LayerMasks.Unknown23 | LayerMasks.Wheels)))
-            {
-                targetPointPosition = rayHit.point;
-
-                if (!surfaceDetected && groundStabilized && !gimbalLimitReached)
-                {
-                    groundStabilized = true;
-                    groundTargetPosition = rayHit.point;
-
-                    if (CoMLock)
-                    {
-                        KerbalEVA hitEVA = rayHit.collider.gameObject.GetComponentUpwards<KerbalEVA>();
-                        Part p = hitEVA ? hitEVA.part : rayHit.collider.GetComponentInParent<Part>();
-                        if (p && p.vessel)
-                        {
-                            groundTargetPosition = p.vessel.CoM;
-                            lockedVessel = p.vessel;
-                        }
-                        else
-                        {
-                            lockedVessel = null;
-                        }
-                    }
-                    Vector3d newGTP = VectorUtils.WorldPositionToGeoCoords(groundTargetPosition, vessel.mainBody);
-                    if (newGTP != Vector3d.zero)
-                    {
-                        bodyRelativeGTP = newGTP;
-                    }
-                }
-
-                surfaceDetected = true;
-
-                if (groundStabilized && !gimbalLimitReached && CMDropper.smokePool != null)
-                {
-                    if (CMSmoke.RaycastSmoke(ray))
-                    {
-                        surfaceDetected = false;
-                    }
-                }
-            }
-            else
+            if (!Physics.Raycast(ray, out rayHit, maxRayDistance, (int)(LayerMasks.Parts | LayerMasks.Scenery | LayerMasks.EVA | LayerMasks.Unknown19 | LayerMasks.Unknown23 | LayerMasks.Wheels)))
             {
                 targetPointPosition = cameraParentTransform.position + (maxRayDistance * cameraParentTransform.forward);
                 surfaceDetected = false;
+                return;
+            }
+
+            Part p = rayHit.collider.GetComponentInParent<Part>();
+            TargetInfo pInfo;
+            if (p && p.vessel == vessel || (p.vessel != lockedVessel && (pInfo = vessel.gameObject.GetComponent<TargetInfo>()) != null && pInfo.isMissile && pInfo.MissileBaseModule.FiredByWM == WeaponManager))
+            {
+                targetPointPosition = cameraParentTransform.position + (maxRayDistance * cameraParentTransform.forward);
+                surfaceDetected = false;
+                return;
+            }
+
+            targetPointPosition = rayHit.point;
+            if (!surfaceDetected && groundStabilized && !gimbalLimitReached)
+            {
+                groundStabilized = true;
+                groundTargetPosition = rayHit.point;
+
+                if (CoMLock)
+                {
+                    KerbalEVA hitEVA = rayHit.collider.gameObject.GetComponentUpwards<KerbalEVA>();
+                    if (hitEVA)
+                        p = hitEVA.part;
+                    if (p && p.vessel)
+                    {
+                        groundTargetPosition = p.vessel.CoM;
+                        lockedVessel = p.vessel;
+                    }
+                    else
+                    {
+                        lockedVessel = null;
+                    }
+                }
+                Vector3d newGTP = VectorUtils.WorldPositionToGeoCoords(groundTargetPosition, vessel.mainBody);
+                if (newGTP != Vector3d.zero)
+                {
+                    bodyRelativeGTP = newGTP;
+                }
+            }
+
+            surfaceDetected = true;
+
+            if (groundStabilized && !gimbalLimitReached && CMDropper.smokePool != null)
+            {
+                if (CMSmoke.RaycastSmoke(ray))
+                {
+                    surfaceDetected = false;
+                }
             }
         }
 

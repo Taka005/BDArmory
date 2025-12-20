@@ -97,10 +97,12 @@ namespace BDArmory.Weapons.Missiles
         [KSPField]
         public string lengthTransformName;
         Transform LengthTransform;
+        Vector3 LengthTransformOrigScale;
 
         [KSPField]
         public string scaleTransformName;
         Transform ScaleTransform;
+        Vector3 ScaleTransformOrigScale;
 
         public MissileTurret turret;
 
@@ -318,6 +320,7 @@ namespace BDArmory.Weapons.Missiles
                 UI_FloatRange Ammo = (UI_FloatRange)missileSpawner.Fields["railAmmo"].uiControlEditor;
                 Ammo.onFieldChanged = updateOffset;                
             }
+
             if (string.IsNullOrEmpty(scaleTransformName))
             {
                 Fields["Scale"].guiActiveEditor = false;
@@ -325,10 +328,14 @@ namespace BDArmory.Weapons.Missiles
             else
             {
                 ScaleTransform = part.FindModelTransform(scaleTransformName);
-                UI_FloatRange AWidth = (UI_FloatRange)Fields["Scale"].uiControlEditor;
-                AWidth.maxValue = scaleMax;
-                if (Scale > scaleMax) Scale = scaleMax;
-                AWidth.onFieldChanged = updateScale;
+                if (ScaleTransform != null)
+                {
+                    ScaleTransformOrigScale = part.partInfo.partPrefab.FindModelTransform(scaleTransformName).localScale; //baseConfig ? ScaleTransform.localScale * (baseConfig.Scale / Scale) : ScaleTransform.localScale;
+                    UI_FloatRange AWidth = (UI_FloatRange)Fields["Scale"].uiControlEditor;
+                    AWidth.maxValue = scaleMax;
+                    if (Scale > scaleMax) Scale = scaleMax;
+                    AWidth.onFieldChanged = updateScale;
+                }
             }
             if (string.IsNullOrEmpty(lengthTransformName))
             {
@@ -337,10 +344,14 @@ namespace BDArmory.Weapons.Missiles
             else
             {
                 LengthTransform = part.FindModelTransform(lengthTransformName);
-                UI_FloatRange ALength = (UI_FloatRange)Fields["Length"].uiControlEditor;
-                ALength.maxValue = scaleMax;
-                if (Length > scaleMax) Length = scaleMax;
-                ALength.onFieldChanged = updateLength;
+                if (LengthTransform != null)
+                {
+                    LengthTransformOrigScale = part.partInfo.partPrefab.FindModelTransform(scaleTransformName).localScale;
+                    UI_FloatRange ALength = (UI_FloatRange)Fields["Length"].uiControlEditor;
+                    ALength.maxValue = scaleMax;
+                    if (Length > scaleMax) Length = scaleMax;
+                    ALength.onFieldChanged = updateLength;
+                }
             }
             if (adjustMissileVOffset || !string.IsNullOrEmpty(lengthTransformName))
             {
@@ -375,7 +386,7 @@ namespace BDArmory.Weapons.Missiles
 
         public void updateScale(BaseField field, object obj)
         {
-            ScaleTransform.localScale = new Vector3(Scale, Scale, Scale);
+            ScaleTransform.localScale = ScaleTransformOrigScale * Scale;
             using (List<Part>.Enumerator sym = part.symmetryCounterparts.GetEnumerator())
                 while (sym.MoveNext())
                 {
@@ -390,7 +401,7 @@ namespace BDArmory.Weapons.Missiles
         }
         public void updateLength(BaseField field, object obj)
         {
-            LengthTransform.localScale = new Vector3(1, 1, (1 / Scale) * Length);
+            LengthTransform.localScale = new Vector3(LengthTransformOrigScale.x, LengthTransformOrigScale.y, LengthTransformOrigScale.z * (ScaleTransform ? (Length / Scale) : Length));
             using (List<Part>.Enumerator sym = part.symmetryCounterparts.GetEnumerator())
                 while (sym.MoveNext())
                 {
@@ -423,9 +434,9 @@ namespace BDArmory.Weapons.Missiles
         public void UpdateLengthAndScale(float scale, float length, float offset)
         {
             if (ScaleTransform != null)
-                ScaleTransform.localScale = new Vector3(scale, scale, scale);
+                ScaleTransform.localScale = ScaleTransformOrigScale * scale;
             if (LengthTransform != null)
-                LengthTransform.localScale = new Vector3(1, 1, (1 / scale) * length);
+                LengthTransform.localScale = new Vector3(LengthTransformOrigScale.x, LengthTransformOrigScale.y, (LengthTransformOrigScale.z / scale) * length);
             if (!string.IsNullOrEmpty(lengthTransformName))
             {
                 for (int i = 0; i < launchTransforms.Length; i++)
@@ -433,7 +444,7 @@ namespace BDArmory.Weapons.Missiles
                     launchTransforms[i].localPosition = new Vector3(launchTransforms[i].localPosition.x, launchTransforms[i].localPosition.y, attachOffset * Mathf.Max(Scale, Length));
                 }
             }
-            PopulateMissileDummies();
+            PopulateMissileDummies(true);
         }
         private void OnDestroy()
         {
@@ -623,7 +634,8 @@ namespace BDArmory.Weapons.Missiles
             //missileLauncher.LoftAltComp = LoftAltComp;
             missileLauncher.terminalHomingRange = MLConfig.terminalHomingRange;
             missileLauncher.maxCruiseSpeed = MLConfig.CruiseSpeed;
-            missileLauncher.CruisePopup = MLConfig.CruisePopup;
+            missileLauncher.canCruisePopup = MLConfig.CruisePopup;
+            missileLauncher.canDetMinDist = MLConfig.DetonateAtMinimumDistance;
             if (!overrideReferenceTransform) missileLauncher.maxOffBoresight = MLConfig.maxOffBoresight; //don't overwrite e.g. VLS launcher boresights so they can launch, but still have normal boresight on fired missiles
 
             if (configurableSettings)
@@ -667,7 +679,8 @@ namespace BDArmory.Weapons.Missiles
             missileLauncher.GetBlastRadius();
             GUIUtils.RefreshAssociatedWindows(missileLauncher.part);
             missileLauncher.ParseLiftDragSteerTorque();
-            missileLauncher.SetFields();
+            // Because we already set the values from the true base config, we do **not** check the base config in SetFields
+            missileLauncher.SetFields(false);
             missileLauncher.Sublabel = $"Guidance: {Enum.GetName(typeof(TargetingModes), missileLauncher.TargetingMode)}; Max Range: {Mathf.Round(missileLauncher.engageRangeMax / 100) / 10} km; Remaining: {missileLauncher.missilecount}";
         }
 
@@ -709,8 +722,9 @@ namespace BDArmory.Weapons.Missiles
                 {
                     //if (missileSpawner.ammoCount > i || isClusterMissile)
                     //{
-                        if (launchTransforms[i].localScale != new Vector3(1 / Scale, 1 / Scale, 1 / Length))
-                            launchTransforms[i].localScale = new Vector3(1 / Scale, 1 / Scale, 1 / Length);
+                        // No point in checking since this already creates a new Vector3, may as well just set it...
+                        //if (launchTransforms[i].localScale != new Vector3(1 / Scale, 1 / Scale, 1 / (Scale * Length)))
+                        launchTransforms[i].localScale = new Vector3(1f / Scale, 1f / Scale, 1f / (LengthTransform != null ? Length : Scale));
                     //}
                     tubesFired = 0;
                 }
@@ -724,6 +738,8 @@ namespace BDArmory.Weapons.Missiles
                     }
                     GameObject dummy = mslDummyPool[subMunitionPath].GetPooledObject();
                     MissileDummy dummyThis = dummy.GetComponentInChildren<MissileDummy>();
+
+                    launchTransforms[i].localScale = new Vector3(1f / Scale, 1f / Scale, 1f / (LengthTransform != null ? Length : Scale));
 
                     dummy.transform.localScale = dummyScale;
                     dummyThis.AttachAt(part, launchTransforms[i]);
@@ -878,7 +894,7 @@ namespace BDArmory.Weapons.Missiles
                     ml.dropTime = missileLauncher.dropTime;
                     ml.decoupleSpeed = missileLauncher.decoupleSpeed;
                 }
-                ml.DetonateAtMinimumDistance = missileLauncher.DetonateAtMinimumDistance;
+                ml.DetonateAtMinimumDistance = missileLauncher.DetonateAtMinimumDistance && missileLauncher.canDetMinDist;
                 ml.guidanceActive = true;
                 ml.detonationTime = missileLauncher.detonationTime;
                 ml.engageAir = missileLauncher.engageAir;
@@ -894,9 +910,9 @@ namespace BDArmory.Weapons.Missiles
                 if (missileLauncher.GuidanceMode == GuidanceModes.Cruise)
                 {
                     ml.CruiseAltitude = missileLauncher.CruiseAltitude;
-                    ml.CruiseSpeed = missileLauncher.CruiseSpeed;
+                    ml.CruiseSpeed = Mathf.Min(missileLauncher.CruiseSpeed, missileLauncher.maxCruiseSpeed);
                     ml.CruisePredictionTime = missileLauncher.CruisePredictionTime;
-                    ml.CruisePopup = missileLauncher.CruisePopup;
+                    ml.CruisePopup = missileLauncher.CruisePopup && missileLauncher.canCruisePopup;
                 }
 
                 if (BDArmorySettings.DEBUG_MISSILES)
@@ -928,8 +944,6 @@ namespace BDArmory.Weapons.Missiles
                         ml.kappaAngle = missileLauncher.kappaAngle;
                         ml.LoftAngle = missileLauncher.LoftAngle;
                         ml.LoftMaxAltitude = missileLauncher.LoftMaxAltitude;
-                        ml.LoftRangeFac = missileLauncher.LoftRangeFac;
-                        ml.LoftVertVelComp = missileLauncher.LoftVertVelComp;
                         ml.LoftRangeOverride = missileLauncher.LoftRangeOverride;
                         ml.LoftTermAngle = missileLauncher.LoftTermAngle;
                         ml.loftState = LoftStates.Boost;
@@ -972,8 +986,6 @@ namespace BDArmory.Weapons.Missiles
                             ml.kappaAngle = missileLauncher.kappaAngle;
                             ml.LoftAngle = missileLauncher.LoftAngle;
                             ml.LoftMaxAltitude = missileLauncher.LoftMaxAltitude;
-                            ml.LoftRangeFac = missileLauncher.LoftRangeFac;
-                            ml.LoftVertVelComp = missileLauncher.LoftVertVelComp;
                             ml.LoftRangeOverride = missileLauncher.LoftRangeOverride;
                             ml.LoftTermAngle = missileLauncher.LoftTermAngle;
                             ml.loftState = LoftStates.Boost;
