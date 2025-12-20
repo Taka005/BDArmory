@@ -758,7 +758,7 @@ namespace BDArmory.Utils
                     }
                 }
             }
-            return false;
+            return true;
         }
         /*
         public static float CalculatePenetration(float caliber, float projMass, float impactVel, float apBulletMod = 1)
