@@ -866,15 +866,17 @@ namespace BDArmory.Control
                 const float targetRadius = 250f;
                 targetDirection = (assignedPositionWorld - vesselTransform.position).ProjectOnPlanePreNormalized(upDir);
 
-                if (targetDirection.sqrMagnitude > targetRadius * targetRadius)
+                if (command == PilotCommands.Waypoints || targetDirection.sqrMagnitude > targetRadius * targetRadius)
                 {
                     if (bypassTarget != null)
                         targetVelocity = MaxSpeed;
                     else if (pathingWaypoints.Count > 1)
                         targetVelocity = (command == PilotCommands.Attack || command == PilotCommands.Waypoints) ? MaxSpeed : CruiseSpeed;
                     else
+                    {
                         targetVelocity = command == PilotCommands.Waypoints ? MaxSpeed : Mathf.Clamp((targetDirection.magnitude - targetRadius / 2) / 5f,
                         0, command == PilotCommands.Attack ? MaxSpeed : CruiseSpeed);
+                    }
                     //if targetDirection > VesselTurnRate reduce speed until vessel is slow enough to make turn ?
                     if (Vector3.Dot(targetDirection, vesselTransform.up) < 0 && !PoweredSteering) targetVelocity = 0;
                     SetStatus(bypassTarget ? "Repositioning" : "Moving");
@@ -884,6 +886,26 @@ namespace BDArmory.Control
                             SetStatus($"Lap {activeWaypointLap}, Waypoint {activeWaypointIndex} ({waypointRange:F0}m)");
                         else
                             SetStatus($"Waypoint {activeWaypointIndex} ({waypointRange:F0}m)");
+                    }
+                    if (command == PilotCommands.Waypoints)
+                    {
+                        //modify velocity based on needed turnRadius to make the next gate
+                        float angleToGate = Vector3.Angle(vessel.vesselTransform.up, targetDirection);
+                        double vDot = Vector3d.Angle(vessel.vesselTransform.up, vessel.srf_velocity.normalized) * Mathf.Deg2Rad;
+                        // rate of turn = 1091 * tan(AOA) / speed(knots)
+                        double turnDPS = (1091 * Math.Tan(vDot)) / (vessel.speed / 2);
+                        //I'm going to need to spend some time looking at trig examples, since this clearly isn't working
+                        if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) DebugLine($"Turn DPS: {turnDPS}:F2; AoA: {Vector3.Angle(vessel.vesselTransform.up,vessel.srf_velocity.normalized):F2}; gate Angle: {angleToGate}:F2");
+                        if (angleToGate > Mathf.Max((float)turnDPS, 10) && Vector3.Distance(assignedPositionWorld, vesselTransform.position) / vessel.speed < angleToGate / turnDPS)
+                        {
+                            float AngleFraction = 360 / angleToGate;
+                            float circum = (angleToGate / (float)turnDPS) * (float)vessel.srf_velocity.magnitude * AngleFraction;
+                            float turnRadius = circum / (2 * Mathf.PI);
+                            float gateDist = (assignedPositionWorld - vesselTransform.position).ProjectOnPlanePreNormalized(vesselTransform.up).magnitude;
+                            if (turnRadius > gateDist)
+                                targetVelocity = Mathf.Clamp(gateDist * (2 * Mathf.PI) / AngleFraction / (angleToGate / (float)turnDPS), 0, MaxSpeed);
+                            if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) DebugLine($"turn Radius: {turnRadius}; gate Dist: {gateDist}; ETA to gate: {(Vector3.Distance(assignedPositionWorld, vesselTransform.position) / vessel.speed):F2}s");
+                        }
                     }
                     return;
                 }
@@ -1005,14 +1027,14 @@ namespace BDArmory.Control
             }
             else
             {
-                if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) DebugLine($"Target velocity: {targetSpeed}; signed Velocity: {velocitySignedSrfSpeed}; brakeVel: {targetSpeed * velocitySignedSrfSpeed}; use brakes: {(targetSpeed * velocitySignedSrfSpeed < -5)}");
+                if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) DebugLine($"Target velocity: {targetSpeed}; signed Velocity: {velocitySignedSrfSpeed}; brakeVel: {velocitySignedSrfSpeed * 0.9f}; use brakes: {(targetSpeed < velocitySignedSrfSpeed * 0.9f)}");
             }
             if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) DebugLine($"engine thrust: {speedController.debugThrust}, motor zero: {motorControl.zeroPoint}");
 
             speedController.targetSpeed = motorControl.targetSpeed = targetSpeed;
             motorControl.signedSrfSpeed = velocitySignedSrfSpeed;
             //speedController.useBrakes = motorControl.preventNegativeZeroPoint = speedController.debugThrust > 0;
-            speedController.useBrakes = targetSpeed * velocitySignedSrfSpeed < -5;
+            speedController.useBrakes = targetSpeed < velocitySignedSrfSpeed * 0.9f; // targetSpeed * velocitySignedSrfSpeed < -5;
         }
 
         Vector3 directionIntegral;
@@ -1023,7 +1045,6 @@ namespace BDArmory.Control
             const float terrainOffset = 5;
 
             Vector3 yawTarget = targetDirection.ProjectOnPlanePreNormalized(vesselTransform.forward);
-
             // Invert the yawTarget only if we're deliberately reversing and the target direction is behind us.
             // This puts the yawTarget ahead of us when we're deliberately reversing no matter the targetDirection.
             if (doReverse && Vector3.Dot(yawTarget, vesselTransform.up) < 0)
@@ -1038,7 +1059,6 @@ namespace BDArmory.Control
                 driftMult = Mathf.Max(VectorUtils.Angle(tempSrfVel, yawTarget) / MaxDrift, 1);
                 yawTarget = Vector3.RotateTowards(tempSrfVel, yawTarget, MaxDrift * Mathf.Deg2Rad, 0);
             }
-
             float yawError = VectorUtils.GetAngleOnPlane(yawTarget, vesselTransform.up, vesselTransform.right);
 
             // Reverse the angle if we're going backwards to steer correctly.

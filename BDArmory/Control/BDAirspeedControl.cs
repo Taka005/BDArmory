@@ -327,7 +327,7 @@ namespace BDArmory.Control
                 zeroPoint = (zeroPoint + lastThrottle * zeroMult) * (1 - zeroMult);
                 if (preventNegativeZeroPoint && zeroPoint < 0) zeroPoint = 0;
                 SetThrottle(s, lastThrottle);
-                vessel.ActionGroups.SetGroup(KSPActionGroup.Brakes, (targetSpeed * signedSrfSpeed < -5));
+                vessel.ActionGroups.SetGroup(KSPActionGroup.Brakes, (targetSpeed < signedSrfSpeed * 0.9f));
             }
         }
 
