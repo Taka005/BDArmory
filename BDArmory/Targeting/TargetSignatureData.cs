@@ -18,11 +18,11 @@ namespace BDArmory.Targeting
         public bool exists;
         public float timeAcquired;
         public float signalStrength;
-        public RadarWarningReceiver.RWRThreatTypes signalType;
+        //public RadarWarningReceiver.RWRThreatTypes signalType;
         public float notchMod;
         public TargetInfo targetInfo;
         public BDTeam Team;
-        public Vector2 pingPosition;
+        //public Vector2 pingPosition;
         public VesselECMJInfo vesselJammer;
         public ModuleRadar lockedByRadar;
         public Vessel vessel;
@@ -81,7 +81,7 @@ namespace BDArmory.Targeting
 
             vesselJammer = v.gameObject.GetComponent<VesselECMJInfo>();
 
-            pingPosition = Vector2.zero;
+            //pingPosition = Vector2.zero;
             lockedByRadar = null;
         }
 
@@ -96,7 +96,7 @@ namespace BDArmory.Targeting
             targetInfo = null;
             vesselJammer = null;
             Team = null;
-            pingPosition = Vector2.zero;
+            //pingPosition = Vector2.zero;
             orbital = false;
             orbit = null;
             lockedByRadar = null;
@@ -117,7 +117,7 @@ namespace BDArmory.Targeting
             targetInfo = null;
             vesselJammer = null;
             Team = null;
-            pingPosition = Vector2.zero;
+            //pingPosition = Vector2.zero;
             orbital = false;
             orbit = null;
             lockedByRadar = null;
@@ -127,18 +127,18 @@ namespace BDArmory.Targeting
             notchMod = 0f;
         }
 
-        public TargetSignatureData(Vector3 _velocity, Vector3 _position, Vector3 _acceleration, bool _exists, RadarWarningReceiver.RWRThreatTypes _signalType)
+        public TargetSignatureData(Vector3 _velocity, Vector3 _position, Vector3 _acceleration, bool _exists)
         {
             velocity = _velocity;
             geoPos = VectorUtils.WorldPositionToGeoCoords(_position, FlightGlobals.currentMainBody);
             acceleration = _acceleration;
             exists = _exists;
             timeAcquired = Time.time;
-            signalType = _signalType;
+            //signalType = _signalType;
             targetInfo = null;
             vesselJammer = null;
             Team = null;
-            pingPosition = Vector2.zero;
+            //pingPosition = Vector2.zero;
             orbital = false;
             orbit = null;
             lockedByRadar = null;
@@ -147,7 +147,7 @@ namespace BDArmory.Targeting
             notchMod = 0f;
         }
 
-        public TargetSignatureData(Vector3 _position, Vector2 _pingPosition, bool _exists, RadarWarningReceiver.RWRThreatTypes _signalType, Vessel _vessel)
+        /*public TargetSignatureData(Vector3 _position, Vector2 _pingPosition, bool _exists, RadarWarningReceiver.RWRThreatTypes _signalType, Vessel _vessel)
         {
             velocity = Vector3.zero;
             geoPos = VectorUtils.WorldPositionToGeoCoords(_position, FlightGlobals.currentMainBody);
@@ -165,7 +165,7 @@ namespace BDArmory.Targeting
             vessel = _vessel;
             IRSource = null;
             notchMod = 0f;
-        }
+        }*/
 
         public Vector3 position
         {
@@ -273,7 +273,7 @@ namespace BDArmory.Targeting
         {
             get
             {
-                return new TargetSignatureData(Vector3.zero, Vector3.zero, Vector3.zero, false, RadarWarningReceiver.RWRThreatTypes.None);
+                return new TargetSignatureData(Vector3.zero, Vector3.zero, Vector3.zero, false);
             }
         }
 

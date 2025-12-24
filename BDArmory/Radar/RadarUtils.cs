@@ -2387,14 +2387,13 @@ namespace BDArmory.Radar
                                     continue;
                                 }
 
-                                // No MWS/visual detection and not radar or not in range
-                                if (!(missileBase.TargetingMode == MissileBase.TargetingModes.Radar && missileBase.ActiveRadar) ||
-                                    (missileBase.activeRadarRange * missileBase.activeRadarRange * 4f < vesselDistanceSqr))
+                                // No MWS/visual detection, check RWR
+                                if (missileBase.TargetingMode != MissileBase.TargetingModes.Radar || // Must be radar missile
+                                    ((missileBase.ActiveRadar || missileBase.radarLOALSearching) && // if active radar
+                                    ((missileBase.activeRadarRange * missileBase.activeRadarRange * 4f < vesselDistanceSqr) || !RWR.IsRadarMissileDetected(loadedvessels.Current))) || // Active radar must be within range and detected
+                                    !missileBase.vrd) // Or if SARH, must have an active SARH track, note strictly speaking there's more nuance to be had here with regards to detection, but we want AI to know that they've been launched at
                                     continue;
-
-                                // If not radar detected
-                                if (!RWR.IsVesselDetected(loadedvessels.Current)) continue;
-                                //if (VectorUtils.Angle(missileBase.GetForwardTransform(), -vesselDirection) > missileBase.maxOffBoresight) continue; // TODO: Profile this at some point to see if it's faster...
+                                //if (VectorUtils.Angle(missileBase.GetForwardTransform(), -vesselDirection) > missileBase.maxOffBoresight) continue; // TODO: Profile this at some point to see if it's faster than checking RWR...
                             }
                         }
 

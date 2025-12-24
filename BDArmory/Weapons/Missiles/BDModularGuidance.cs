@@ -648,6 +648,8 @@ namespace BDArmory.Weapons.Missiles
             part.force_activate();
             RefreshGuidanceMode();
 
+            antiradTargets = (1 << 1 | 1 << 6);
+
             UpdateTargetingMode((TargetingModes)Enum.Parse(typeof(TargetingModes), _targetingLabel));
 
             _targetDecoupler = FindFirstDecoupler(part.parent, null);

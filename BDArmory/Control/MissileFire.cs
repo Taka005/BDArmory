@@ -72,6 +72,7 @@ namespace BDArmory.Control
         bool pointDefenseMissileHasInertial = false;
         bool pointDefenseMissileHasLaser = false;
         bool pointDefenseMissileHasRadar = false;
+        bool pointDefenseMissileHasAntiRad = false;
         float maxTargetingLaserRange = -1;
 
         // extension for feature_engagementenvelope: specific lists by weapon engagement type
@@ -574,7 +575,7 @@ namespace BDArmory.Control
 
         public bool guardFiringMissile;
         public bool hasAntiRadiationOrdnance;
-        public RadarWarningReceiver.RWRThreatTypes[] antiradTargets;
+        public int antiradTargets;
         public bool antiRadTargetAcquired;
         Vector3 antiRadiationTarget;
         public bool laserPointDetected;
@@ -1867,12 +1868,28 @@ namespace BDArmory.Control
                                     if (rwr && rwr.rwrEnabled && rwr.displayRWR)
                                     {
                                         MissileLauncher msl = CurrentMissile as MissileLauncher;
+                                        Vector3 missileForward = ml.GetForwardTransform();
+                                        Vector3 missilePos = ml.transform.position;
                                         for (int i = 0; i < rwr.pingsData.Length; i++)
                                         {
                                             Vector3 position;
-                                            if (rwr.pingsData[i].exists && msl.antiradTargets.Contains(rwr.pingsData[i].signalType) && Vector3.Dot((position = rwr.pingsData[i].position) - ml.transform.position, ml.GetForwardTransform()) > 0)
+                                            RWRSignatureData pingData = rwr.pingsData[i];
+                                            if (pingData.exists && RadarWarningReceiver.CanDetectRWRThreat(msl.antiradTargets, pingData.signalType) && Vector3.Dot((position = pingData.position) - missilePos, missileForward) > 0)
                                             {
                                                 missileAimerUI.Add((position, BDArmorySetup.Instance.greenDiamondTexture, 22, 0));
+                                            }
+                                        }
+                                        if (RadarWarningReceiver.CanDetectRWRThreat(msl.antiradTargets, RadarWarningReceiver.RWRThreatTypes.MissileLock))
+                                        {
+                                            rwr.SetRadarMissileIndex();
+                                            for (int i = 0; i < rwr._missileLockSize; i++)
+                                            {
+                                                Vector3 position;
+                                                RWRSignatureData pingData = rwr.GetNextRadarMissile();
+                                                if (pingData.exists && Vector3.Dot((position = pingData.position) - missilePos, missileForward) > 0)
+                                                {
+                                                    missileAimerUI.Add((position, BDArmorySetup.Instance.greenDiamondTexture, 22, 0));
+                                                }
                                             }
                                         }
                                     }
@@ -4587,6 +4604,7 @@ namespace BDArmory.Control
             pointDefenseMissiles.Clear();
             //gunRippleIndex.Clear(); //since there keeps being issues with the more limited ripple dict, lets just make it perisitant for all weapons on the craft
             hasAntiRadiationOrdnance = false;
+            antiradTargets = 0; // Reset antirad targets
             if (vessel == null || !vessel.loaded) return;
 
             pointDefenseIRMissileCount = 0;
@@ -4594,6 +4612,7 @@ namespace BDArmory.Control
             pointDefenseMissileHasLaser = false;
             pointDefenseMissileHasInertial = false;
             pointDefenseMissileHasRadar = false;
+            pointDefenseMissileHasAntiRad = false;
             pointDefenseMissileMaxRange = -1;
 
             using (var weapon = VesselModuleRegistry.GetModules<IBDWeapon>(vessel).GetEnumerator())
@@ -4712,6 +4731,13 @@ namespace BDArmory.Control
                                             pointDefenseIRMissileCount++;
                                         }
                                         break;
+                                    case MissileBase.TargetingModes.AntiRad:
+                                        {
+                                            // Missile is index 4 (+ 1 due to -1 None)
+                                            if ((mb.antiradTargets & (1 << 5)) != 0)
+                                                pointDefenseMissileHasAntiRad = true;
+                                            break;
+                                        }
                                 }
                             }
                         }
@@ -4757,7 +4783,8 @@ namespace BDArmory.Control
                             //antiradTargets = OtherUtils.ParseToFloatArray(ml != null ? ml.antiradTargetTypes : "0,5"); //limited Antirad options for MMG
                             //FIXME shouldn't this be set as part of currentMissile? Else having multiple ARH with different target types would overwrite this with potentially the wrong set of target types
                             //or otherwise have this array contain the target types for *all* ARH ordnance on the vessel.
-                            antiradTargets.Union(OtherUtils.ParseEnumArray<RadarWarningReceiver.RWRThreatTypes>(ml != null ? ml.antiradTargetTypes : "0,5"));
+                            //antiradTargets.Union(OtherUtils.ParseEnumArray<RadarWarningReceiver.RWRThreatTypes>(ml != null ? ml.antiradTargetTypes : "0,5"));
+                            antiradTargets |= ml != null ? ml.antiradTargets : (1 << 1 | 1 << 6);
                         }
                     }
                 }
@@ -6085,14 +6112,16 @@ namespace BDArmory.Control
             return false;
         }
 
-        bool CheckAntiRadStatus(Vessel targetVessel, in bool[] RWRThreatTypes)
+        bool CheckAntiRadStatus(Vessel targetVessel, out int RWRThreatTypes)
         {
             bool foundTarget = false;
+            RWRThreatTypes = 0;
             for (int i = 0; i < rwr.pingsData.Length; i++)
             {
-                if ((rwr.pingsData[i].position - targetVessel.CoM).sqrMagnitude < 20f * 20f) //is current target a hostile radar source?
+                RWRSignatureData currPing = rwr.pingsData[i];
+                if ((currPing.position - targetVessel.CoM).sqrMagnitude < 20f * 20f) //is current target a hostile radar source?
                 {
-                    RWRThreatTypes[(int)rwr.pingsData[i].signalType] = true;
+                    RWRThreatTypes |= 1 << ((int)currPing.signalType + 1);
                     foundTarget = true;
                 }
             }
@@ -6140,7 +6169,8 @@ namespace BDArmory.Control
             bool radarDetected = false;
 
             bool skipRWRCheck = false;
-            bool[] RWRTypes = new bool[10];
+            //bool[] RWRTypes = new bool[12];
+            int RWRTypes = 0; // Bitmask
 
             Vessel targetVessel = target.Vessel;
             if (target.isMissile)
@@ -6797,18 +6827,15 @@ namespace BDArmory.Control
                                         { 
                                             if (!skipRWRCheck)
                                             {
-                                                CheckAntiRadStatus(targetVessel, RWRTypes);
+                                                CheckAntiRadStatus(targetVessel, out RWRTypes);
                                                 skipRWRCheck = true;
                                             }
 
                                             bool foundAntiRad = false;
-                                            foreach (RadarWarningReceiver.RWRThreatTypes type in mlauncher.antiradTargets)
+                                            if ((RWRTypes & mlauncher.antiradTargets) != 0)
                                             {
-                                                if (RWRTypes[(int)type])
-                                                {
-                                                    foundAntiRad = true;
-                                                    break;
-                                                }
+                                                foundAntiRad = true;
+                                                break;
                                             }
 
                                             if (!foundAntiRad) candidateTDPS *= 0.001f;
@@ -6924,11 +6951,12 @@ namespace BDArmory.Control
                                     {
                                         if (!skipRWRCheck)
                                         {
-                                            CheckAntiRadStatus(targetVessel, in RWRTypes);
+                                            CheckAntiRadStatus(targetVessel, out RWRTypes);
                                             skipRWRCheck = true;
                                         }
 
-                                        if (RWRTypes[6]) candidateYield *= 1.5f; // Prioritize PAH Torps for hostile sonar sources
+                                        // Sonar is index 6 (+ 1 to account for -1 None)
+                                        if ((RWRTypes & (1 << 7)) != 0) candidateYield *= 1.5f; // Prioritize PAH Torps for hostile sonar sources
                                     }
 
                                     if (candidateTurning + candidateYield > targetWeaponTDPS)
@@ -7452,18 +7480,15 @@ namespace BDArmory.Control
                                         {// make it so this only selects antirad when hostile radar
                                             if (!skipRWRCheck)
                                             {
-                                                CheckAntiRadStatus(targetVessel, RWRTypes);
+                                                CheckAntiRadStatus(targetVessel, out RWRTypes);
                                                 skipRWRCheck = true;
                                             }
 
-                                            foreach (RadarWarningReceiver.RWRThreatTypes type in Missile.antiradTargets)
+                                            if ((RWRTypes & Missile.antiradTargets) != 0)
                                             {
-                                                if (RWRTypes[(int)type])
-                                                {
-                                                    candidateAntiRad = true;
-                                                    candidateYield *= 2; // Prioritize anti-rad missiles for hostile radar sources
-                                                    break;
-                                                }
+                                                candidateAntiRad = true;
+                                                candidateYield *= 2; // Prioritize anti-rad missiles for hostile radar sources
+                                                break;
                                             }
 
                                             if (candidateAntiRad)
@@ -7650,11 +7675,12 @@ namespace BDArmory.Control
                                     {
                                         if (!skipRWRCheck)
                                         {
-                                            CheckAntiRadStatus(targetVessel, in RWRTypes);
+                                            CheckAntiRadStatus(targetVessel, out RWRTypes);
                                             skipRWRCheck = true;
                                         }
 
-                                        if (RWRTypes[6]) candidateYield *= 2; // Prioritize PAH Torps for hostile sonar sources
+                                        // Sonar is index 6 (+ 1 to account for -1 None)
+                                        if ((RWRTypes & (1 << 7)) != 0) candidateYield *= 2; // Prioritize PAH Torps for hostile sonar sources
                                     }
 
                                     if (distance < ((EngageableWeapon)item.Current).engageRangeMin || firedMissiles >= maxMissilesOnTarget || ((unguidedWeapon && vessel.Splashed) && distance > ((EngageableWeapon)item.Current).engageRangeMax / 10)) //don't penalize air-dropped unguided torps
@@ -8200,7 +8226,8 @@ namespace BDArmory.Control
                 {
                     for (int i = 0; i < rwr.pingsData.Length; i++) //using copy of antirad targets due to CanSee running before weapon selection
                     {
-                        if (rwr.pingsData[i].exists && antiradTargets.Contains(rwr.pingsData[i].signalType) && (rwr.pingsData[i].position - target.position).sqrMagnitude < 20f * 20f)
+                        RWRSignatureData currPing = rwr.pingsData[i];
+                        if (currPing.exists && RadarWarningReceiver.CanDetectRWRThreat(antiradTargets, currPing.signalType) && (currPing.position - target.position).sqrMagnitude < 20f * 20f)
                         {
                             detectedTargetTimeout = 0;
                             staleTarget = false;
@@ -8326,10 +8353,11 @@ namespace BDArmory.Control
                 //if (ml.antiradTargets == null) ml.ParseAntiRadTargetTypes();
                 for (int i = 0; i < rwr.pingsData.Length; i++)
                 {
-                    if (rwr.pingsData[i].exists && ml.antiradTargets.Contains(rwr.pingsData[i].signalType))
+                    RWRSignatureData currPing = rwr.pingsData[i];
+                    if (currPing.exists && RadarWarningReceiver.CanDetectRWRThreat(ml.antiradTargets, currPing.signalType))
                     {
-                        Vector3 position = rwr.pingsData[i].position;
                         float angle = VectorUtils.Angle(position - missile.transform.position, missile.GetForwardTransform());
+                        Vector3 position = currPing.position;
 
                         if (angle < closestAngle && angle < maxOffBoresight)
                         {
@@ -8440,7 +8468,8 @@ namespace BDArmory.Control
             {
                 for (int i = 0; i < rwr.pingsData.Length; i++)
                 {
-                    if (rwr.pingsData[i].exists && (rwr.pingsData[i].position - v.position).sqrMagnitude < 20f * 20f)
+                    RWRSignatureData currPing = rwr.pingsData[i];
+                    if (currPing.exists && (currPing.position - v.position).sqrMagnitude < 20f * 20f)
                     {
                         matchFound = true;
                         break;
@@ -9624,6 +9653,8 @@ namespace BDArmory.Control
                 bool skipDetectionCheck = false;
                 bool inLaserRange = false;
                 bool inARHRange = false;
+                bool skipRWRCheck = false;
+                bool RWRDetected = false;
                 bool changeTargets = true;
 
                 int PDMslTgtsCount = PDMslTgts.Count;
@@ -9648,7 +9679,8 @@ namespace BDArmory.Control
                         (!pointDefenseMissileHasInertial || (skipDetectionCheck && !INSDetected)) && // An INS launch
                         (!pointDefenseMissileHasRadar || (skipRadarCheck && !radarLocked)) && // And a radar launch
                         (pointDefenseIRMissileCount == 0 || skipIRindex > 0) && // And an IR launch
-                        (!pointDefenseMissileHasLaser || !inLaserRange) // And a laser launch
+                        (!pointDefenseMissileHasLaser || !inLaserRange) && // And a laser launch
+                        (!pointDefenseMissileHasAntiRad || (skipRWRCheck && !RWRDetected)) // And a RWR check
                         && !inARHRange) // And a maddog ARH launch
                     {
                         // Swap targets
@@ -9663,9 +9695,12 @@ namespace BDArmory.Control
                         inARHRange = false;
                         targetDist = -1f;
                         skipIRindex = 0;
+                        skipRWRCheck = false;
                         // Doesn't need to be reset, as it'll be set within the loop, but in case the function is changed such
                         // that this is required...
                         //radarLocked = false;
+                        //INSDetected = false;
+                        //RWRDetected = false;
 
                         // Since we've swapped targets mid-way through, don't change targets at the end
                         changeTargets = false;
@@ -9705,6 +9740,8 @@ namespace BDArmory.Control
                                 // Doesn't need to be reset, as it'll be set within the loop, but in case the function is changed such
                                 // that this is required...
                                 //radarLocked = false;
+                                //INSDetected = false;
+                                //RWRDetected = false;
                             }
                         }
 
@@ -9820,6 +9857,17 @@ namespace BDArmory.Control
                         case MissileBase.TargetingModes.Laser:
                             {
                                 if (!inLaserRange) continue;
+                            }
+                            break;
+                        case MissileBase.TargetingModes.AntiRad:
+                            {
+                                if (!skipRWRCheck)
+                                {
+                                    RWRDetected = rwr.IsRadarMissileDetected(targetVessel);
+                                }
+
+                                // MissileLock is index 4 (+ 1 for -1 None)
+                                if (!RWRDetected || ((currMissile.antiradTargets & (1 << 5)) == 0)) continue;
                             }
                             break;
                     }
