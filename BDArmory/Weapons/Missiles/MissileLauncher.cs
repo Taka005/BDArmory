@@ -2451,8 +2451,11 @@ namespace BDArmory.Weapons.Missiles
                         ActiveRadar = true;
                         updateRadarCS = true;
 
+                        bool pingRWR = Time.time - lastRWRPing > (2f * RadarUtils.ACTIVE_MISSILE_PING_PERISTS_TIME);
+                        if (pingRWR) lastRWRPing = Time.time;
+
                         //RadarUtils.UpdateRadarLock(ray, maxOffBoresight, activeRadarMinThresh, ref scannedTargets, 0.4f, true, RadarWarningReceiver.RWRThreatTypes.MissileLock, true);
-                        RadarUtils.RadarUpdateMissileLock(ray, maxOffBoresight, ref scannedTargets, 0.4f, this);
+                        RadarUtils.RadarUpdateMissileLock(ray, maxOffBoresight, ref scannedTargets, (2f * RadarUtils.ACTIVE_MISSILE_PING_PERISTS_TIME), this, pingRWR);
                         float sqrThresh = terminalGuidanceDistance * terminalGuidanceDistance * 2.25f; // (terminalGuidanceDistance * 1.5f)^2
 
                         //float smallestAngle = maxOffBoresight;

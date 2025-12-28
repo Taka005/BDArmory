@@ -1662,7 +1662,7 @@ namespace BDArmory.Radar
         /// Uses the missiles locktrackCurve for rcs evaluation.
         /// </summary>
         //was: UpdateRadarLock(ray, maxOffBoresight, activeRadarMinThresh, ref scannedTargets, 0.4f, true, RadarWarningReceiver.RWRThreatTypes.MissileLock, true);
-        public static bool RadarUpdateMissileLock(Ray ray, float fov, ref TargetSignatureData[] dataArray, float dataPersistTime, MissileBase missile)
+        public static bool RadarUpdateMissileLock(Ray ray, float fov, ref TargetSignatureData[] dataArray, float dataPersistTime, MissileBase missile, bool pingRWR)
         {
             int dataIndex = 0;
             bool hasLocked = false;
@@ -1776,7 +1776,7 @@ namespace BDArmory.Radar
                         }
 
                         //  our radar ping can be received at a higher range than we can detect, according to RWR range ping factor:
-                        if (distance < missile.activeRadarRange * RWR_PING_RANGE_FACTOR)
+                        if (pingRWR && distance < missile.activeRadarRange * RWR_PING_RANGE_FACTOR)
                         {
                             if (missile.GetWeaponClass() == WeaponClasses.SLW)
                                 RadarWarningReceiver.PingRWR(loadedvessels.Current, ray.origin, RadarWarningReceiver.RWRThreatTypes.TorpedoLock, ACTIVE_MISSILE_PING_PERISTS_TIME, missile.vessel);

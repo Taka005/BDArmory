@@ -3437,21 +3437,25 @@ namespace BDArmory.Control
                 AdjustThrottle(targetSpeed, false, useAB);
             }
 
+            Vessel missileThreat = weaponManager.incomingMissileVessel;
+            MissileBase missileThreatMB;
+            float closingTime;
+
             if (
-                weaponManager.incomingMissileVessel != null
-                && VesselModuleRegistry.GetMissileBase(weaponManager.incomingMissileVessel) != null // Modular missiles can lose the MMG part.
-                && (weaponManager.ThreatClosingTime(weaponManager.incomingMissileVessel) <= weaponManager.evadeThreshold)
+                missileThreat != null
+                && (missileThreatMB = VesselModuleRegistry.GetMissileBase(missileThreat)) != null // Modular missiles can lose the MMG part.
+                && ((closingTime = weaponManager.ThreatClosingTime(missileThreat)) <= weaponManager.evadeThreshold)
             ) // Missile evasion
             {
                 Vector3 targetDirection;
                 bool overrideThrottle = false;
-                if ((weaponManager.ThreatClosingTime(weaponManager.incomingMissileVessel) <= 1.5f) && (!weaponManager.isChaffing)) // Missile is about to impact, pull a hard turn
+                if ((closingTime <= 1.5f) && (!weaponManager.isChaffing)) // Missile is about to impact, pull a hard turn
                 {
                     if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($"Missile about to impact! pull away!");
 
                     AdjustThrottle(maxSpeed, false, !weaponManager.isFlaring);
 
-                    Vector3 cross = Vector3.Cross(weaponManager.incomingMissileVessel.transform.position - vesselTransform.position, vessel.Velocity()).normalized;
+                    Vector3 cross = Vector3.Cross(missileThreat.transform.position - vesselTransform.position, vessel.Velocity()).normalized;
                     if (Vector3.Dot(cross, -vesselTransform.forward) < 0)
                     {
                         cross = -cross;
@@ -3460,15 +3464,22 @@ namespace BDArmory.Control
                 }
                 else // Fly at 90 deg to missile to put max distance between ourselves and dispensed flares/chaff
                 {
+                    bool inVacuum = vessel.InNearVacuum();
                     // Break off at 90 deg to missile
-                    Vector3 threatDirection = -1f * weaponManager.incomingMissileVessel.Velocity();
+                    Vector3 threatDirection;
+                    // If in space or not SARH (note that no radarTarget.exists check is made, but this *should* be fine)
+                    if (!BDArmorySettings.RADAR_NOTCHING || inVacuum || missileThreatMB.TargetingMode != MissileBase.TargetingModes.Radar || !missileThreatMB.vrd || !missileThreatMB.radarTarget.lockedByRadar)
+                        threatDirection = -1f * missileThreat.Velocity(); // Use missile vel
+                    else
+                        threatDirection = -1f * missileThreatMB.radarTarget.lockedByRadar.vessel.Velocity(); // Use radar parent vessel vel
+
                     threatDirection = threatDirection.ProjectOnPlanePreNormalized(upDirection);
                     float sign = Vector3.SignedAngle(threatDirection, vessel.Velocity().ProjectOnPlanePreNormalized(upDirection), upDirection);
                     Vector3 breakDirection = Vector3.Cross(Mathf.Sign(sign) * upDirection, threatDirection).ProjectOnPlanePreNormalized(upDirection); // Break left or right depending on which side the missile is coming in on.
 
                     // Missile kinematics check to see if alternate break directions are better (crank or turn around and run)
                     bool dive = true;
-                    if (evasionMissileKinematic && !vessel.InNearVacuum())
+                    if (evasionMissileKinematic && !inVacuum)
                     {
                         breakDirection = MissileKinematicEvasion(breakDirection, threatDirection);
                         if (kinematicEvasionState != KinematicEvasionStates.NotchDive)
@@ -3478,7 +3489,7 @@ namespace BDArmory.Control
                         if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine("Breaking from missile threat!");
 
                     // Dive to gain energy and hopefully lead missile into ground when not in space
-                    if (!vessel.InNearVacuum() && dive)
+                    if (!inVacuum && dive)
                     {
                         float diveScale = Mathf.Max(1000f, 2f * turnRadius);
                         float angle = Mathf.Clamp((float)vessel.radarAltitude - minAltitude, 0, diveScale) / diveScale * 90;
