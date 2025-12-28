@@ -1,8 +1,16 @@
 ﻿IMPROVEMENTS / FIXES
+- AI / WM:
+	- Guard Mode now uses more "realistic" RWR/MWS and visual detection checks against missiles and vessels by taking advantage of overhauled RWR system.
+		- Fixed inconsistent detection ranges vs. missiles, now missiles will be detected within specified MWS range if omni RWR/MWS or if pinged by ARH missile.
+		- Specifically allow AI to detect incoming SARH missiles (mostly for gameplay reasons).
+		- AI will not know what kind of missile is approaching if it's passive (IR, GPS/INS, anti-radiation) unless it is within MWS or visual ID range (1/3 of visual range).
+			- When not ID'd, flying or orbital vehicles will assume the incoming missile is an IR missile, ground vehicles will assume it is an anti-radiation missile.
+	- Add support for anti-radiation interceptor missiles in the point-defense code.
+	- Fix bugs with toggling Guard Mode, turrets should now properly be disabled, and radars and RWR should now correctly automatically enable when toggling via the vessel selector.
 - Sensors:
-	- Totally rework RWR system. New fields "RWRMWSRange" (range of MWS system in m) and "RWRMWSUpdateRate" (purely visual update interval in s for MWS system) added.
-		- Modified Guard Mode scan code to take advantage of these changes.
+	- Totally rework RWR system. New fields "RWRMWSRange" (range of MWS system in m) and "RWRMWSUpdateRate" (player UI update interval in s for MWS system) added.
 	- Fix targeting pod NRE when not targeting vessels.
+	- Fix radar part info menu not displaying correct FoV limits
 - Weapons:
 	- Explosions:
 		- Slight efficiency improvements in explosion code.
