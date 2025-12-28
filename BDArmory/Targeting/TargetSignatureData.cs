@@ -31,8 +31,10 @@ namespace BDArmory.Targeting
         public float range;
         //SEE TODO in CheckJamming
         //public Vector3 jammedGeoPos;
-        bool orbital;
-        Orbit orbit;
+
+        // Appears to be unused?
+        //bool orbital;
+        //Orbit orbit;
 
         public bool Equals(TargetSignatureData other)
         {
@@ -44,8 +46,8 @@ namespace BDArmory.Targeting
 
         public TargetSignatureData(Vessel v, float _signalStrength, Part heatpart = null, float _notchMod = 0f, float _range = -1f)
         {
-            orbital = v.InOrbit();
-            orbit = v.orbit;
+            //orbital = v.InOrbit();
+            //orbit = v.orbit;
 
             timeAcquired = Time.time;
             vessel = v;
@@ -97,8 +99,8 @@ namespace BDArmory.Targeting
             vesselJammer = null;
             Team = null;
             //pingPosition = Vector2.zero;
-            orbital = false;
-            orbit = null;
+            //orbital = false;
+            //orbit = null;
             lockedByRadar = null;
             vessel = null;
             IRSource = null;
@@ -118,8 +120,8 @@ namespace BDArmory.Targeting
             vesselJammer = null;
             Team = null;
             //pingPosition = Vector2.zero;
-            orbital = false;
-            orbit = null;
+            //orbital = false;
+            //orbit = null;
             lockedByRadar = null;
             vessel = null;
             IRSource = null;
@@ -139,8 +141,8 @@ namespace BDArmory.Targeting
             vesselJammer = null;
             Team = null;
             //pingPosition = Vector2.zero;
-            orbital = false;
-            orbit = null;
+            //orbital = false;
+            //orbit = null;
             lockedByRadar = null;
             vessel = null;
             IRSource = null;
