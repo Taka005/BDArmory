@@ -1129,7 +1129,7 @@ namespace BDArmory.FX
 
                                 if (penetrationFactor > 1 && warheadType != WarheadTypes.Kinetic)
                                 {
-                                    if (blastInfo.Damage > 0)
+                                    if (damageWithoutIntermediateParts > 0)
                                     {
                                         damage += part.AddExplosiveDamage(shapedEffect ? (0.2f * blastInfo.Damage +  0.8f * damageWithoutIntermediateParts) : blastInfo.Damage, Caliber, ExplosionSource, dmgMult);
                                         totalDamageApplied[vesselHit] += damage;

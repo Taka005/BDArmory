@@ -2292,8 +2292,8 @@ namespace BDArmory.Control
             GameEvents.onEditorPartPlaced.Remove(UpdateMaxGunRange);
             GameEvents.onEditorPartDeleted.Remove(UpdateMaxGunRange);
 
-            missilesAway.Clear();
-            queuedLaunches.Clear();
+            if (missilesAway != null) missilesAway.Clear();
+            if (queuedLaunches != null) queuedLaunches.Clear();
 
             TimingManager.FixedUpdateRemove(TimingManager.TimingStage.Earlyish, PointDefence);
             if (boreRing != null) ShowBoreRing(false);
