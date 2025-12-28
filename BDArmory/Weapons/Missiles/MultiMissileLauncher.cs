@@ -1281,6 +1281,7 @@ namespace BDArmory.Weapons.Missiles
                 {
                     BDATargetManager.FiredMissiles.Add(ml); //so multi-missile salvoes only count as a single missile fired by the WM for maxMissilesPerTarget
 
+                    // Account for the datalink for the missileLauncher target
                     if (removeFromQueue)
                     {
                         if (missileLauncher.radarTarget.exists && missileLauncher.radarTarget.lockedByRadar && missileLauncher.radarTarget.lockedByRadar.vessel != missileLauncher.SourceVessel)
@@ -1293,25 +1294,17 @@ namespace BDArmory.Weapons.Missiles
 
                     if (FiredByWM)
                     {
+                        // Remove the missileLauncher target from queue
                         if (removeFromQueue)
                         {
                             FiredByWM.UpdateQueuedLaunches(missileLauncher.targetVessel, missileLauncher, false);
                             removeFromQueue = false;
                         }
+                        // Update missiles away with the real target
                         FiredByWM.UpdateMissilesAway(ml.targetVessel, ml);
                     }
 
-                    // Account for the datalink for the missileLauncher target
-                    if (removeFromQueue)
-                    {
-                        if (missileLauncher.radarTarget.exists && missileLauncher.radarTarget.lockedByRadar && missileLauncher.radarTarget.lockedByRadar.vessel != missileLauncher.SourceVessel)
-                        {
-                            MissileFire datalinkwpm = ml.radarTarget.lockedByRadar.vessel.ActiveController().WM;
-                            if (datalinkwpm)
-                                datalinkwpm.UpdateQueuedLaunches(missileLauncher.targetVessel, missileLauncher, false, false);
-                        }
-                    }
-
+                    // Update datalink missiles away with the real target
                     if (ml.radarTarget.exists && ml.radarTarget.lockedByRadar && ml.radarTarget.lockedByRadar.vessel != ml.SourceVessel)
                     {
                         MissileFire datalinkwpm = ml.radarTarget.lockedByRadar.vessel.ActiveController().WM;
