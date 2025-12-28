@@ -526,6 +526,19 @@ namespace BDArmory.Radar
             }
         }
 
+        public void SetRadarLimits()
+        {
+            ParseRadarLimits(directionalFieldOfView, out radarAzOffset, out radarAzFOV, out radarAzLimits, out radarMinMaxAzLimits);
+            // Retain old radar characteristics, if omnidirectional the radar should be able to see targets at +/- 90, otherwise
+            // the radar could previously see targets at +/- 90 but not lock them, so we'll just lock it to a square FoV
+            ParseRadarLimits(elevationFOV, out radarElOffset, out radarElFOV, out radarElLimits, out radarMinMaxElLimits, true);
+            if (BDArmorySettings.DEBUG_RADAR)
+            {
+                Debug.Log($"[BDArmory.ModuleRadar] radarAzOffset {radarAzOffset}, radarAzFOV: {radarAzFOV}, radarAzLimits: {radarAzLimits[0]},{radarAzLimits[1]}, radarMinMaxAzLimits: {radarMinMaxAzLimits[0]},{radarMinMaxAzLimits[1]}");
+                Debug.Log($"[BDArmory.ModuleRadar] radarElOffset {radarElOffset}, radarElFOV: {radarElFOV}, radarElLimits: {radarElLimits[0]},{radarElLimits[1]}, radarMinMaxAzLimits: {radarMinMaxElLimits[0]},{radarMinMaxElLimits[1]}");
+            }
+        }
+
         public void ParseRadarLimits(in string radarLimitString, out float radarOffset, out float radarFOV, out float[] radarLimits, out float[] radarMinMaxLimits, bool elevationLimits = false)
         {
             // If we're parsing elevation limits
@@ -621,15 +634,7 @@ namespace BDArmory.Radar
 
                 linkedToVessels = new List<VesselRadarData>();
 
-                ParseRadarLimits(directionalFieldOfView, out radarAzOffset, out radarAzFOV, out radarAzLimits, out radarMinMaxAzLimits);
-                // Retain old radar characteristics, if omnidirectional the radar should be able to see targets at +/- 90, otherwise
-                // the radar could previously see targets at +/- 90 but not lock them, so we'll just lock it to a square FoV
-                ParseRadarLimits(elevationFOV, out radarElOffset, out radarElFOV, out radarElLimits, out radarMinMaxElLimits, !omnidirectional);
-                if (BDArmorySettings.DEBUG_RADAR)
-                {
-                    Debug.Log($"[BDArmory.ModuleRadar] radarAzOffset {radarAzOffset}, radarAzFOV: {radarAzFOV}, radarAzLimits: {radarAzLimits[0]},{radarAzLimits[1]}, radarMinMaxAzLimits: {radarMinMaxAzLimits[0]},{radarMinMaxAzLimits[1]}");
-                    Debug.Log($"[BDArmory.ModuleRadar] radarElOffset {radarElOffset}, radarElFOV: {radarElFOV}, radarElLimits: {radarElLimits[0]},{radarElLimits[1]}, radarMinMaxAzLimits: {radarMinMaxElLimits[0]},{radarMinMaxElLimits[1]}");
-                }
+                SetRadarLimits();
 
                 signalPersistTime = omnidirectional
                     ? 360 / (scanRotationSpeed + 5)
@@ -1520,6 +1525,9 @@ namespace BDArmory.Radar
             output.AppendLine(StringUtils.Localize("#autoLOC_bda_1000021", resourceDrain));
             if (!isLinkOnly)
             {
+                // For some reason just doing this in OnStart(), even outside of the Flight scene check wasn't working...
+                SetRadarLimits();
+
                 if (!omnidirectional)
                     output.AppendLine(StringUtils.Localize("#autoLOC_bda_1000022", radarAzLimits[0], radarAzLimits[1]));
                 output.AppendLine(StringUtils.Localize("#autoLOC_bda_1000041", radarElLimits[0], radarElLimits[1]));
