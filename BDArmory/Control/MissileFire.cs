@@ -2108,25 +2108,24 @@ namespace BDArmory.Control
             //    Debug.LogWarning($"[BDArmory.MissileFire] Attempted to update missilesAway with missile: {missile.shortName} but target was null!");
         }
 
-        public int[] GetMissilesAway(TargetInfo target)
+        public (int numAway, int numSARH) GetMissilesAway(TargetInfo target)
         {
-            if (!guardMode) return [0, 0];
-            if (target)
+            if (!guardMode) return (0, 0);
+            if (!target) return (0, 0);
+
+            int numAway = 0;
+            int numSARH = 0;
+            if (missilesAway.TryGetValue(target, out int[] missiles)) //change to previous target?)
             {
-                int[] results = [0, 0];
-                if (missilesAway.TryGetValue(target, out int[] missiles)) //change to previous target?)
-                {
-                    results[0] += missiles[0];
-                    results[1] += missiles[1];
-                }
-                if (queuedLaunches.TryGetValue(target, out int[] launching))
-                {
-                    results[0] += launching[0];
-                    results[1] += launching[1];
-                }
-                return results;
+                numAway += missiles[0];
+                numSARH += missiles[1];
             }
-            return [0, 0];
+            if (queuedLaunches.TryGetValue(target, out int[] launching))
+            {
+                numAway += launching[0];
+                numSARH += launching[1];
+            }
+            return (numAway, numSARH);
         }
 
         private void CalculateMissilesAway() //FIXME - add check for identically named vessels
@@ -2292,6 +2291,10 @@ namespace BDArmory.Control
             GameEvents.onVesselPartCountChanged.Remove(OnVesselPartCountChanged);
             GameEvents.onEditorPartPlaced.Remove(UpdateMaxGunRange);
             GameEvents.onEditorPartDeleted.Remove(UpdateMaxGunRange);
+
+            missilesAway.Clear();
+            queuedLaunches.Clear();
+
             TimingManager.FixedUpdateRemove(TimingManager.TimingStage.Earlyish, PointDefence);
             if (boreRing != null) ShowBoreRing(false);
             //if (boreRadarRing != null) boreRadarRing.SetActive(false);
@@ -3875,7 +3878,7 @@ namespace BDArmory.Control
             List<TargetSignatureData> locks = vesselRadarData.GetLockedTargets();
             for (int i = 0; i < locks.Count; i++)
             {
-                if (GetMissilesAway(locks[i].targetInfo)[1] == 0)
+                if (GetMissilesAway(locks[i].targetInfo).numSARH == 0)
                 {
                     vesselRadarData.UnlockSelectedTarget(locks[i].vessel);
                     if (!unlockAll)
@@ -5612,7 +5615,7 @@ namespace BDArmory.Control
                 {
                     while (target.MoveNext())
                     {
-                        if (GetMissilesAway(target.Current)[0] >= maxMissilesOnTarget)
+                        if (GetMissilesAway(target.Current).numAway >= maxMissilesOnTarget)
                         {
                             targetsAssigned.Add(target.Current);
                             if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire]: {vessel.GetName()} Adding {target.Current.Vessel.GetName()} to exclusion list; length: {targetsAssigned.Count}");
@@ -9923,7 +9926,7 @@ namespace BDArmory.Control
         {
             if (currIndex >= tgtCount) currIndex = 0;
             int temp = currIndex;
-            while (GetMissilesAway(PDMslTgts[currIndex])[0] >= maxMissilesOnTarget)
+            while (GetMissilesAway(PDMslTgts[currIndex]).numAway >= maxMissilesOnTarget)
             {
                 currIndex++;
                 if (currIndex >= tgtCount) currIndex = 0;

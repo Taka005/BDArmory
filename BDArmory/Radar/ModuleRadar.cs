@@ -1318,7 +1318,7 @@ namespace BDArmory.Radar
             var weaponManager = WeaponManager;
             for (int i = 0; i < lockedTargets.Count; i++)
             {
-                if (weaponManager.GetMissilesAway(lockedTargets[i].targetInfo)[1] == 0)
+                if (weaponManager.GetMissilesAway(lockedTargets[i].targetInfo).numSARH == 0)
                 {
                     UnlockTargetAt(i);
                     i--;

@@ -1007,7 +1007,7 @@ namespace BDArmory.Radar
                 && (!guardModeActive || // If not in Guard Mode
                     !radar.locked || // Or the radar isn't locked
                     (priorityLock && !radar.lockedTarget.targetInfo.isMissile) || // Or we're a priority lock
-                    weaponManager.GetMissilesAway(radar.lockedTarget.targetInfo)[1] == 0 || // Or we're not guiding a missile
+                    weaponManager.GetMissilesAway(radar.lockedTarget.targetInfo).numSARH == 0 || // Or we're not guiding a missile
                     VectorUtils.Angle(relativePos, radar.lockedTarget.position - radar.currPosition) < radar.multiLockFOV * 0.5f)) // Or we're within the multiLockFOV
             );
         }
