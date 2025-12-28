@@ -8352,6 +8352,8 @@ namespace BDArmory.Control
                 if (missile.TargetingMode != MissileBase.TargetingModes.AntiRad) return;
 
                 MissileLauncher ml = CurrentMissile as MissileLauncher;
+                Vector3 missilePos = missile.transform.position;
+                Vector3 missileForward = missile.GetForwardTransform();
                 //Debug.Log($"antiradTgt count: {(ml.antiradTargets != null ? ml.antiradTargets.Length : "null")}");
                 //if (ml.antiradTargets == null) ml.ParseAntiRadTargetTypes();
                 for (int i = 0; i < rwr.pingsData.Length; i++)
@@ -8359,8 +8361,8 @@ namespace BDArmory.Control
                     RWRSignatureData currPing = rwr.pingsData[i];
                     if (currPing.exists && RadarWarningReceiver.CanDetectRWRThreat(ml.antiradTargets, currPing.signalType))
                     {
-                        float angle = VectorUtils.Angle(position - missile.transform.position, missile.GetForwardTransform());
                         Vector3 position = currPing.position;
+                        float angle = VectorUtils.Angle(position - missilePos, missileForward);
 
                         if (angle < closestAngle && angle < maxOffBoresight)
                         {
