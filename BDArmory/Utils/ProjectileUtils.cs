@@ -580,7 +580,7 @@ namespace BDArmory.Utils
 
                 float ArmorTolerance = (((Strength * (1 + ductility)) + Density) / 1000f) * (float)hitPart.GetArmorThickness(); //either this or blowthrough factor should probably get reviewed at some point
 
-                ArmorTolerance *= BDArmorySettings.EXP_PEN_RESIST_MULT;
+                ArmorTolerance *= 4f * BDArmorySettings.EXP_PEN_RESIST_MULT;
 
                 float blowthroughFactor = (float)BlastPressure / ArmorTolerance; //as damage to armor might be a bit high. Otoh, how much damage is to be expected from, say, a 5" naval HE shell vs 50mm of armor?
                 //have this scaled by blowthrough factor? afterall a very powerful blast right next to the plate is more likely to punch a localzied hole rather than generally push the whole plate, no?
