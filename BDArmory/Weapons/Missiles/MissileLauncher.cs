@@ -293,6 +293,23 @@ namespace BDArmory.Weapons.Missiles
         [KSPField]
         public float agmDescentRatio = 1.45f;
 
+        [KSPField]
+        public int altitudeFuzeMode = 0;
+
+        public enum AltitudeFuzeMode 
+        { 
+            DescendingMSL = -2,
+            DescendingRadar = -1,
+            None = 0,
+            AscendingRadar = 1,
+            AscendingMSL = 2,
+        }
+
+        public AltitudeFuzeMode altitudeFuze = AltitudeFuzeMode.None;
+
+        [KSPField]
+        public float altitudeDetonationAlt = 0;
+
         float currentThrust;
 
         public bool deployed;
@@ -506,6 +523,11 @@ namespace BDArmory.Weapons.Missiles
                     if (cruiseTime > 0 && cruiseFuelMass <= 0) cruiseFuelMass = initialMass * 0.1f;
                 }
             }
+
+            if (Enum.IsDefined(typeof(AltitudeFuzeMode), altitudeFuzeMode))
+                altitudeFuze = (AltitudeFuzeMode)altitudeFuzeMode;
+            else
+                Debug.LogWarning($"[BDArmory.MissileLauncher] Unknown altitudeFuzeMode: {altitudeFuzeMode}! Defaulted to none.");
 
             if (shortName == string.Empty)
             {
@@ -2003,6 +2025,7 @@ namespace BDArmory.Weapons.Missiles
 
                     UpdateThrustForces();
                     UpdateGuidance();
+                    CheckAltitudeDetonation();
                     CheckDetonationState(); // this needs to be after UpdateGuidance()
                     CheckDetonationDistance();
                     CheckCountermeasureDistance();
@@ -2050,6 +2073,49 @@ namespace BDArmory.Weapons.Missiles
                     }
                     OldInfAmmo = BDArmorySettings.INFINITE_ORDINANCE;
                 }
+            }
+        }
+
+        void CheckAltitudeDetonation()
+        {
+            switch(altitudeFuze)
+            {
+                case AltitudeFuzeMode.DescendingMSL:
+                    {
+                        if (vessel.verticalSpeed < 0 && vessel.altitude < altitudeDetonationAlt)
+                        {
+                            if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher] Altitude Fuze Triggered! Detonating with mode: {altitudeFuze.ToString()} at altitude: {vessel.altitude} m with vertical velocity: {vessel.verticalSpeed} m/s");
+                            Detonate();
+                        }
+                        break;
+                    }
+                case AltitudeFuzeMode.DescendingRadar:
+                    {
+                        if (vessel.verticalSpeed < 0 && vessel.radarAltitude < altitudeDetonationAlt)
+                        {
+                            if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher] Altitude Fuze Triggered! Detonating with mode: {altitudeFuze.ToString()} at altitude: {vessel.altitude} m with vertical velocity: {vessel.verticalSpeed} m/s");
+                            Detonate();
+                        }
+                        break;
+                    }
+                case AltitudeFuzeMode.AscendingRadar:
+                    {
+                        if (vessel.verticalSpeed > 0 && vessel.radarAltitude > altitudeDetonationAlt)
+                        {
+                            if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher] Altitude Fuze Triggered! Detonating with mode: {altitudeFuze.ToString()} at altitude: {vessel.altitude} m with vertical velocity: {vessel.verticalSpeed} m/s");
+                            Detonate();
+                        }
+                        break;
+                    }
+                case AltitudeFuzeMode.AscendingMSL:
+                    {
+                        if (vessel.verticalSpeed > 0 && vessel.altitude > altitudeDetonationAlt)
+                        {
+                            if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher] Altitude Fuze Triggered! Detonating with mode: {altitudeFuze.ToString()} at altitude: {vessel.altitude} m with vertical velocity: {vessel.verticalSpeed} m/s");
+                            Detonate();
+                        }
+                        break;
+                    }
             }
         }
 
