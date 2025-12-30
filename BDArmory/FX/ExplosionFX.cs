@@ -35,6 +35,7 @@ namespace BDArmory.FX
         public string SourceVesselTeam { get; set; }
         public string SourceWeaponName { get; set; }
         public float Power { get; set; }
+        public double tntMassCubeRoot { get; set; }
         public Vector3 Position { get { return _position; } set { _position = value; transform.position = _position; } }
         Vector3 _position;
         public Vector3 Direction { get; set; }
@@ -59,6 +60,9 @@ namespace BDArmory.FX
         private bool disabled = true;
 
         float blastRange;
+
+        const float thirdCubeRoot = 0.69336127435063470484335227478596f; // Cube root of 1/3 -> Used to rescale cubed root of TNT mass
+
         const int explosionLayerMask = (int)(LayerMasks.Parts | LayerMasks.Scenery | LayerMasks.EVA | LayerMasks.Unknown19 | LayerMasks.Unknown23 | LayerMasks.Wheels); // Why 19 and 23?
 
         Queue<BlastHitEvent> explosionEvents = new();
@@ -917,13 +921,13 @@ namespace BDArmory.FX
 
                     if (eventToExecute.withinAngleofEffect) //within AoE of shaped warheads, or otherwise standard blast
                     {
-                        blastInfo = BlastPhysicsUtils.CalculatePartBlastEffects(part, realDistance, vesselMass * 1000f, Power, Range);
+                        blastInfo = BlastPhysicsUtils.CalculatePartBlastEffects(part, realDistance, vesselMass * 1000f, tntMassCubeRoot, Range);
                     }
                     else //majority of force concentrated in blast AoE for shaped warheads, not going to apply much force to stuff outside 
                     {
                         if (realDistance < Range / 2) //further away than half the blast range, falloff blast effect outside primary AoE
                         {
-                            blastInfo = BlastPhysicsUtils.CalculatePartBlastEffects(part, realDistance, vesselMass * 1000f, Power / 3, Range / 2);
+                            blastInfo = BlastPhysicsUtils.CalculatePartBlastEffects(part, realDistance, vesselMass * 1000f, tntMassCubeRoot * thirdCubeRoot, Range / 2);
                         }
                         else { eventToExecute.Finished(); return; }
                     }
@@ -934,15 +938,68 @@ namespace BDArmory.FX
                     float cumulativeHPOfIntermediateParts = 0f;
                     float cumulativeArmorOfIntermediateParts = 0f;
 
-                    if (eventToExecute.IntermediateParts.Count > 0)
-                    {
-                        cumulativeHPOfIntermediateParts = eventToExecute.IntermediateParts.Select(p => p.Item2).Sum();
-                        cumulativeArmorOfIntermediateParts = eventToExecute.IntermediateParts.Select(p => p.Item3).Sum();
-                    }
+                    //if (eventToExecute.IntermediateParts.Count > 0)
+                    //{
+                    //    cumulativeHPOfIntermediateParts = eventToExecute.IntermediateParts.Select(p => p.Item2).Sum();
+                    //    cumulativeArmorOfIntermediateParts = eventToExecute.IntermediateParts.Select(p => p.Item3).Sum();
+                    //}
 
                     float damageWithoutIntermediateParts = blastInfo.Damage;
                     float dmgModifier = PartExtensions.ExplosiveDamageModifier(ExplosionSource, dmgMult); // Scale the HP and Armour by the appropriate modifier for how the damage will be applied.
-                    blastInfo.Damage = dmgModifier > 0f ? Mathf.Max(0f, blastInfo.Damage - (0.2f * cumulativeHPOfIntermediateParts) / dmgModifier - 10f * BDArmorySettings.EXP_PEN_RESIST_MULT * cumulativeArmorOfIntermediateParts) : 0f;
+
+                    if (dmgModifier > 0)
+                    {
+                        float invdmgModifier = 1f / dmgModifier;
+                        double currtntMassCubeRoot = tntMassCubeRoot;
+                        int currIndex = 0;
+                        // Perform HP/armor calculation
+                        for (int i = 0; i < eventToExecute.IntermediateParts.Count; i++)
+                        {
+                            (float, float, float) currPart = eventToExecute.IntermediateParts[i];
+                            float blastImpulse = BlastPhysicsUtils.CalculateMaxImpulseAtDistance(currPart.Item1, currtntMassCubeRoot);
+                            // Function remains unchanged, except we evaluate at the part and there's a factor of 1.2 tacked on as a handwavy
+                            // "explosion must pass through the hole it blasts through" kind of thing. Why 1.2? No particularly good reason.
+                            // NOTE: Big explosions are consistently overpenning quite significantly...
+                            float blastResistance = 1.2f * (0.2f * currPart.Item2 * invdmgModifier + 10f * BDArmorySettings.EXP_PEN_RESIST_MULT * currPart.Item3);
+                            currtntMassCubeRoot *= (blastImpulse - blastResistance) / blastImpulse;
+
+                            if (BDArmorySettings.DEBUG_DAMAGE) Debug.Log($"[BDArmory.ExplosionFX] Part at index {i} reduced blastImpulse: {blastImpulse} by blastResistance: {blastResistance}.");
+
+                            cumulativeHPOfIntermediateParts += currPart.Item2;
+                            cumulativeArmorOfIntermediateParts += currPart.Item3;
+
+                            if (currtntMassCubeRoot < 0)
+                            {
+                                currtntMassCubeRoot = 0;
+                                currIndex = i + 1;
+                                break;
+                            }
+                        }
+                        // Add rest of the parts to the sum
+                        for (int i = currIndex; i < eventToExecute.IntermediateParts.Count; i++)
+                        {
+                            (float, float, float) currPart = eventToExecute.IntermediateParts[i];
+                            cumulativeHPOfIntermediateParts += currPart.Item2;
+                            cumulativeArmorOfIntermediateParts += currPart.Item3;
+                        }
+                        blastInfo.Damage *= (float)(currtntMassCubeRoot / tntMassCubeRoot);
+                    }
+                    else
+                    {
+                        blastInfo.Damage = 0;
+                        // I guess this technically doesn't need to be done if the mult is 0
+                        // but since later stuff expects it somewhat, it's probably good to do
+                        // it anyways.
+                        for (int i = 0; i < eventToExecute.IntermediateParts.Count; i++)
+                        {
+                            (float, float, float) currPart = eventToExecute.IntermediateParts[i];
+                            cumulativeHPOfIntermediateParts += currPart.Item2;
+                            cumulativeArmorOfIntermediateParts += currPart.Item3;
+                        }
+                    }
+
+                    // Old Armor/HP resistance equation
+                    //blastInfo.Damage = dmgModifier > 0f ? Mathf.Max(0f, blastInfo.Damage - (0.2f * cumulativeHPOfIntermediateParts) / dmgModifier - 10f * BDArmorySettings.EXP_PEN_RESIST_MULT * cumulativeArmorOfIntermediateParts) : 0f;
 
                     if (CASEClamp > 0)
                     {
@@ -1286,6 +1343,7 @@ namespace BDArmory.FX
             eFx.Range = BlastPhysicsUtils.CalculateBlastRange(tntMassEquivalent);
             eFx.Position = position;
             eFx.Power = tntMassEquivalent;
+            eFx.tntMassCubeRoot = Math.Pow(tntMassEquivalent, 1d / 3d);
             eFx.ExplosionSource = explosionSourceType;
             eFx.SourceVesselName = !string.IsNullOrEmpty(sourceVesselName) ? sourceVesselName : explosionSourceType == ExplosionSourceType.Missile ? (explosivePart != null && explosivePart.vessel != null ? explosivePart.vessel.GetName() : null) : null; // Use the sourceVesselName if specified, otherwise get the sourceVesselName from the missile if it is one.
             eFx.SourceVesselTeam = sourceVesselTeam;

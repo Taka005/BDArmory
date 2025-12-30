@@ -12,9 +12,13 @@ namespace BDArmory.Utils
 
         // Methodology based on AASTP-1: MANUAL OF NATO SAFETY PRINCIPLES FOR THE STORAGE OF MILITARY AMMUNITION AND EXPLOSIVES
         // Link: http://www.rasrinitiative.org/pdfs/AASTP-1-Ed1-Chge-3-Public-Release-110810.pdf
-        public static BlastInfo CalculatePartBlastEffects(Part part, float distanceToHit, double vesselMass, float explosiveMass, float range)
+        // NOTE: Only use Edition 1, modern editions do NOT include these equations
+        // Specifically, much of the math comes from the Kingery Airblast Equations, a writeup of which can be found in ADA526744
+        // Link: https://apps.dtic.mil/sti/pdfs/ADA526744.pdf
+        // Do note the above link uses the natural log instead of common log, as is used in AASTP-1
+        public static BlastInfo CalculatePartBlastEffects(Part part, float distanceToHit, double vesselMass, double cubeRootExplosiveMass, float range)
         {
-            double cubeRootExplosiveMass = Math.Pow(explosiveMass, 1f / 3f);
+            //double cubeRootExplosiveMass = Math.Pow(explosiveMass, 1f / 3f);
             float cubeRootExplosiveMassFloat = (float)cubeRootExplosiveMass;
 
             float clampedMinDistanceToHit = ClampRange(cubeRootExplosiveMassFloat, distanceToHit);
@@ -74,6 +78,15 @@ namespace BDArmory.Utils
             return new BlastInfo() { TotalPressure = maxPressurePerMs, EffectivePartArea = effectivePartArea, PositivePhaseDuration = positivePhase, VelocityChange = acceleration, Damage = finalDamage };
         }
 
+        public static float CalculateMaxImpulseAtDistance(float distanceToHit, double cubeRootExplosiveMass)
+        {
+            float cubeRootExplosiveMassFloat = (float)cubeRootExplosiveMass;
+            float clampedMinDistanceToHit = ClampRange(cubeRootExplosiveMassFloat, distanceToHit);
+            double minScaledDistance = CalculateScaledDistance(cubeRootExplosiveMassFloat, clampedMinDistanceToHit);
+            double tmin = Math.Log10(minScaledDistance);
+            return (float)CalculateIncidentImpulse(minScaledDistance, cubeRootExplosiveMass, tmin);
+        }
+
         private static float CalculateEffectiveBlastAreaToPart(float range, Part part)
         {
             float circularArea = Mathf.PI * range * range;
@@ -98,8 +111,11 @@ namespace BDArmory.Utils
             //double t = Math.Log10(scaledDistance); //Math.Log(scaledDistance) / Math.Log(10);
             //double cubeRootOfChargeWeight = Math.Pow(explosiveCharge, 0.3333333);
             double ii = 0;
+            // Functions from page 393-394 of AASTP-1 Edition 1 Change 3 (specifically)
+            // Note scaling by the cube-root of charge weight is indicated on
+            // page 274 of the PDF
             if (scaledDistance <= 0.955)
-            { //NATO version
+            {
                 double U = 2.06761908721 + 3.0760329666 * t;
                 var U2 = U * U;
                 var U3 = U2 * U;
@@ -110,7 +126,7 @@ namespace BDArmory.Utils
                      0.0118964626402 * U4;
             }
             else if (scaledDistance > 0.955)
-            { //version from ???
+            {
                 var U = -1.94708846747 + 2.40697745406 * t;
                 var U2 = U * U;
                 var U3 = U2 * U;
@@ -245,7 +261,7 @@ namespace BDArmory.Utils
         /// <returns>explosive range in meters </returns>
         public static float CalculateBlastRange(double tntMass)
         {
-            return (float)(14.8f * Math.Pow(tntMass, 1 / 3f));
+            return (float)(14.8f * Math.Pow(tntMass, 1d / 3d));
         }
 
         /// <summary>
