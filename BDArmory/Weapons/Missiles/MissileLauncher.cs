@@ -180,6 +180,9 @@ namespace BDArmory.Weapons.Missiles
         public bool proxyDetonate = true;
 
         [KSPField]
+        public bool adjustableProxyFuze = true;
+
+        [KSPField]
         public string audioClipPath = string.Empty;
 
         AudioClip thrustAudio;
@@ -380,6 +383,7 @@ namespace BDArmory.Weapons.Missiles
         public float maxCruiseSpeed = 300f;
         public bool canCruisePopup = false;
         public bool canDetMinDist = false;
+        public float defaultDetDist = -1f;
 
         private int cruiseTerminationFrames = 0;
 
@@ -892,16 +896,27 @@ namespace BDArmory.Weapons.Missiles
             ParseWeaponClass();
             ParseModes();
             InitializeEngagementRange(minStaticLaunchRange, maxStaticLaunchRange);
-            if (proxyDetonate)
-                SetInitialDetonationDistance();
-            else
-                DetonationDistance = 0f;
             uncagedLock = (allAspect) ? allAspect : uncagedLock;
             guidanceFailureRatePerFrame = (guidanceFailureRate >= 1) ? 1f : 1f - Mathf.Exp(Mathf.Log(1f - guidanceFailureRate) * Time.fixedDeltaTime); // Convert from per-second failure rate to per-frame failure rate
             invManeuvergLimit = 1f / maneuvergLimit;
             // MMLs **shouldn't** be checking the base config, hence checkBaseConfig being a thing
             MissileLauncher baseConfig = checkBaseConfig ? part.partInfo.partPrefab.FindModuleImplementing<MissileLauncher>() : null;
 
+            if (proxyDetonate)
+            {
+                if (checkBaseConfig && baseConfig)
+                {
+                    defaultDetDist = baseConfig.DetonationDistance;
+                    if (!adjustableProxyFuze)
+                        DetonationDistance = defaultDetDist;
+                }
+                SetInitialDetonationDistance();
+            }
+            else
+            {
+                DetonationDistance = 0f;
+            }
+                
             if (checkBaseConfig && baseConfig)
             {
                 canDetMinDist = baseConfig.DetonateAtMinimumDistance;
@@ -1245,10 +1260,18 @@ namespace BDArmory.Weapons.Missiles
                 Fields["DetonateAtMinimumDistance"].guiActive = false;
                 Fields["DetonateAtMinimumDistance"].guiActiveEditor = false;
             }
-            else if (!canDetMinDist)
+            else 
             {
-                Fields["DetonateAtMinimumDistance"].guiActive = false;
-                Fields["DetonateAtMinimumDistance"].guiActiveEditor = false;
+                if (!adjustableProxyFuze)
+                {
+                    Fields["DetonationDistance"].guiActive = false;
+                    Fields["DetonationDistance"].guiActiveEditor = false;
+                }
+                if (!canDetMinDist)
+                {
+                    Fields["DetonateAtMinimumDistance"].guiActive = false;
+                    Fields["DetonateAtMinimumDistance"].guiActiveEditor = false;
+                }
             }
             ParseAntiRadTargetTypes();
             GUIUtils.RefreshAssociatedWindows(part);
@@ -1797,7 +1820,16 @@ namespace BDArmory.Weapons.Missiles
                     DetonateAtMinimumDistance = false;
                 }
                 else
+                {
                     DetonateAtMinimumDistance = canDetMinDist && DetonateAtMinimumDistance;
+                    if (!adjustableProxyFuze)
+                    {
+                        DetonationDistance = defaultDetDist;
+                        SetInitialDetonationDistance();
+                    }
+                        
+                }
+                    
 
                 StartCoroutine(MissileRoutine());
                 List<BDWarheadBase> tntList = part.FindModulesImplementing<BDWarheadBase>();

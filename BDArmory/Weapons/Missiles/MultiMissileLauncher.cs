@@ -636,6 +636,7 @@ namespace BDArmory.Weapons.Missiles
             missileLauncher.maxCruiseSpeed = MLConfig.CruiseSpeed;
             missileLauncher.canCruisePopup = MLConfig.CruisePopup;
             missileLauncher.canDetMinDist = MLConfig.DetonateAtMinimumDistance;
+            missileLauncher.defaultDetDist = MLConfig.DetonationDistance;
             if (!overrideReferenceTransform) missileLauncher.maxOffBoresight = MLConfig.maxOffBoresight; //don't overwrite e.g. VLS launcher boresights so they can launch, but still have normal boresight on fired missiles
 
             if (configurableSettings)
