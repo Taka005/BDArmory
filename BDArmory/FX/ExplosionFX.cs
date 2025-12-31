@@ -957,10 +957,10 @@ namespace BDArmory.FX
                         {
                             (float, float, float) currPart = eventToExecute.IntermediateParts[i];
                             float blastImpulse = BlastPhysicsUtils.CalculateMaxImpulseAtDistance(currPart.Item1, currtntMassCubeRoot);
-                            // Function remains unchanged, except we evaluate at the part and there's a factor of 1.2 tacked on as a handwavy
-                            // "explosion must pass through the hole it blasts through" kind of thing. Why 1.2? No particularly good reason.
+                            // Function remains unchanged, except we evaluate at the part and there's a factor of 1.05 tacked on as a handwavy
+                            // "explosion must pass through the hole it blasts through" kind of thing. Why 1.05? No particularly good reason.
                             // NOTE: Big explosions are consistently overpenning quite significantly...
-                            float blastResistance = 1.2f * (0.2f * currPart.Item2 * invdmgModifier + 40f * BDArmorySettings.EXP_PEN_RESIST_MULT * currPart.Item3);
+                            float blastResistance = 1.05f * (0.2f * currPart.Item2 * invdmgModifier + 40f * BDArmorySettings.EXP_PEN_RESIST_MULT * currPart.Item3);
                             currtntMassCubeRoot *= (blastImpulse - blastResistance) / blastImpulse;
 
                             if (BDArmorySettings.DEBUG_DAMAGE) Debug.Log($"[BDArmory.ExplosionFX] Part at index {i} reduced blastImpulse: {blastImpulse} by blastResistance: {blastResistance}.");
