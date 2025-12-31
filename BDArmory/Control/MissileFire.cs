@@ -5223,6 +5223,7 @@ namespace BDArmory.Control
                 {
                     if (ct.Current == null) continue;
                     if (!ct.Current.isActiveAndEnabled) continue;
+                    if (ct.Current.turretID == 0) continue;
                     if (weaponIndex > 0 && CurrentMissile)
                     {
                         if (CurrentMissile.customTurret.Contains(ct.Current))
