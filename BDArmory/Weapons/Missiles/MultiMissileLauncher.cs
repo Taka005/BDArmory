@@ -484,7 +484,15 @@ namespace BDArmory.Weapons.Missiles
                                 if (missile.FindModuleImplementing<MissileLauncher>())
                                 {
                                     subMunitionName = missile.name;
-                                    subMunitionPath = GetMeshurl((UrlDir.UrlConfig)GameDatabase.Instance.root.GetConfig(missile.partInfo.partUrl));
+
+                                    UrlDir.UrlConfig partConfigTemp = (UrlDir.UrlConfig)GameDatabase.Instance.root.GetConfig(missile.partInfo.partUrl);
+                                    if (partConfigTemp == null)
+                                    {
+                                        partConfigTemp = missile.partInfo.partUrlConfig;
+                                        Debug.LogWarning($"[BDArmory.MultiMissileLauncher]: GetConfig from partURL {missile.partInfo.partUrl} failed! Using missilePart.partPrefab.partInfo.partUrlConfig. Potentially multiple parts in one file!");
+                                    }
+
+                                    subMunitionPath = GetMeshurl(partConfigTemp);
                                     if (adjustMissileVOffset)
                                     {
                                         var missileCOL = missile.GetComponentInChildren<Collider>();
@@ -539,6 +547,12 @@ namespace BDArmory.Weapons.Missiles
             string url;
             //float invRescaleFactor = 1f / part.rescaleFactor;
             dummyScale = Vector3.one; //new Vector3(invRescaleFactor, invRescaleFactor, invRescaleFactor);
+            if (cfgdir == null)
+            {
+                Debug.Log($"[BDArmory.MultiMissileLauncher] cfgdir is null!");
+                return "";
+            }
+
             if (cfgdir.config.HasNode("MODEL"))
             {
                 var MODEL = cfgdir.config.GetNode("MODEL");
@@ -557,7 +571,7 @@ namespace BDArmory.Weapons.Missiles
                     dummyScale.y *= scale;
                     dummyScale.z *= scale;
                 }
-                //Debug.Log($"[BDArmory.MultiMissileLauncher]: Found model URL of {url} and scale {dummyScale}");
+                if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MultiMissileLauncher]: Found model URL of {url} and scale {dummyScale}");
                 return url;
 
             }
@@ -578,7 +592,7 @@ namespace BDArmory.Weapons.Missiles
                 dummyScale.z *= scale;
             }
             url = string.Format("{0}/{1}", cfgdir.parent.parent.url, mesh);
-            //Debug.Log($"[BDArmory.MultiMissileLauncher]: Found model URL of {url} and scale {dummyScale}");
+            if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MultiMissileLauncher]: Found model URL of {url} and scale {dummyScale}");
             return url;
         }
 

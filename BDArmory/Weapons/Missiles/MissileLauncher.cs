@@ -524,11 +524,6 @@ namespace BDArmory.Weapons.Missiles
                 }
             }
 
-            if (Enum.IsDefined(typeof(AltitudeFuzeMode), altitudeFuzeMode))
-                altitudeFuze = (AltitudeFuzeMode)altitudeFuzeMode;
-            else
-                Debug.LogWarning($"[BDArmory.MissileLauncher] Unknown altitudeFuzeMode: {altitudeFuzeMode}! Defaulted to none.");
-
             if (shortName == string.Empty)
             {
                 shortName = part.partInfo.title;
@@ -4207,8 +4202,12 @@ namespace BDArmory.Weapons.Missiles
                     terminalGuidanceShouldActivate = false;
                     TargetingModeTerminal = TargetingModes.None;
                 }
-
             }
+
+            if (Enum.IsDefined(typeof(AltitudeFuzeMode), altitudeFuzeMode))
+                altitudeFuze = (AltitudeFuzeMode)altitudeFuzeMode;
+            else
+                Debug.LogWarning($"[BDArmory.MissileLauncher] Unknown altitudeFuzeMode: {altitudeFuzeMode}! Defaulted to none.");
 
             if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher]: parsing guidance and homing complete on {part.name}");
         }
@@ -4622,6 +4621,7 @@ namespace BDArmory.Weapons.Missiles
                 }
                 // Don't break, as some missiles contain multiple warhead types (e.g., Standard + EMP).
             }
+
             if (warheadType == WarheadTypes.Kinetic)
             {
                 if (blastPower > 0)
@@ -4632,6 +4632,61 @@ namespace BDArmory.Weapons.Missiles
                 }
                 else
                     output.AppendLine($"- Kinetic Impactor");
+            }
+            else
+            {
+                if (proxyDetonate)
+                {
+                    float tempDetDist = DetonationDistance;
+                    if (tempDetDist == -1)
+                    {
+                        if (GuidanceMode == GuidanceModes.AAMLead || GuidanceMode == GuidanceModes.AAMPure || GuidanceMode == GuidanceModes.PN || GuidanceMode == GuidanceModes.APN || GuidanceMode == GuidanceModes.AAMLoft || GuidanceMode == GuidanceModes.Kappa || GuidanceMode == GuidanceModes.CLOSThreePoint || GuidanceMode == GuidanceModes.CLOSLead) //|| GuidanceMode == GuidanceModes.AAMHybrid)
+                        {
+                            tempDetDist = GetBlastRadius() * 0.25f;
+                        }
+                        else
+                        {
+                            //DetonationDistance = GetBlastRadius() * 0.05f;
+                            tempDetDist = 0f;
+                        }
+                    }
+                    output.AppendLine($"- Def. Proxy Range: {tempDetDist} m");
+                    output.AppendLine($"- Adjustable Fuze: {adjustableProxyFuze}");
+                    output.AppendLine($"- Can Det. at Min Range: {DetonateAtMinimumDistance}");
+                }
+                else
+                {
+                    output.AppendLine($"- Impact Fuze");
+                }
+
+                if (altitudeFuze != AltitudeFuzeMode.None)
+                {
+                    output.AppendLine($"- Altitude Fuze:");
+                    output.AppendLine($" - Trigger Altitude: {altitudeDetonationAlt} m");
+                    switch (altitudeFuze)
+                    {
+                        case AltitudeFuzeMode.DescendingMSL:
+                            {
+                                output.AppendLine($" - Trigger Mode: Descending, MSL Altitude");
+                                break;
+                            }
+                        case AltitudeFuzeMode.DescendingRadar:
+                            {
+                                output.AppendLine($" - Trigger Mode: Descending, Radar Altitude");
+                                break;
+                            }
+                        case AltitudeFuzeMode.AscendingRadar:
+                            {
+                                output.AppendLine($" - Trigger Mode: Ascending, Radar Altitude");
+                                break;
+                            }
+                        case AltitudeFuzeMode.AscendingMSL:
+                            {
+                                output.AppendLine($" - Trigger Mode: Ascending, MSL Altitude");
+                                break;
+                            }
+                    }
+                }
             }
 
             return output.ToString();
