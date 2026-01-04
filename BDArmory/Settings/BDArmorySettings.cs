@@ -205,6 +205,7 @@ namespace BDArmory.Settings
         [BDAPersistentSettingsField] public static float ZOMBIE_DMG_MULT = 0.1f;
         [BDAPersistentSettingsField] public static float ARMOR_MASS_MOD = 1f;                   //Armor mass multiplier
         [BDAPersistentSettingsField] public static bool KERBAL_ERA = true;
+        [BDAPersistentSettingsField] public static float HMDCost = 2000f;
         #endregion
 
         #region FX

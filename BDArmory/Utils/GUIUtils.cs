@@ -50,6 +50,28 @@ namespace BDArmory.Utils
             GUI.matrix = guiMatrix;
         }
 
+        public static void DrawTextureOnScreenPos(Vector3 screenPos, Texture texture, Vector2 size, float wobble)
+        {
+            var cam = GetMainCamera();
+            if (cam == null) return;
+            var guiMatrix = GUI.matrix;
+            GUI.matrix = Matrix4x4.identity;
+            if (screenPos.z < 0) return; //dont draw if point is behind camera
+            if (screenPos.x != Mathf.Clamp01(screenPos.x)) return; //dont draw if off screen
+            if (screenPos.y != Mathf.Clamp01(screenPos.y)) return;
+            float xPos = screenPos.x * Screen.width - (0.5f * size.x);
+            float yPos = (1 - screenPos.y) * Screen.height - (0.5f * size.y);
+            if (wobble > 0)
+            {
+                xPos += UnityEngine.Random.Range(-wobble / 2, wobble / 2);
+                yPos += UnityEngine.Random.Range(-wobble / 2, wobble / 2);
+            }
+            Rect iconRect = new Rect(xPos, yPos, size.x, size.y);
+
+            GUI.DrawTexture(iconRect, texture);
+            GUI.matrix = guiMatrix;
+        }
+
         public static void DrawLabelOnWorldPos(Vector3 worldPos, string label, Vector2 size)
         {
             var cam = GetMainCamera();
@@ -93,6 +115,19 @@ namespace BDArmory.Utils
                 guiPos = Vector2.zero;
                 return false;
             }
+        }
+
+        public static Vector2 WorldToGUIPos(Vector3 worldPos)
+        {
+            var cam = GetMainCamera();
+            if (cam == null)
+            {
+                return Vector2.zero;
+            }
+            Vector3 screenPos = cam.WorldToViewportPoint(worldPos);
+            float xPos = screenPos.x * Screen.width;
+            float yPos = (1 - screenPos.y) * Screen.height;
+            return new Vector2(xPos, yPos);
         }
 
         public static void DrawLineBetweenWorldPositions(Vector3 worldPosA, Vector3 worldPosB, float width, Color color)

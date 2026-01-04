@@ -819,6 +819,12 @@ namespace BDArmory.UI
                         drawCursor = false;
                         return;
                     }
+
+                    if (!weaponManager.guardMode && weaponManager.isHMDEnabled)
+                    {
+                        Cursor.visible = false;
+                        return;
+                    }
                 }
             }
 
@@ -1914,6 +1920,19 @@ namespace BDArmory.UI
                             OnGUIWM.DynamicRadarOverride = !OnGUIWM.DynamicRadarOverride;
                         }
                         moduleLines += 1.1f;
+                    }
+
+                    if (OnGUIWM.hasHMD)
+                    {
+                        numberOfModules++;
+                        bool isEnabled = OnGUIWM.isHMDEnabled;
+                        string label = StringUtils.Localize("#LOC_BDArmory_WMWindow_HMD");
+                        Rect HMDRect = new Rect(leftIndent, +(moduleLines * entryHeight), columnWidth - 2 * leftIndent, entryHeight);
+                        if (GUI.Button(HMDRect, label, isEnabled ? centerLabelOrange : centerLabel))
+                        {
+                            OnGUIWM.ToggleHMD();
+                        }
+                        moduleLines++;
                     }
 
                     //RWR
