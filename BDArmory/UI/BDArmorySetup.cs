@@ -318,12 +318,16 @@ namespace BDArmory.UI
             get { return lgct ? lgct : lgct = GameDatabase.Instance.GetTexture(textureDir + "greenCircle3", false); }
         }
 
+        public const float largeGreenCircleScale = 256f / 230f; // Circle is 230 pixels in diameter vs. 256 texture size
+
         private Texture2D gct;
 
         public Texture2D greenCircleTexture
         {
             get { return gct ? gct : gct = GameDatabase.Instance.GetTexture(textureDir + "greenCircle2", false); }
         }
+
+        public const float greenCircleScale = 128f / 64f; // Circle is 64 pixels in diameter vs. 128 texture size
 
         private Texture2D gpct;
 

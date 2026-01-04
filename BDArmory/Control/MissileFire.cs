@@ -1796,6 +1796,8 @@ namespace BDArmory.Control
                         //float unlockedAimerDist = vessel.altitude < Mathf.Cos(AoA) * 2000 ? (Mathf.Cos(AoA) * 2000) - 15 : 2000; //account for distance to water, since raycasts ignore it.
                         //Quaternion rotation = unlockedAimerDist < 1995 ? Quaternion.LookRotation(VectorUtils.GetUpDirection(vessel.CoM), boreRing.transform.forward) : ml.MissileReferenceTransform.rotation;
 
+                        //float currCamFoVScaleFactor = Screen.width / GUIUtils.GetMainCamera().fieldOfView;
+
                         if (ml.GetWeaponClass() == WeaponClasses.SLW && !vessel.LandedOrSplashed) //if flying with air-drop torps, adjust aimer pos based on predicted water impact point. torps aren't AAMs
                         {
                             Vector3 torpImpactPos = ml.MissileReferenceTransform.position + vessel.srf_vel_direction * (vessel.horizontalSrfSpeed * bombFlightTime); //might need a projectonPlane, check what srf_vel_dir actually outputs - parallel to surface, or vel direction when !orbit?
@@ -1843,8 +1845,10 @@ namespace BDArmory.Control
                                     if (heatTarget.exists)
                                     {
                                         missileAimerUI.Add((heatTarget.position, BDArmorySetup.Instance.greenCircleTexture, 36, 3));
+                                        //missileAimerUI.Add((heatTarget.position, BDArmorySetup.Instance.greenCircleTexture, currCamFoVScaleFactor * BDArmorySetup.greenCircleScale * ml.lockedSensorFOV, 3));
                                         float distanceToTarget = Vector3.Distance(heatTarget.position, missileReferencePosition);
                                         missileAimerUI.Add((missileReferencePosition + (distanceToTarget * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, 128, 0));
+                                        //missileAimerUI.Add((missileReferencePosition + (distanceToTarget * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, currCamFoVScaleFactor * BDArmorySetup.largeGreenCircleScale * ml.maxOffBoresight, 0));
                                         //boreRing.transform.position = missileReferencePosition + (distanceToTarget * ml.GetForwardTransform());
                                         //boreRing.transform.localScale = Vector3.one * ((Mathf.Sin(Mathf.Deg2Rad * dynamicBoresight) * distanceToTarget) / 10);
 
@@ -1856,6 +1860,8 @@ namespace BDArmory.Control
                                     {
                                         missileAimerUI.Add((missileReferencePosition + (2000 * ml.GetForwardTransform()), BDArmorySetup.Instance.greenCircleTexture, 36, 3));
                                         missileAimerUI.Add((missileReferencePosition + (2000 * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, 156, 0));
+                                        //missileAimerUI.Add((missileReferencePosition + (2000 * ml.GetForwardTransform()), BDArmorySetup.Instance.greenCircleTexture, currCamFoVScaleFactor * BDArmorySetup.greenCircleScale * ml.lockedSensorFOV, 3));
+                                        //missileAimerUI.Add((missileReferencePosition + (2000 * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, currCamFoVScaleFactor * BDArmorySetup.largeGreenCircleScale * ml.maxOffBoresight, 0));
                                         //boreRing.transform.SetPositionAndRotation(missileReferencePosition + (unlockedAimerDist * ml.GetForwardTransform()), rotation);
                                         //boreRing.transform.localScale = Vector3.one * (Mathf.Sin(Mathf.Deg2Rad * dynamicBoresight) * unlockedAimerDist) / 10; //ring model has 10m radius.
                                     }
@@ -1871,6 +1877,7 @@ namespace BDArmory.Control
                                         //boreRing.SetActive(false);
                                         float distanceToTarget = Vector3.Distance(vesselRadarData.lockedTargetData.targetData.predictedPosition, missileReferencePosition);
                                         missileAimerUI.Add((missileReferencePosition + (distanceToTarget * ml.GetForwardTransform()), BDArmorySetup.Instance.dottedLargeGreenCircle, 128, 0));
+                                        //missileAimerUI.Add((missileReferencePosition + (distanceToTarget * ml.GetForwardTransform()), BDArmorySetup.Instance.dottedLargeGreenCircle, currCamFoVScaleFactor * BDArmorySetup.largeGreenCircleScale * ml.maxOffBoresight, 0));
                                         //boreRadarRing.transform.position = missileReferencePosition + (distanceToTarget * ml.GetForwardTransform());
                                         //boreRadarRing.transform.rotation = ml.MissileReferenceTransform.rotation;
                                         //boreRadarRing.transform.localScale = Vector3.one * ((Mathf.Sin(Mathf.Deg2Rad * dynamicBoresight) * distanceToTarget) / 10);
@@ -1893,6 +1900,7 @@ namespace BDArmory.Control
                                         //boreRadarRing.SetActive(false);
                                         //boreRing.SetActive(true);
                                         missileAimerUI.Add((missileReferencePosition + (2000 * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, 48, 0));
+                                        //missileAimerUI.Add((missileReferencePosition + (2000 * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, currCamFoVScaleFactor * BDArmorySetup.largeGreenCircleScale * ml.maxOffBoresight, 0));
                                         //boreRing.transform.SetPositionAndRotation(missileReferencePosition + (unlockedAimerDist * ml.GetForwardTransform()), rotation);
                                         //boreRing.transform.localScale = Vector3.one * (Mathf.Sin(Mathf.Deg2Rad * 1) * unlockedAimerDist) / 10;
                                     }
