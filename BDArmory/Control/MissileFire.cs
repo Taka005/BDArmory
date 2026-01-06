@@ -2986,6 +2986,7 @@ namespace BDArmory.Control
 
                             //wait for missile turret to point at target
                             attemptStartTime = Time.time;
+                            bool useLead = (ml.GetWeaponClass() == WeaponClasses.SLW || ml.uncagedLock);
                             //mlauncher = ml as MissileLauncher;
                             if (targetVessel)
                             {
@@ -3001,8 +3002,8 @@ namespace BDArmory.Control
                                             if (ml.customTurret[i] == null) continue;
                                             if (ml.customTurret[i].vessel != vessel) continue;
                                             angle = VectorUtils.Angle(ml.MissileReferenceTransform.forward, ml.customTurret[i].slavedTargetPosition - ml.MissileReferenceTransform.position);
-                                            ml.customTurret[i].slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(ml, heatTarget.predictedPosition, heatTarget.velocity,
-                                                (ml.GuidanceMode == GuidanceModes.AAMLoft || ml.GuidanceMode == GuidanceModes.Kappa));
+                                            ml.customTurret[i].slavedTargetPosition = useLead ? MissileGuidance.GetAirToAirFireSolution(ml, heatTarget.predictedPosition, heatTarget.velocity,
+                                                (ml.GuidanceMode == GuidanceModes.AAMLoft || ml.GuidanceMode == GuidanceModes.Kappa)) : heatTarget.predictedPosition;
                                             ml.customTurret[i].AimToTarget(ml.customTurret[i].slavedTargetPosition);
                                         }
                                         yield return wait;
@@ -3019,7 +3020,7 @@ namespace BDArmory.Control
                                             while (heatTarget.exists && Time.time - turretStartTime < Mathf.Max(targetScanInterval / 2f, 2) && targetVessel && mlauncher && angle > mLauncherTurret.fireFOV)
                                             {
                                                 //mlauncher.missileTurret.slaved = true;
-                                                mLauncherTurret.slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(mlauncher, heatTarget.predictedPosition, heatTarget.velocity, mLauncherTurret.turretLoft, mLauncherTurret.turretLoftFac);
+                                                mLauncherTurret.slavedTargetPosition = useLead ? MissileGuidance.GetAirToAirFireSolution(mlauncher, heatTarget.predictedPosition, heatTarget.velocity, mLauncherTurret.turretLoft, mLauncherTurret.turretLoftFac) : heatTarget.predictedPosition;
                                                 //mlauncher.missileTurret.SlavedAim();
                                                 yield return wait;
                                                 angle = VectorUtils.Angle(mLauncherTurret.finalTransform.forward, mLauncherTurret.slavedTargetPosition - mLauncherTurret.finalTransform.position);
@@ -3032,7 +3033,7 @@ namespace BDArmory.Control
                                             while (heatTarget.exists && Time.time - turretStartTime < Mathf.Max(targetScanInterval / 2f, 2) && targetVessel && mlauncher && angle > multiLauncherTurret.fireFOV)
                                             {
                                                 //mlauncher.multiLauncher.turret.slaved = true;
-                                                multiLauncherTurret.slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(mlauncher, heatTarget.predictedPosition, heatTarget.velocity, multiLauncherTurret.turretLoft, multiLauncherTurret.turretLoftFac);
+                                                multiLauncherTurret.slavedTargetPosition = useLead ? MissileGuidance.GetAirToAirFireSolution(mlauncher, heatTarget.predictedPosition, heatTarget.velocity, multiLauncherTurret.turretLoft, multiLauncherTurret.turretLoftFac) : heatTarget.predictedPosition;
                                                 //mlauncher.multiLauncher.turret.SlavedAim();
                                                 yield return wait;
                                                 angle = VectorUtils.Angle(multiLauncherTurret.finalTransform.forward, multiLauncherTurret.slavedTargetPosition - multiLauncherTurret.finalTransform.position);
@@ -8603,7 +8604,7 @@ namespace BDArmory.Control
                             if (heatTarget.exists)
                             {
                                 // Override target if angle is > lockedSensorFOV
-                                if (VectorUtils.Angle(heatTarget.position - vessel.CoM, targetMissile ? (targetMissile.position - vessel.CoM) : _HMDray.direction) > currMissile.lockedSensorFOV)
+                                if (VectorUtils.Angle(heatTarget.position - vessel.CoM, targetMissile ? (targetMissile.position - vessel.CoM) : _HMDray.direction) > 2f * currMissile.lockedSensorFOV)
                                 {
                                     heatTarget = TargetSignatureData.noTarget;
                                 }
@@ -8633,31 +8634,36 @@ namespace BDArmory.Control
                 // Boresight check is against reference transform, but we offset the ray's origin to account for wing-mounted missiles etc. this should
                 // probably be a config parameter or something we measure via the collider
                 Vector3 direction;
-                if (heatTarget.exists)
+                if (currMissile.GuidanceMode == MissileBase.GuidanceModes.SLW || currMissile.uncagedLock)
                 {
-                    direction = VectorUtils.Angle(heatTarget.predictedPosition - currMissile.MissileReferenceTransform.position, forward) < maxOffBoresight ? heatTarget.predictedPosition - adjustedPos
-                    : forward;
-                }
-                else
-                {
-                    if (HMDTarget)
+                    if (heatTarget.exists)
                     {
-                        if (targetMissile)
+                        direction = VectorUtils.Angle(heatTarget.predictedPosition - currMissile.MissileReferenceTransform.position, forward) < maxOffBoresight ? heatTarget.predictedPosition - adjustedPos
+                        : forward;
+                    }
+                    else
+                    {
+                        if (HMDTarget)
                         {
-                            direction = targetMissile.position - currMissile.MissileReferenceTransform.position;
-                            if (VectorUtils.Angle(direction, forward) > maxOffBoresight)
+                            if (targetMissile)
                             {
-                                direction = forward;
+                                direction = targetMissile.position - currMissile.MissileReferenceTransform.position;
+                                if (VectorUtils.Angle(direction, forward) > maxOffBoresight)
+                                {
+                                    direction = forward;
+                                }
+                            }
+                            else
+                            {
+                                direction = VectorUtils.Angle(_HMDray.direction, forward) < maxOffBoresight ? _HMDray.direction : forward;
                             }
                         }
                         else
-                        {
-                            direction = VectorUtils.Angle(_HMDray.direction, forward) < maxOffBoresight ? _HMDray.direction : forward;
-                        }
+                            direction = forward;
                     }
-                    else
-                        direction = forward;
                 }
+                else
+                    direction = forward;
 
                 // TECHNICALLY uncagedLock = false missiles should NOT be allowed to point in any direction other than forward prior to launch, but that may be too restrictive...
                 // remove AI target check/move to a missile .cfg option to allow older gen heaters?
