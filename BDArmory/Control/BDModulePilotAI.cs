@@ -2394,7 +2394,7 @@ namespace BDArmory.Control
                             finalMaxSteer = GetSteerLimiterForSpeedAndPower();
                         }
 
-                        if (missile.TargetingMode == MissileBase.TargetingModes.Heat && !weaponManager.heatTarget.exists)
+                        if (missile.TargetingMode == MissileBase.TargetingModes.Heat && (!weaponManager.heatTarget.exists || (!missile.uncagedLock && missile.GuidanceMode != MissileBase.GuidanceModes.SLW)))
                         {
                             if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($"Attempting heat lock");
                             target += v.srf_velocity.normalized * 10; //TODO this should be based on heater boresight?

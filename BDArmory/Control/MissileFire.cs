@@ -2106,7 +2106,7 @@ namespace BDArmory.Control
             {
                 Vector3 mouseAimFlightTarget = MouseAimFlight.GetMouseAimTarget;
                 _HMDray = new Ray(camera.transform.position, mouseAimFlightTarget);
-                _HMDscreenPos = GUIUtils.WorldToGUIPos(mouseAimFlightTarget);
+                _HMDscreenPos = GUIUtils.WorldToGUIPos(vessel.CoM + 1000f * mouseAimFlightTarget);
             }
         }
 
@@ -10248,7 +10248,8 @@ namespace BDArmory.Control
                 {
                     return launchAuthorized; //don't drop torps if closer than horizontal drop dist
                 }
-                if (targetV.speed > 1) //target is moving
+
+                if (targetV.speed > 1 && (missile.TargetingMode != TargetingModes.Heat || (missile.uncagedLock || missile.GuidanceMode == GuidanceModes.SLW))) //target is moving
                 {
                     if (missile.customTurret.Count > 0 || (mlauncher && (mlauncher.missileTurret || (mlauncher.multiLauncher && mlauncher.multiLauncher.turret))))
                         target = MissileGuidance.GetAirToAirFireSolution(missile, targetV.CoM, targetV.Velocity());
@@ -10256,26 +10257,30 @@ namespace BDArmory.Control
                         target = MissileGuidance.GetAirToAirFireSolution(missile, targetV);
                 }
 
+                Vector3 missilePos = missile.transform.position;
+
                 float boresightAngle = missile.maxOffBoresight * ((mf.vessel.LandedOrSplashed || targetV.LandedOrSplashed || missile.uncagedLock) ? 0.75f : 0.35f); // Allow launch at close to maxOffBoresight for ground targets or missiles with allAspect = true
                 if (unguidedWeapon || missile.TargetingMode == MissileBase.TargetingModes.None) // Override boresightAngle based on blast radius for unguidedWeapons or weapons with no targeting mode
                 {
                     if (missile.customTurret.Count > 0 || (mlauncher && (mlauncher.missileTurret || (mlauncher.multiLauncher && mlauncher.multiLauncher.turret))))
                         boresightAngle = 1f;
                     else
-                        boresightAngle = Mathf.Max(Mathf.Rad2Deg * Mathf.Atan(missile.GetBlastRadius() / (target - missile.transform.position).magnitude) / 3, 1f); // 1deg - within 1/3 of blast radius
+                        boresightAngle = Mathf.Max(Mathf.Rad2Deg * Mathf.Atan(missile.GetBlastRadius() / (target - missilePos).magnitude) / 3, 1f); // 1deg - within 1/3 of blast radius
                     if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire]: {vessel.vesselName} boresight angle for unguided {missile.shortName} is {boresightAngle}.");
                 }
 
+                Vector3 missileForward = missile.GetForwardTransform();
+
                 // Check that target is within maxOffBoresight now and in future time fTime if we are in atmosphere
-                launchAuthorized = missile.maxOffBoresight >= 180 || VectorUtils.Angle(missile.GetForwardTransform(), target - missile.transform.position) < Mathf.Min(missile.missileFireAngle, boresightAngle); // Launch is possible now
-                if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire]: {vessel.vesselName} final boresight check {(launchAuthorized ? "passed" : "failed")}, boresight angle {VectorUtils.Angle(missile.GetForwardTransform(), target - missile.transform.position)} of {missile.missileFireAngle}/{boresightAngle}.");
+                launchAuthorized = missile.maxOffBoresight >= 180 || VectorUtils.Angle(missileForward, target - missilePos) < Mathf.Min(missile.missileFireAngle, boresightAngle); // Launch is possible now
+                if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileFire]: {vessel.vesselName} final boresight check {(launchAuthorized ? "passed" : "failed")}, boresight angle {VectorUtils.Angle(missileForward, target - missilePos)} of {missile.missileFireAngle}/{boresightAngle}.");
                 if (launchAuthorized && !vessel.InVacuum())
                 {
                     //float fTime = 2 - Mathf.Min(missile.dropTime, 1);
                     float fTime = MissileLaunchParams.GetMissileActiveTime(missile, vessel.LandedOrSplashed);
                     Vector3 futurePos = target + (targetV.Velocity() * fTime);
                     Vector3 myFuturePos = vessel.CoM + (vessel.Velocity() * fTime);
-                    launchAuthorized = launchAuthorized && ((!unguidedWeapon && missile.maxOffBoresight >= 180) || VectorUtils.Angle(missile.GetForwardTransform(), futurePos - myFuturePos) < boresightAngle); // Launch is likely also possible at fTime
+                    launchAuthorized = launchAuthorized && ((!unguidedWeapon && missile.maxOffBoresight >= 180) || VectorUtils.Angle(missileForward, futurePos - myFuturePos) < boresightAngle); // Launch is likely also possible at fTime
                 }
             }
 
