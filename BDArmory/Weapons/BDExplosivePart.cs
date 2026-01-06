@@ -30,6 +30,8 @@ namespace BDArmory.Weapons
 
             if (BDArmorySettings.DEBUG_OTHER) Debug.Log($"[BDArmory.BDExplosivePart] OnAwake tntMass: {tntMass}");
 
+            if (part.partInfo == null || part.partInfo.partPrefab == null) return;
+
             MultiMissileLauncher mml = part.partInfo.partPrefab.FindModuleImplementing<MultiMissileLauncher>();
 
             if (part.partInfo.partPrefab.FindModuleImplementing<MissileLauncher>() != null && (!mml || mml.isClusterMissile))

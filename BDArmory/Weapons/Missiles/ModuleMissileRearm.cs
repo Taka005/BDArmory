@@ -168,7 +168,7 @@ UI_ProgressBar(affectSymCounterparts = UI_Scene.None, controlEnabled = false, sc
                     if (parts.Current.partConfig == null || parts.Current.partPrefab == null)
                         continue;
                     if (parts.Current.partPrefab.partInfo.name != MissileName) continue;
-                    if (parts.Current.partPrefab.FindModuleImplementing<MissileLauncher> == null)
+                    if (parts.Current.partPrefab.FindModuleImplementing<MissileLauncher>() == null)
                     {
                         Debug.LogError($"[BDArmory.ModuleMissileRearm] ERROR: Found part with sharing the name {MissileName} which does not contain a MissileLauncher module!");
                         continue;

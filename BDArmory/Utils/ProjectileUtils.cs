@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 using BDArmory.Competition;
@@ -865,16 +866,18 @@ namespace BDArmory.Utils
                 return newCaliber;
             }
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float CalculateBulletLength(float bulletMass, float caliber, bool sabot = false)
+        {
+            return ((bulletMass * 1000.0f * 400.0f) / ((caliber * caliber * Mathf.PI) * (sabot ? 19.0f : 11.34f)) + 1.0f) * 10.0f;
+        }
+
         public static bool CalculateBulletStatus(float projMass, float newCaliber, bool sabot = false)
         {
             //does the bullet suvive its impact?
             //calculate bullet lengh, in mm
-            float density = 11.34f;
-            if (sabot)
-            {
-                density = 19.1f;
-            }
-            float bulletLength = ((projMass * 1000) / ((newCaliber * newCaliber * Mathf.PI / 400) * density) + 1) * 10; //srf.Area in mmm2 x density of lead to get mass per 1 cm length of bullet / total mass to get total length,
+            float bulletLength = CalculateBulletLength(projMass, newCaliber, sabot); //srf.Area in mmm2 x density of lead to get mass per 1 cm length of bullet / total mass to get total length,
                                                                                                                         //+ 10 to accound for ogive/mushroom head post-deformation instead of perfect cylinder
             if (newCaliber > (bulletLength * 2)) //has the bullet flattened into a disc, and is no longer a viable penetrator?
             {

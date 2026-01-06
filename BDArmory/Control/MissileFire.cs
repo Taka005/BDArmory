@@ -8659,6 +8659,7 @@ namespace BDArmory.Control
                         direction = forward;
                 }
 
+                // TECHNICALLY uncagedLock = false missiles should NOT be allowed to point in any direction other than forward prior to launch, but that may be too restrictive...
                 // remove AI target check/move to a missile .cfg option to allow older gen heaters?
                 if (currMissile.GuidanceMode != MissileBase.GuidanceModes.SLW || currMissile.GuidanceMode == MissileBase.GuidanceModes.SLW && currMissile.activeRadarRange > 0)
                     heatTarget = BDATargetManager.GetHeatTarget(vessel, vessel, new Ray(adjustedPos, direction), TargetSignatureData.noTarget, scanRadius, currMissile.heatThreshold, currMissile.frontAspectHeatModifier, currMissile.uncagedLock, currMissile.targetCoM, currMissile.lockedSensorFOVBias, currMissile.lockedSensorVelocityBias, currMissile.lockedSensorVelocityMagnitudeBias, currMissile.lockedSensorMinAngularVelocity, this, targetMissile != null ? targetMissile : guardMode ? currentTarget : null, IFF: currMissile.hasIFF);
