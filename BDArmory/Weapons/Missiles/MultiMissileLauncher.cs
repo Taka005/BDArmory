@@ -1269,7 +1269,7 @@ namespace BDArmory.Weapons.Missiles
                                             if (FiredByWM._radarsEnabled)
                                                 INSTarget = FiredByWM.vesselRadarData.detectedRadarTarget(missileLauncher.targetVessel.Vessel, FiredByWM); //detected by radar scan?
                                             if (!INSTarget.exists && FiredByWM._irstsEnabled)
-                                                INSTarget = FiredByWM.vesselRadarData.activeIRTarget(null, FiredByWM); //how about IRST?
+                                                INSTarget = FiredByWM.vesselRadarData.activeIRTarget(missileLauncher.targetVessel.Vessel, FiredByWM, true); //how about IRST?
                                         }
                                         if (INSTarget.exists)
                                         {
@@ -1438,7 +1438,7 @@ namespace BDArmory.Weapons.Missiles
                 }
                 if (!tgtData.exists && FiredByWM._irstsEnabled)
                 {
-                    tgtData = FiredByWM.vesselRadarData.activeIRTarget(targetV, FiredByWM);
+                    tgtData = FiredByWM.vesselRadarData.activeIRTarget(targetV, FiredByWM, true);
                 }
             }
             if (tgtData.exists)

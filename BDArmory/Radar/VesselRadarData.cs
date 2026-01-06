@@ -177,30 +177,34 @@ namespace BDArmory.Radar
             get { return displayedTargets[lockedTargetIndexes[activeLockedTargetIndex]]; }
         }
 
-        public TargetSignatureData activeIRTarget(Vessel desiredTarget, MissileFire mf)
+        public TargetSignatureData activeIRTarget(Vessel desiredTarget, MissileFire mf, bool ranging = false)
         {
             TargetSignatureData data;
             float targetMagnitude = 0;
             int brightestTarget = 0;
             for (int i = 0; i < displayedIRTargets.Count; i++)
             {
+                IRSTDisplayData IRSTdata = displayedIRTargets[i];
                 if (desiredTarget != null)
                 {
-                    if (displayedIRTargets[i].vessel == desiredTarget)
+                    if (IRSTdata.vessel == desiredTarget)
                     {
-                        data = displayedIRTargets[i].targetData;
+                        // If we need ranging data and no ranging data...
+                        if (ranging && !IRSTdata.detectedByIRST.irstRanging) return TargetSignatureData.noTarget;
+
+                        data = IRSTdata.targetData;
                         return data;
                     }
                 }
                 else
                 {
-                    if (displayedIRTargets[i].targetData.Team == mf.Team) continue;
-                    if (displayedIRTargets[i].magnitude > targetMagnitude)
+                    if (IRSTdata.targetData.Team == mf.Team) continue;
+                    if (ranging && !IRSTdata.detectedByIRST.irstRanging) continue;
+                    if (IRSTdata.magnitude > targetMagnitude)
                     {
-                        targetMagnitude = displayedIRTargets[i].magnitude;
+                        targetMagnitude = IRSTdata.magnitude;
                         brightestTarget = i;
                     }
-
                 }
             }
             if (targetMagnitude > 0)
@@ -2169,9 +2173,36 @@ namespace BDArmory.Radar
             rData.magnitude = magnitude;
             rData.targetData = contactData;
             rData.pingPosition = UpdatedPingPosition(contactData.position, irst);
-            displayedIRTargets.Add(rData);
 
-            return;
+            int replaceIndex = -1;
+            for (int i = 0; i < displayedIRTargets.Count; i++)
+            {
+                IRSTDisplayData t = displayedIRTargets[i];
+                if (t.vessel == rData.vessel)
+                {
+                    // If contact exists and we're a ranging IRST, skip
+                    if (!irst.irstRanging) return;
+
+                    // If contact exists and it's already detected by ranging IRST, skip
+                    if (t.detectedByIRST && t.detectedByIRST.irstRanging) return;
+
+                    replaceIndex = i;
+                    break;
+                }
+            }
+
+            if (replaceIndex >= 0)
+            {
+                // If it is an existing target, replace the data
+                displayedIRTargets[replaceIndex] = rData;
+                return;
+            }
+            else
+            {
+                // We're adding new data
+                displayedIRTargets.Add(rData);
+                return;
+            }
         }
 
         public void TargetNext()

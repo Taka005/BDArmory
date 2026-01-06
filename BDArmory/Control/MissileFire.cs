@@ -1959,7 +1959,10 @@ namespace BDArmory.Control
                                                 targetData = vesselRadarData.detectedRadarTarget(guardTarget != null ? guardTarget : null, this);
                                         }
                                         else if (_irstsEnabled)
-                                            targetData = vesselRadarData.activeIRTarget(null, this);
+                                        {
+                                            targetData = vesselRadarData.activeIRTarget(null, this, true);
+                                        }
+                                            
 
                                         if (targetData.exists)
                                         {
@@ -3562,7 +3565,7 @@ namespace BDArmory.Control
                                     if (_radarsEnabled)
                                         (INSTarget, locked) = vesselRadarData.detectedRadarTargetLock(targetVessel, this); //detected by radar scan?
                                     if (!INSTarget.exists && _irstsEnabled)
-                                        INSTarget = vesselRadarData.activeIRTarget(null, this); //how about IRST?
+                                        INSTarget = vesselRadarData.activeIRTarget(null, this, true); //how about IRST?
                                 }
 
                                 float attemptStartTime = Time.time;
@@ -8863,7 +8866,7 @@ namespace BDArmory.Control
                                 }
                                 else if (_irstsEnabled) //or brightest ping on IRST
                                 {
-                                    targetVessel = vesselRadarData.activeIRTarget(null, this).vessel;
+                                    targetVessel = vesselRadarData.activeIRTarget(null, this, true).vessel;
                                     validTarget = targetVessel;
                                 }
                             }
@@ -8881,7 +8884,7 @@ namespace BDArmory.Control
                                     if (_radarsEnabled)
                                         INSTarget = vesselRadarData.detectedRadarTarget(targetVessel, this); //detected by radar scan?
                                     if (!INSTarget.exists && _irstsEnabled)
-                                        INSTarget = vesselRadarData.activeIRTarget(null, this); //how about IRST?
+                                        INSTarget = vesselRadarData.activeIRTarget(targetVessel, this, true); //how about IRST?
                                 }
                                 if (INSTarget.exists)
                                 {
@@ -10017,7 +10020,7 @@ namespace BDArmory.Control
                                             skipRadarCheck = true;
                                         }
                                         else if (_irstsEnabled)
-                                            INSTarget = vesselRadarData.activeIRTarget(null, this); //how about IRST?
+                                            INSTarget = vesselRadarData.activeIRTarget(null, this, true); //how about IRST?
 
                                     skipDetectionCheck = true;
 

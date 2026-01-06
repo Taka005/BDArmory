@@ -1470,7 +1470,7 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                         if (INStarget.exists)
                             detectedByRadar = true;
                         else
-                            if (FiredByWM._irstsEnabled) INStarget = FiredByWM.vesselRadarData.activeIRTarget(targetVessel.Vessel, FiredByWM);
+                            if (FiredByWM._irstsEnabled) INStarget = FiredByWM.vesselRadarData.activeIRTarget(targetVessel.Vessel, FiredByWM, true);
                     }
                     if (INStarget.exists)
                     {
