@@ -2947,8 +2947,10 @@ namespace BDArmory.Control
                             if (multiLauncherTurret) multiLauncherTurret.slavedGuard = false;
 
                             if (BDArmorySettings.DEBUG_MISSILES && CurrentMissile) Debug.Log($"[BDArmory.MissileFire]: {vessel.vesselName}'s {CurrentMissile.GetShortName()} has heatTarget: {heatTarget.exists}");
+                            
+                            bool useUncaged = (ml.GuidanceMode == GuidanceModes.SLW || ml.uncagedLock);
                             //try uncaged IR lock with radar
-                            if (ml && ml.activeRadarRange > 0) //defaults to 6k for non-radar missiles, using negative value for differentiating passive acoustic vs heater
+                            if (ml && ml.activeRadarRange > 0 && useUncaged) //defaults to 6k for non-radar missiles, using negative value for differentiating passive acoustic vs heater
                             {
                                 if (targetVessel && !heatTarget.exists && vesselRadarData)
                                 {
@@ -2986,7 +2988,7 @@ namespace BDArmory.Control
 
                             //wait for missile turret to point at target
                             attemptStartTime = Time.time;
-                            bool useLead = (ml.GetWeaponClass() == WeaponClasses.SLW || ml.uncagedLock);
+                            
                             //mlauncher = ml as MissileLauncher;
                             if (targetVessel)
                             {
@@ -3002,7 +3004,7 @@ namespace BDArmory.Control
                                             if (ml.customTurret[i] == null) continue;
                                             if (ml.customTurret[i].vessel != vessel) continue;
                                             angle = VectorUtils.Angle(ml.MissileReferenceTransform.forward, ml.customTurret[i].slavedTargetPosition - ml.MissileReferenceTransform.position);
-                                            ml.customTurret[i].slavedTargetPosition = useLead ? MissileGuidance.GetAirToAirFireSolution(ml, heatTarget.predictedPosition, heatTarget.velocity,
+                                            ml.customTurret[i].slavedTargetPosition = useUncaged ? MissileGuidance.GetAirToAirFireSolution(ml, heatTarget.predictedPosition, heatTarget.velocity,
                                                 (ml.GuidanceMode == GuidanceModes.AAMLoft || ml.GuidanceMode == GuidanceModes.Kappa)) : heatTarget.predictedPosition;
                                             ml.customTurret[i].AimToTarget(ml.customTurret[i].slavedTargetPosition);
                                         }
@@ -3020,7 +3022,7 @@ namespace BDArmory.Control
                                             while (heatTarget.exists && Time.time - turretStartTime < Mathf.Max(targetScanInterval / 2f, 2) && targetVessel && mlauncher && angle > mLauncherTurret.fireFOV)
                                             {
                                                 //mlauncher.missileTurret.slaved = true;
-                                                mLauncherTurret.slavedTargetPosition = useLead ? MissileGuidance.GetAirToAirFireSolution(mlauncher, heatTarget.predictedPosition, heatTarget.velocity, mLauncherTurret.turretLoft, mLauncherTurret.turretLoftFac) : heatTarget.predictedPosition;
+                                                mLauncherTurret.slavedTargetPosition = useUncaged ? MissileGuidance.GetAirToAirFireSolution(mlauncher, heatTarget.predictedPosition, heatTarget.velocity, mLauncherTurret.turretLoft, mLauncherTurret.turretLoftFac) : heatTarget.predictedPosition;
                                                 //mlauncher.missileTurret.SlavedAim();
                                                 yield return wait;
                                                 angle = VectorUtils.Angle(mLauncherTurret.finalTransform.forward, mLauncherTurret.slavedTargetPosition - mLauncherTurret.finalTransform.position);
@@ -3033,7 +3035,7 @@ namespace BDArmory.Control
                                             while (heatTarget.exists && Time.time - turretStartTime < Mathf.Max(targetScanInterval / 2f, 2) && targetVessel && mlauncher && angle > multiLauncherTurret.fireFOV)
                                             {
                                                 //mlauncher.multiLauncher.turret.slaved = true;
-                                                multiLauncherTurret.slavedTargetPosition = useLead ? MissileGuidance.GetAirToAirFireSolution(mlauncher, heatTarget.predictedPosition, heatTarget.velocity, multiLauncherTurret.turretLoft, multiLauncherTurret.turretLoftFac) : heatTarget.predictedPosition;
+                                                multiLauncherTurret.slavedTargetPosition = useUncaged ? MissileGuidance.GetAirToAirFireSolution(mlauncher, heatTarget.predictedPosition, heatTarget.velocity, multiLauncherTurret.turretLoft, multiLauncherTurret.turretLoftFac) : heatTarget.predictedPosition;
                                                 //mlauncher.multiLauncher.turret.SlavedAim();
                                                 yield return wait;
                                                 angle = VectorUtils.Angle(multiLauncherTurret.finalTransform.forward, multiLauncherTurret.slavedTargetPosition - multiLauncherTurret.finalTransform.position);
