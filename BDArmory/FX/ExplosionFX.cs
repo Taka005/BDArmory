@@ -645,7 +645,7 @@ namespace BDArmory.FX
                         {
                             Vector3 correctedDirection = hit.point + partHit.Rigidbody.velocity * TimeIndex - Position;
                             float armorCos = Mathf.Abs(Vector3.Dot(correctedDirection.sqrMagnitude < 1E-10f ? partRay.direction : correctedDirection.normalized, -hit.normal));
-                            partArmour = ProjectileUtils.CalculateThickness(partHit, armorCos);
+                            partArmour = ProjectileUtils.CalculateThickness(partHit, Mathf.Max(armorCos, 1E-5f));
 
                             partArmour *= warheadType == WarheadTypes.ShapedCharge ? Armor.HEATEquiv : Armor.HEEquiv;
 
@@ -960,7 +960,7 @@ namespace BDArmory.FX
                             // Function remains unchanged, except we evaluate at the part and there's a factor of 1.05 tacked on as a handwavy
                             // "explosion must pass through the hole it blasts through" kind of thing. Why 1.05? No particularly good reason.
                             // NOTE: Big explosions are consistently overpenning quite significantly...
-                            float blastResistance = 1.05f * (0.2f * currPart.Item2 * invdmgModifier + 40f * BDArmorySettings.EXP_PEN_RESIST_MULT * currPart.Item3);
+                            float blastResistance = 1.05f * (0.1f * currPart.Item2 * invdmgModifier + 40f * BDArmorySettings.EXP_PEN_RESIST_MULT * currPart.Item3);
                             currtntMassCubeRoot *= (blastImpulse - blastResistance) / blastImpulse;
 
                             if (BDArmorySettings.DEBUG_DAMAGE) Debug.Log($"[BDArmory.ExplosionFX] Part at index {i} reduced blastImpulse: {blastImpulse} by blastResistance: {blastResistance}.");
@@ -1027,7 +1027,8 @@ namespace BDArmory.FX
                             Part = part,
                             TimeToImpact = 2 * (Range / ExplosionVelocity) + (Range - realDistance) / ExplosionVelocity,
                             IsNegativePressure = true,
-                            NegativeForce = blastInfo.VelocityChange * 0.25f
+                            NegativeForce = blastInfo.VelocityChange * 0.25f,
+                            Hit = eventToExecute.Hit
                         });
 
                         if (rb != null && rb.mass > 0 && !BDArmorySettings.PAINTBALL_MODE)
@@ -1059,7 +1060,7 @@ namespace BDArmory.FX
                                 //float HitAngle = VectorUtils.Angle((eventToExecute.HitPoint + rb.velocity * TimeIndex - Position).normalized, -eventToExecute.Hit.normal);
                                 //float anglemultiplier = (float)Math.Cos(Math.PI * HitAngle / 180.0);
                                 float anglemultiplier = Mathf.Abs(Vector3.Dot((eventToExecute.HitPoint + rb.velocity * TimeIndex - Position).normalized, -eventToExecute.Hit.normal));
-                                float thickness = ProjectileUtils.CalculateThickness(part, anglemultiplier);
+                                float thickness = ProjectileUtils.CalculateThickness(part, Mathf.Max(anglemultiplier, 1E-5f));
                                 if (BDArmorySettings.DEBUG_ARMOR) Debug.Log($"[BDArmory.ExplosionFX]: Part {part.name} hit by {warheadType}; {Mathf.Rad2Deg * Mathf.Acos(anglemultiplier)} deg hit, armor thickness: {thickness}");
                                 //float thicknessBetween = eventToExecute.IntermediateParts.Select(p => p.Item3).Sum(); //add armor thickness of intervening parts, if any
                                 if (BDArmorySettings.DEBUG_ARMOR) Debug.Log($"[BDArmory.ExplosionFX]: Effective Armor thickness from intermediate parts: {cumulativeArmorOfIntermediateParts}");
@@ -1251,13 +1252,16 @@ namespace BDArmory.FX
             if (warheadType == WarheadTypes.Standard && ProjMass > 0 && realDistance <= blastRange) //check shrapnel damage of stuff in shrapnel range
             {
                 float anglemultiplier = Mathf.Abs(Vector3.Dot((eventToExecute.HitPoint + rb.velocity * TimeIndex - Position).normalized, -eventToExecute.Hit.normal));
-                float thickness = ProjectileUtils.CalculateThickness(part, anglemultiplier);
+                float thickness = ProjectileUtils.CalculateThickness(part, Mathf.Max(anglemultiplier, 1E-5f));
                 var Armor = part.FindModuleImplementing<HitpointTracker>();
                 if (Armor != null)
                 {
                     thickness *= Armor.HEEquiv;
                 }
-                thickness += eventToExecute.IntermediateParts.Select(p => p.Item3).Sum(); //add armor thickness of intervening parts, if any
+                if (eventToExecute.IntermediateParts.Count > 0)
+                {
+                    thickness += eventToExecute.IntermediateParts.Select(p => p.Item3).Sum(); //add armor thickness of intervening parts, if any
+                }
                 if (BDArmorySettings.DEBUG_ARMOR) Debug.Log($"[BDArmory.ExplosiveFX]: Part {part.name} hit by shrapnel; {Mathf.Rad2Deg * Mathf.Acos(anglemultiplier)} deg hit, cumulative armor thickness: {thickness}");
 
                 ProjectileUtils.CalculateShrapnelDamage(part, eventToExecute.Hit, Caliber, Power, realDistance, SourceVesselName, ExplosionSource, ProjMass, -1, thickness); //part hit by shrapnel, but not pressure wave
