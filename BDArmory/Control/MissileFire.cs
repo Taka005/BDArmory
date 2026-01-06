@@ -1845,7 +1845,7 @@ namespace BDArmory.Control
                                     if (heatTarget.exists)
                                     {
                                         missileAimerUI.Add((heatTarget.position, BDArmorySetup.Instance.greenCircleTexture, 36, 3));
-                                        //missileAimerUI.Add((heatTarget.position, BDArmorySetup.Instance.greenCircleTexture, currCamFoVScaleFactor * BDArmorySetup.greenCircleScale * ml.lockedSensorFOV, 3));
+                                        //missileAimerUI.Add((heatTarget.position, BDArmorySetup.Instance.greenCircleTexture, currCamFoVScaleFactor * BDArmorySetup.greenCircleScale * ml.lockedSensorFOV * 0.5f, 3));
                                         float distanceToTarget = Vector3.Distance(heatTarget.position, missileReferencePosition);
                                         missileAimerUI.Add((missileReferencePosition + (distanceToTarget * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, 128, 0));
                                         //missileAimerUI.Add((missileReferencePosition + (distanceToTarget * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, currCamFoVScaleFactor * BDArmorySetup.largeGreenCircleScale * ml.maxOffBoresight, 0));
@@ -1860,7 +1860,7 @@ namespace BDArmory.Control
                                     {
                                         missileAimerUI.Add((missileReferencePosition + (2000 * ml.GetForwardTransform()), BDArmorySetup.Instance.greenCircleTexture, 36, 3));
                                         missileAimerUI.Add((missileReferencePosition + (2000 * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, 156, 0));
-                                        //missileAimerUI.Add((missileReferencePosition + (2000 * ml.GetForwardTransform()), BDArmorySetup.Instance.greenCircleTexture, currCamFoVScaleFactor * BDArmorySetup.greenCircleScale * ml.lockedSensorFOV, 3));
+                                        //missileAimerUI.Add((missileReferencePosition + (2000 * ml.GetForwardTransform()), BDArmorySetup.Instance.greenCircleTexture, currCamFoVScaleFactor * BDArmorySetup.greenCircleScale * ml.lockedSensorFOV * 0.5f, 3));
                                         //missileAimerUI.Add((missileReferencePosition + (2000 * ml.GetForwardTransform()), BDArmorySetup.Instance.largeGreenCircleTexture, currCamFoVScaleFactor * BDArmorySetup.largeGreenCircleScale * ml.maxOffBoresight, 0));
                                         //boreRing.transform.SetPositionAndRotation(missileReferencePosition + (unlockedAimerDist * ml.GetForwardTransform()), rotation);
                                         //boreRing.transform.localScale = Vector3.one * (Mathf.Sin(Mathf.Deg2Rad * dynamicBoresight) * unlockedAimerDist) / 10; //ring model has 10m radius.
@@ -2081,7 +2081,7 @@ namespace BDArmory.Control
                 Vector3 relativePos;
                 if (guardTarget && (relativePos = guardTarget.CoM - vessel.CoM).sqrMagnitude < guardRange * guardRange)
                 {
-                    _HMDray = new Ray(vessel.CoM, guardTarget.CoM - vessel.CoM);
+                    _HMDray = new Ray(vessel.CoM, relativePos);
                     _HMDscreenPos = GUIUtils.WorldToGUIPos(guardTarget.CoM);
                 }
                 else
@@ -8562,38 +8562,34 @@ namespace BDArmory.Control
 
                         if (vesselRadarData) // && !currMissile.IndependantSeeker) //missile with independantSeeker can't get targetdata from radar/IRST
                         {
-                            // Don't use IRST if we have HMD
-                            if (_irstsEnabled && !(HMDcond && _isHMDEnabled))
+                            // Prioritize radar target
+                            if (vesselRadarData.locked)
+                            {
+                                if (targetMissile == null) //uncaged radar lock
+                                {
+                                    heatTarget = vesselRadarData.lockedTargetData.targetData;
+                                    radarTarget = true;
+                                }
+                                else //since it's probable that the Wm is locked to the current guardTarget, but not that incoming missile we're trying to acquire for intercept
+                                {
+                                    List<TargetSignatureData> possibleTargets = vesselRadarData.GetLockedTargets();
+                                    for (int i = 0; i < possibleTargets.Count; i++)
+                                    {
+                                        if (possibleTargets[i].vessel == targetMissile.Vessel)
+                                        {
+                                            heatTarget = possibleTargets[i];
+                                            radarTarget = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            else if (_irstsEnabled && !(HMDcond && _isHMDEnabled))
                             {
                                 if (targetMissile == null)
                                     heatTarget = vesselRadarData.activeIRTarget(guardTarget, this); //point seeker at active target's IR return
                                 else
                                     heatTarget = vesselRadarData.activeIRTarget(targetMissile.Vessel, this);
-                            }
-                            else
-                            {
-                                // Prioritize radar target
-                                if (vesselRadarData.locked)
-                                {
-                                    if (targetMissile == null) //uncaged radar lock
-                                    {
-                                        heatTarget = vesselRadarData.lockedTargetData.targetData;
-                                        radarTarget = true;
-                                    }
-                                    else //since it's probable that the Wm is locked to the current guardTarget, but not that incoming missile we're trying to acquire for intercept
-                                    {
-                                        List<TargetSignatureData> possibleTargets = vesselRadarData.GetLockedTargets();
-                                        for (int i = 0; i < possibleTargets.Count; i++)
-                                        {
-                                            if (possibleTargets[i].vessel == targetMissile.Vessel)
-                                            {
-                                                heatTarget = possibleTargets[i];
-                                                radarTarget = true;
-                                                break;
-                                            }
-                                        }
-                                    }
-                                }
                             }
                         }
 

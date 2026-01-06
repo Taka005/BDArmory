@@ -247,6 +247,7 @@ namespace BDArmory.UI
 
         public static string textureDir = "BDArmory/Textures/";
 
+        bool cursorOnGUI = false;
         bool drawCursor;
         Texture2D cursorTexture = GameDatabase.Instance.GetTexture(textureDir + "aimer", false);
         bool temporarilyShowMouse = false;
@@ -730,6 +731,7 @@ namespace BDArmory.UI
                 if (BDInputUtils.GetKeyDown(BDInputSettingsFields.DEBUG_CLEAR_DEV_CONSOLE)) Debug.ClearDeveloperConsole();
 #endif
                 if (temporarilyShowMouse != (temporarilyShowMouse = BDInputUtils.GetKey(BDInputSettingsFields.TEMPORARILY_SHOW_MOUSE))) UpdateCursorState();
+                if (cursorOnGUI && !GUIUtils.CheckMouseIsOnGui()) UpdateCursorState();
             }
             else if (HighLogic.LoadedSceneIsEditor)
             {
@@ -797,7 +799,8 @@ namespace BDArmory.UI
             if (HighLogic.LoadedSceneIsFlight)
             {
                 drawCursor = false;
-                if (!MapView.MapIsEnabled && !GUIUtils.CheckMouseIsOnGui() && !PauseMenu.isOpen)
+                cursorOnGUI = GUIUtils.CheckMouseIsOnGui();
+                if (!MapView.MapIsEnabled && !cursorOnGUI && !PauseMenu.isOpen)
                 {
                     if (weaponManager.selectedWeapon != null && weaponManager.weaponIndex > 0 &&
                         !weaponManager.guardMode)
