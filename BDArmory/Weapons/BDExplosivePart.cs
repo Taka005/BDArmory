@@ -22,6 +22,34 @@ namespace BDArmory.Weapons
          UI_Label(affectSymCounterparts = UI_Scene.All, controlEnabled = true, scene = UI_Scene.All)]
         public float blastRadius = 10;
 
+        private float startuptntMass = -1;
+
+        public override void OnAwake()
+        {
+            base.OnAwake();
+
+            if (BDArmorySettings.DEBUG_OTHER) Debug.Log($"[BDArmory.BDExplosivePart] OnAwake tntMass: {tntMass}");
+
+            MultiMissileLauncher mml = part.partInfo.partPrefab.FindModuleImplementing<MultiMissileLauncher>();
+
+            if (part.partInfo.partPrefab.FindModuleImplementing<MissileLauncher>() != null && (!mml || mml.isClusterMissile))
+            {
+                Fields["tntMass"].isPersistant = false;
+                startuptntMass = tntMass;
+            }
+        }
+
+        public override void OnStart(StartState state)
+        {
+            base.OnStart(state);
+
+            if (startuptntMass > 0)
+            {
+                tntMass = startuptntMass;
+                CalculateBlast();
+            }
+        }
+
         [KSPField]
         public string warheadType = "standard";
         public string warheadReportingName;
@@ -67,6 +95,11 @@ namespace BDArmory.Weapons
 
         private void CalculateBlast()
         {
+            if (startuptntMass > 0)
+            {
+                tntMass = startuptntMass;
+            }
+
             if (part.Resources.Contains("HighExplosive"))
             {
                 if (part.Resources["HighExplosive"].amount == previousMass) return;
