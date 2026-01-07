@@ -136,6 +136,7 @@ namespace BDArmory.Targeting
             acceleration = _acceleration;
             exists = _exists;
             timeAcquired = Time.time;
+            signalStrength = -1f;
             //signalType = _signalType;
             targetInfo = null;
             vesselJammer = null;

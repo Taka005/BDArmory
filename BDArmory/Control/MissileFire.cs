@@ -2090,7 +2090,7 @@ namespace BDArmory.Control
                 else
                 {
                     _HMDray = new Ray(vessel.CoM, vessel.GetFwdVector());
-                    _HMDscreenPos = Vector2.zero;
+                    _HMDscreenPos = GUIUtils.WorldToGUIPos(_HMDray.GetPoint(1000f));
                 }
                 return;
             }
@@ -2106,7 +2106,7 @@ namespace BDArmory.Control
             {
                 Vector3 mouseAimFlightTarget = MouseAimFlight.GetMouseAimTarget;
                 _HMDray = new Ray(camera.transform.position, mouseAimFlightTarget);
-                _HMDscreenPos = GUIUtils.WorldToGUIPos(vessel.CoM + 1000f * mouseAimFlightTarget);
+                _HMDscreenPos = GUIUtils.WorldToGUIPos(vessel.CoM + mouseAimFlightTarget);
             }
         }
 
@@ -2443,7 +2443,7 @@ namespace BDArmory.Control
                     GUIUtils.DrawTextureOnWorldPos(position, texture, new Vector2(size, size), wobble);
                 }
 
-                if (_hasHMD && _isHMDEnabled && (!guardMode || (CurrentMissile && CurrentMissile.TargetingMode == TargetingModes.Heat)))
+                if (HMD && _hasHMD && _isHMDEnabled && (!guardMode || (CurrentMissile && CurrentMissile.TargetingMode == TargetingModes.Heat)))
                 {
                     GUIUtils.DrawTextureOnScreenPos(_HMDscreenPos, BDArmorySetup.Instance.greenCircleTexture, new Vector2(36, 36), 0);
                 }
@@ -8559,7 +8559,7 @@ namespace BDArmory.Control
 
             Vector3 forward = currMissile.GetForwardTransform();
             Vector3 missilePos = currMissile.MissileReferenceTransform.position;
-            Vector3 adjustedPos = missilePos + 2f * forward;
+            Vector3 adjustedPos = missilePos + 5f * forward;
             // Boresight check is against reference transform, but we offset the ray's origin to account for wing-mounted missiles etc. this should
             // probably be a config parameter or something we measure via the collider
 
@@ -8573,7 +8573,7 @@ namespace BDArmory.Control
             if (currMissile.GuidanceMode != MissileBase.GuidanceModes.SLW || (currMissile.GuidanceMode == MissileBase.GuidanceModes.SLW && currMissile.activeRadarRange > 0)) //heatseeking missiles/torps
             {
                 // If not missile with uncaged lock or torpedo
-                if (!currMissile.uncagedLock || currMissile.GuidanceMode != MissileBase.GuidanceModes.SLW)
+                if (!currMissile.uncagedLock && currMissile.GuidanceMode != MissileBase.GuidanceModes.SLW)
                 {
                     heatTarget = BDATargetManager.GetHeatTarget(vessel, vessel, new Ray(adjustedPos, forward), TargetSignatureData.noTarget, scanRadius, currMissile.heatThreshold, currMissile.frontAspectHeatModifier, currMissile.uncagedLock, currMissile.targetCoM, currMissile.lockedSensorFOVBias, currMissile.lockedSensorVelocityBias, currMissile.lockedSensorVelocityMagnitudeBias, currMissile.lockedSensorMinAngularVelocity, this, targetMissile != null ? targetMissile : guardMode ? currentTarget : null, IFF: currMissile.hasIFF);
                     return;
