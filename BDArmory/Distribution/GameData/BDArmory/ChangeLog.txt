@@ -14,10 +14,12 @@
 - Weapons:
 	- Explosions:
 		- Re-worked explosion physics, now explosions perform armor penetration and HP based attenuation checks at the true location of each of the parts.
+		- Fixed instances where the armor calcs could return infinite armor
 	- Missiles:
 		- Added Helmet Mounted Display/Sight for IR missiles. Can be added to any cockpit, when enabled allows targeting of "uncagedLock = true" missiles via mouse.
 		- Re-worked "uncagedLock" functionality
 			- Missiles with "uncagedLock = false" have fixed seeker-cones prior to finding a target
+				- Turrets and pilot AI with "uncagedLock = false" will aim towards the target rather than lead the target
 			- Missiles with "uncagedLock = true" can be slaved to a radar lock, an HMD/HMS target, or an IRST lock (in that order of priority)
 		- Added altitude-based fuzes for missiles
 			- "altitudeFuzeMode" can be set to -2, -1, 0, 1 or 2. -2/2 are descending/ascending detonation checks with a MSL altimeter, -1/1 are descending/ascending detonation checks with a radar altimeter.
