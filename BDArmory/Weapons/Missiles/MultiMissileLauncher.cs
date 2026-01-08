@@ -651,6 +651,11 @@ namespace BDArmory.Weapons.Missiles
             missileLauncher.canCruisePopup = MLConfig.CruisePopup;
             missileLauncher.canDetMinDist = MLConfig.DetonateAtMinimumDistance;
             missileLauncher.defaultDetDist = MLConfig.DetonationDistance;
+            missileLauncher.adjustableProxyFuze = MLConfig.adjustableProxyFuze;
+            if (!missileLauncher.adjustableProxyFuze)
+            {
+                missileLauncher.DetonationDistance = MLConfig.DetonationDistance;
+            }
             if (!overrideReferenceTransform) missileLauncher.maxOffBoresight = MLConfig.maxOffBoresight; //don't overwrite e.g. VLS launcher boresights so they can launch, but still have normal boresight on fired missiles
 
             if (configurableSettings)
@@ -659,10 +664,12 @@ namespace BDArmory.Weapons.Missiles
                 missileLauncher.minStaticLaunchRange = MLConfig.minStaticLaunchRange;
                 missileLauncher.engageRangeMin = MLConfig.minStaticLaunchRange;
                 missileLauncher.engageRangeMax = MLConfig.maxStaticLaunchRange;
-                missileLauncher.DetonateAtMinimumDistance = MLConfig.DetonateAtMinimumDistance;
-
+                missileLauncher.DetonateAtMinimumDistance = missileLauncher.canDetMinDist && MLConfig.DetonateAtMinimumDistance;
                 missileLauncher.detonationTime = MLConfig.detonationTime;
-                missileLauncher.DetonationDistance = MLConfig.DetonationDistance;
+                if (missileLauncher.adjustableProxyFuze)
+                {
+                    missileLauncher.DetonationDistance = MLConfig.DetonationDistance;
+                }
                 missileLauncher.BallisticOverShootFactor = MLConfig.BallisticOverShootFactor;
                 missileLauncher.BallisticAngle = MLConfig.BallisticAngle;
                 missileLauncher.CruiseAltitude = MLConfig.CruiseAltitude;
@@ -904,7 +911,10 @@ namespace BDArmory.Weapons.Missiles
                 if (turret) ml.missileTurret = turret;
                 if (!isClusterMissile)
                 {
-                    ml.DetonationDistance = missileLauncher.DetonationDistance;
+                    if (missileLauncher.adjustableProxyFuze)
+                    {
+                        ml.DetonationDistance = missileLauncher.DetonationDistance;
+                    }
                     ml.decoupleForward = missileLauncher.decoupleForward;
                     ml.dropTime = missileLauncher.dropTime;
                     ml.decoupleSpeed = missileLauncher.decoupleSpeed;

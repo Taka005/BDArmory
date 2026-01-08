@@ -1284,10 +1284,20 @@ namespace BDArmory.Weapons.Missiles
                     Fields["DetonationDistance"].guiActive = false;
                     Fields["DetonationDistance"].guiActiveEditor = false;
                 }
+                else
+                {
+                    Fields["DetonationDistance"].guiActive = true;
+                    Fields["DetonationDistance"].guiActiveEditor = true;
+                }
                 if (!canDetMinDist)
                 {
                     Fields["DetonateAtMinimumDistance"].guiActive = false;
                     Fields["DetonateAtMinimumDistance"].guiActiveEditor = false;
+                }
+                else
+                {
+                    Fields["DetonateAtMinimumDistance"].guiActive = true;
+                    Fields["DetonateAtMinimumDistance"].guiActiveEditor = true;
                 }
             }
             ParseAntiRadTargetTypes();
