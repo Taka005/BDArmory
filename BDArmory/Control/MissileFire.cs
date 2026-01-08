@@ -507,7 +507,7 @@ namespace BDArmory.Control
         public bool hasHMD { get { return _hasHMD; } }
         private bool _hasHMD = false;
         Ray _HMDray;
-        Vector2 _HMDscreenPos = Vector2.zero;
+        Vector3 _HMDscreenPos = Vector3.zero;
 
         //GPS
         public GPSTargetInfo designatedGPSInfo;
@@ -2085,12 +2085,12 @@ namespace BDArmory.Control
                 if (guardTarget && (relativePos = guardTarget.CoM - vessel.CoM).sqrMagnitude < guardRange * guardRange)
                 {
                     _HMDray = new Ray(vessel.CoM, relativePos);
-                    _HMDscreenPos = GUIUtils.WorldToGUIPos(guardTarget.CoM);
+                    _HMDscreenPos = GUIUtils.WorldToViewportPoint(guardTarget.CoM);
                 }
                 else
                 {
                     _HMDray = new Ray(vessel.CoM, vessel.GetFwdVector());
-                    _HMDscreenPos = GUIUtils.WorldToGUIPos(_HMDray.GetPoint(1000f));
+                    _HMDscreenPos = GUIUtils.WorldToViewportPoint(_HMDray.GetPoint(1000f));
                 }
                 return;
             }
@@ -2100,13 +2100,13 @@ namespace BDArmory.Control
             {
                 Vector3 mouseAim = new(Input.mousePosition.x / Screen.width, Input.mousePosition.y / Screen.height, 0);
                 _HMDray = camera.mainCamera.ViewportPointToRay(mouseAim);
-                _HMDscreenPos = new Vector2(mouseAim.x, mouseAim.y);
+                _HMDscreenPos = new Vector3(mouseAim.x, mouseAim.y, 1);
             }
             else
             {
                 Vector3 mouseAimFlightTarget = MouseAimFlight.GetMouseAimTarget;
                 _HMDray = new Ray(camera.transform.position, mouseAimFlightTarget);
-                _HMDscreenPos = GUIUtils.WorldToGUIPos(vessel.CoM + mouseAimFlightTarget);
+                _HMDscreenPos = camera.mainCamera.WorldToViewportPoint(_HMDray.GetPoint(1000f));
             }
         }
 

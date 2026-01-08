@@ -144,17 +144,14 @@ namespace BDArmory.Utils
             }
         }
 
-        public static Vector2 WorldToGUIPos(Vector3 worldPos)
+        public static Vector3 WorldToViewportPoint(Vector3 worldPos)
         {
             var cam = GetMainCamera();
             if (cam == null)
             {
                 return Vector2.zero;
             }
-            Vector3 screenPos = cam.WorldToViewportPoint(worldPos);
-            float xPos = screenPos.x * Screen.width;
-            float yPos = (1 - screenPos.y) * Screen.height;
-            return new Vector2(xPos, yPos);
+            return cam.WorldToViewportPoint(worldPos);
         }
 
         public static void DrawLineBetweenWorldPositions(Vector3 worldPosA, Vector3 worldPosB, float width, Color color)
