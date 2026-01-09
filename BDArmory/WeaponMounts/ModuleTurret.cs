@@ -18,7 +18,8 @@ namespace BDArmory.WeaponMounts
         [KSPField] public string yawTransformName = "yawTransform";
         public Transform yawTransform;
 
-        Transform referenceTransform; //set this to gun's fireTransform
+        public Transform referenceTransform { get; }
+        Transform _referenceTransform; //set this to gun's fireTransform
 
         [KSPField] public float pitchSpeedDPS;
         [KSPField] public float yawSpeedDPS;
@@ -79,7 +80,7 @@ namespace BDArmory.WeaponMounts
                 Debug.LogWarning("[BDArmory.ModuleTurret]: " + part.partInfo.title + " has no yawTransform");
             }
 
-            if (!referenceTransform)
+            if (!_referenceTransform)
             {
                 if (pitchTransform)
                     SetReferenceTransform(pitchTransform);
@@ -172,7 +173,7 @@ namespace BDArmory.WeaponMounts
 
         public void AimToTarget(Vector3 targetPosition, bool pitch = true, bool yaw = true)
         {
-            AimInDirection(targetPosition - referenceTransform.position, pitch, yaw);
+            AimInDirection(targetPosition - _referenceTransform.position, pitch, yaw);
         }
 
         public void AimInDirection(Vector3 targetDirection, bool pitch = true, bool yaw = true)
@@ -193,25 +194,35 @@ namespace BDArmory.WeaponMounts
 
             float currentYaw = yawTransform.localEulerAngles.y.ToAngle();
             float yawError = VectorUtils.SignedAngleDP(
-                referenceTransform.forward.ProjectOnPlanePreNormalized(yawNormal),
+                _referenceTransform.forward.ProjectOnPlanePreNormalized(yawNormal),
                 yawComponent,
-                Vector3.Cross(yawNormal, referenceTransform.forward));
+                Vector3.Cross(yawNormal, _referenceTransform.forward));
             float yawOffset = Mathf.Abs(yawError);
             float targetYawAngle = (currentYaw + yawError).ToAngle();
             // clamp target yaw in a non-wobbly way
             if (Mathf.Abs(targetYawAngle) > yawRange / 2)
             {
-                var nonWobblyWay = Vector3.Dot(yawTransform.parent.right, targetDirection + referenceTransform.position - yawTransform.position);
+                var nonWobblyWay = Vector3.Dot(yawTransform.parent.right, targetDirection + _referenceTransform.position - yawTransform.position);
                 //if (float.IsNaN(nonWobblyWay)) return;
                 targetYawAngle = yawRange / 2 * Math.Sign(nonWobblyWay);
             }
 
-
-            float pitchError = (float)Vector3d.Angle(pitchComponent, yawNormal) - (float)Vector3d.Angle(referenceTransform.forward, yawNormal);
-            float currentPitch = -pitchTransform.localEulerAngles.x.ToAngle(); // from current rotation transform
-            float targetPitchAngle = currentPitch - pitchError;
-            float pitchOffset = Mathf.Abs(targetPitchAngle - currentPitch);
-            targetPitchAngle = Mathf.Clamp(targetPitchAngle, minPitch, maxPitch); // clamp pitch
+            float pitchOffset;
+            float targetPitchAngle;
+            if (pitchTransform)
+            {
+                float pitchError = (float)Vector3d.Angle(pitchComponent, yawNormal) - (float)Vector3d.Angle(_referenceTransform.forward, yawNormal);
+                float currentPitch = -pitchTransform.localEulerAngles.x.ToAngle(); // from current rotation transform
+                targetPitchAngle = currentPitch - pitchError;
+                pitchOffset = Mathf.Abs(targetPitchAngle - currentPitch);
+                targetPitchAngle = Mathf.Clamp(targetPitchAngle, minPitch, maxPitch); // clamp pitch
+            }
+            else
+            {
+                pitchOffset = 0;
+                targetPitchAngle = 0;
+                pitch = false;
+            }
 
             float yawSpeed;
             float pitchSpeed;
@@ -261,7 +272,17 @@ namespace BDArmory.WeaponMounts
             float deltaTime = Time.fixedDeltaTime;
 
             float yawOffset = Quaternion.Angle(yawTransform.localRotation, standbyLocalRotation);
-            float pitchOffset = VectorUtils.Angle(pitchTransform.forward, yawTransform.forward);
+            float pitchOffset;
+            
+            if (pitchTransform)
+            {
+                pitchOffset = VectorUtils.Angle(pitchTransform.forward, yawTransform.forward);
+            }
+            else
+            {
+                pitchOffset = 0;
+                pitch = false;
+            }
 
             float yawSpeed;
             float pitchSpeed;
@@ -288,24 +309,24 @@ namespace BDArmory.WeaponMounts
                 pitchTransform.localRotation = Quaternion.RotateTowards(pitchTransform.localRotation, Quaternion.identity, pitchSpeed * linPitchMult);
             }
 
-            return (yawTransform.localRotation == standbyLocalRotation || !yaw) && (pitchTransform.localRotation == Quaternion.identity || !pitch);
+            return (!yaw || yawTransform.localRotation == standbyLocalRotation) && (!pitch || pitchTransform.localRotation == Quaternion.identity);
         }
 
         public bool TargetInRange(Vector3 targetPosition, float maxDistance, float thresholdDegrees = 0)
         {
-            if (!referenceTransform) return false;
-            Vector3 vectorToTarget = targetPosition - referenceTransform.position;
+            if (!_referenceTransform) return false;
+            Vector3 vectorToTarget = targetPosition - _referenceTransform.position;
             if (vectorToTarget.sqrMagnitude > maxDistance * maxDistance) return false;
 
-            float angleYaw = VectorUtils.Angle(vectorToTarget.ProjectOnPlanePreNormalized(referenceTransform.up), referenceTransform.forward);
-            float signedAnglePitch = 90 - VectorUtils.Angle(referenceTransform.up, vectorToTarget);
-            bool withinView = thresholdDegrees > 0 ? VectorUtils.Angle(vectorToTarget, referenceTransform.forward) < thresholdDegrees : (signedAnglePitch > minPitch && signedAnglePitch < maxPitch && angleYaw < yawRange / 2);
+            float angleYaw = VectorUtils.Angle(vectorToTarget.ProjectOnPlanePreNormalized(_referenceTransform.up), _referenceTransform.forward);
+            float signedAnglePitch = 90 - VectorUtils.Angle(_referenceTransform.up, vectorToTarget);
+            bool withinView = thresholdDegrees > 0 ? VectorUtils.Angle(vectorToTarget, _referenceTransform.forward) < thresholdDegrees : (signedAnglePitch > minPitch && signedAnglePitch < maxPitch && angleYaw < yawRange / 2);
             return withinView;
         }
 
         public void SetReferenceTransform(Transform t)
         {
-            referenceTransform = t;
+            _referenceTransform = t;
         }
 
         void SetupTweakables()
