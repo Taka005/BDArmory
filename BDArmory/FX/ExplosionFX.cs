@@ -27,6 +27,7 @@ namespace BDArmory.FX
         private float MaxTime { get; set; }
         public float Range { get; set; }
         public float SCRange { get; set; }
+        public float SCInvFac { get; set; }
         public float penetration { get; set; }
         public float Caliber { get; set; }
         public float ProjMass { get; set; }
@@ -955,18 +956,18 @@ namespace BDArmory.FX
                         // Perform HP/armor calculation
                         for (int i = 0; i < eventToExecute.IntermediateParts.Count; i++)
                         {
-                            (float, float, float) currPart = eventToExecute.IntermediateParts[i];
-                            float blastImpulse = BlastPhysicsUtils.CalculateMaxImpulseAtDistance(currPart.Item1, currtntMassCubeRoot);
+                            (float dist, float hp, float armor) currPart = eventToExecute.IntermediateParts[i];
+                            float blastImpulse = BlastPhysicsUtils.CalculateMaxImpulseAtDistance(currPart.dist, currtntMassCubeRoot);
                             // Function remains unchanged, except we evaluate at the part and there's a factor of 1.05 tacked on as a handwavy
                             // "explosion must pass through the hole it blasts through" kind of thing. Why 1.05? No particularly good reason.
                             // NOTE: Big explosions are consistently overpenning quite significantly...
-                            float blastResistance = 1.05f * (0.1f * currPart.Item2 * invdmgModifier + 40f * BDArmorySettings.EXP_PEN_RESIST_MULT * currPart.Item3);
+                            float blastResistance = 1.05f * (0.1f * currPart.hp * invdmgModifier + 40f * BDArmorySettings.EXP_PEN_RESIST_MULT * currPart.armor);
                             currtntMassCubeRoot *= (blastImpulse - blastResistance) / blastImpulse;
 
                             if (BDArmorySettings.DEBUG_DAMAGE) Debug.Log($"[BDArmory.ExplosionFX] Part at index {i} reduced blastImpulse: {blastImpulse} by blastResistance: {blastResistance}.");
 
-                            cumulativeHPOfIntermediateParts += currPart.Item2;
-                            cumulativeArmorOfIntermediateParts += currPart.Item3;
+                            cumulativeHPOfIntermediateParts += currPart.hp;
+                            cumulativeArmorOfIntermediateParts += currPart.armor;
 
                             if (currtntMassCubeRoot < 0)
                             {
@@ -1067,7 +1068,7 @@ namespace BDArmory.FX
                                 //float penetration = 0;
 
                                 float remainingPen = penetration;
-                                float standoffTemp = 0f;
+                                /*float standoffTemp = 0f;
                                 float standoffFactor = 1f;
 
                                 if (warheadType == WarheadTypes.ShapedCharge)
@@ -1100,9 +1101,36 @@ namespace BDArmory.FX
                                     standoffFactor = 1f / (1f + standoffTemp * standoffTemp);
 
                                     remainingPen *= standoffFactor;
-                                }
+                                }*/
+                                if (warheadType == WarheadTypes.ShapedCharge)
+                                {
+                                    for (int i = 0; i < eventToExecute.IntermediateParts.Count; i++)
+                                    {
+                                        (float dist, float hp, float armor) currPart = eventToExecute.IntermediateParts[i];
 
-                                remainingPen -= cumulativeArmorOfIntermediateParts;
+                                        float standoffTemp = currPart.dist * SCInvFac;
+
+                                        // Calculate Penetration at part i
+                                        float currPen = remainingPen / (1f + (standoffTemp * standoffTemp));
+
+                                        standoffTemp = (currPen - currPart.armor);
+
+                                        if (standoffTemp > 0)
+                                        {
+                                            // If still have remaining pen, reduce remainingPen by % difference
+                                            remainingPen *= (standoffTemp / currPen);
+                                        }
+                                        else
+                                        {
+                                            remainingPen = 0;
+                                            break;
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    remainingPen -= cumulativeArmorOfIntermediateParts;
+                                }
 
                                 var Armor = part.FindModuleImplementing<HitpointTracker>();
                                 if (Armor != null)
@@ -1127,10 +1155,16 @@ namespace BDArmory.FX
                                     if (BDArmorySettings.DEBUG_WEAPONS)
                                     {
                                         if (eventToExecute.IntermediateParts.Count > 0)
-                                            Debug.Log($"[BDArmory.ExplosionFX] Part: {part.name}; Distance: {realDistance};  StandoffTemp: {standoffTemp}; Distance From First Pen: {eventToExecute.IntermediateParts[0].Item1}m; SCRange: {SCRange}m;");
+                                        {
+                                            //Debug.Log($"[BDArmory.ExplosionFX] Part: {part.name}; Distance: {realDistance};  StandoffTemp: {standoffTemp}; Distance From First Pen: {eventToExecute.IntermediateParts[0].Item1}m; SCRange: {SCRange}m;");
+                                            Debug.Log($"[BDArmory.ExplosionFX] Part: {part.name}; Distance: {realDistance}; Distance From First Pen: {eventToExecute.IntermediateParts[0].Item1} m; SCRange: {SCRange} m;");
+                                        }
                                         else
-                                            Debug.Log($"[BDArmory.ExplosionFX] Part: {part.name}; Distance: {realDistance};  StandoffTemp: {standoffTemp}; Distance From First Pen: 0m; SCRange: {SCRange}m;");
-                                        Debug.Log($"[BDArmory.ExplosionFX] Penetration: {penetration} mm; Thickness: {thickness * armorEquiv} mm; armorEquiv: {armorEquiv}; Intermediate Armor: {cumulativeArmorOfIntermediateParts} mm; Remaining Penetration: {remainingPen} mm; Penetration Factor: {penetrationFactor}; Standoff Factor: {standoffFactor}");
+                                        {
+                                            //Debug.Log($"[BDArmory.ExplosionFX] Part: {part.name}; Distance: {realDistance};  StandoffTemp: {standoffTemp}; Distance From First Pen: 0m; SCRange: {SCRange}m;");
+                                            Debug.Log($"[BDArmory.ExplosionFX] Part: {part.name}; Distance: {realDistance}; Distance From First Pen: 0m; SCRange: {SCRange} m;");
+                                        }
+                                        Debug.Log($"[BDArmory.ExplosionFX] Penetration: {penetration} mm; Thickness: {thickness * armorEquiv} mm; armorEquiv: {armorEquiv}; Intermediate Armor: {cumulativeArmorOfIntermediateParts} mm; Remaining Penetration: {remainingPen} mm; Penetration Factor: {penetrationFactor}");
                                     }
 
                                     if (RA != null)
@@ -1378,6 +1412,7 @@ namespace BDArmory.FX
                     //eFx.AngleOfEffect = 5f;
                     eFx.cosAngleOfEffect = BDArmorySettings.HEAT_CONE_HALF_ANGLE > 0f ? Mathf.Cos(Mathf.Deg2Rad * BDArmorySettings.HEAT_CONE_HALF_ANGLE) : 2f; // cos(5 degrees)
                     eFx.Caliber = caliber > 0 ? caliber * 0.05f : 6f;
+                    eFx.SCInvFac = 1f / (14f * 20f * 0.001f * eFx.Caliber);
 
                     // Hypervelocity jet caliber determined by rule of thumb equation for the caliber based on
                     // "The Hollow Charge Effect" Bulletin of the Institution of Mining and Metallurgy. No. 520, March 1950

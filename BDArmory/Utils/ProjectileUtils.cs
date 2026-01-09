@@ -393,10 +393,10 @@ namespace BDArmory.Utils
             var Armor = hitPart.FindModuleImplementing<HitpointTracker>();
             if (Armor != null)
             {
-                if (!IsArmorPart(hitPart))
-                {
-                    if (Armor.ArmorTypeNum == 1) return; //ArmorType "None"; no armor to block/reduce blast, take full damage
-                }
+                //if (!IsArmorPart(hitPart))
+                //{
+                //    if (Armor.ArmorTypeNum == 1) return; //ArmorType "None"; no armor to block/reduce blast, take full damage
+                //}
                 float Ductility = Armor.Ductility;
                 float hardness = Armor.Hardness;
                 float Strength = Armor.Strength;
