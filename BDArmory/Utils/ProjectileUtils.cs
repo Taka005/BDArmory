@@ -883,7 +883,7 @@ namespace BDArmory.Utils
             {
                 if (BDArmorySettings.DEBUG_ARMOR)
                 {
-                    Debug.Log("[BDArmory.ProjectileUtils]: Bullet deformed past usable limit");
+                    Debug.Log($"[BDArmory.ProjectileUtils]: Bullet deformed past usable limit! L/D: {bulletLength} / {newCaliber}");
                 }
                 return false;
             }
