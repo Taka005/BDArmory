@@ -1077,11 +1077,23 @@ namespace BDArmory.Damage
                         hitpoints = maxHitPoints * HullInfo.materials[hullType].healthMod;
                         //hitpoints = Mathf.Round(hitpoints); // / HpRounding) * HpRounding;
 
+                        if (isProcWing && ProceduralWing.CheckForB9ProcWing() && ProceduralWing.CheckForPWModule())
+                        {
+                            armorVolume = ProceduralWing.GetPWingArea(part);
+                            ArmorModified(null, null);
+                        }
+
                         if (BDArmorySettings.DEBUG_ARMOR && maxHitPoints <= 0 && Hitpoints != hitpoints) Debug.Log($"[BDArmory.HitpointTracker]: {part.name} updated HP: {Hitpoints}->{hitpoints} at time {Time.time}");
                     }
                 }
                 else
                 {
+                    if (isProcWing && ProceduralWing.CheckForB9ProcWing() && ProceduralWing.CheckForPWModule())
+                    {
+                        armorVolume = ProceduralWing.GetPWingArea(part);
+                        ArmorModified(null, null);
+                    }
+
                     hitpoints = ArmorRemaining; // * armorVolume * 10;
                                                 //hitpoints = Mathf.Round(hitpoints / HpRounding) * HpRounding;
                                                 //armorpanel HP is panel integrity, as 'HP' is the slab of armor; having a secondary unused HP pool will only make armor massively more effective against explosions than it should due to how isInLineOfSight calculates intermediate parts
