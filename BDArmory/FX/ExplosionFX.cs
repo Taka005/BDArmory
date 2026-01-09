@@ -606,6 +606,8 @@ namespace BDArmory.FX
             _LoSIntermediateParts.Clear();
             var totalHitCount = CollateHits(ref lineOfSightHits, hitCount, ref reverseHits, reverseHitCount); // This is the most expensive part of this method and the cause of most of the slow-downs with explosions.
             float factor = 1.0f;
+            float nextDist = 0f; // Next expected hit distance
+            float prevDens = 0f; // Previous armor density
             for (int i = 0; i < totalHitCount; ++i)
             {
                 hit = sortedLoSHits[i];
@@ -648,16 +650,31 @@ namespace BDArmory.FX
                             float armorCos = Mathf.Abs(Vector3.Dot(correctedDirection.sqrMagnitude < 1E-10f ? partRay.direction : correctedDirection.normalized, -hit.normal));
                             partArmour = ProjectileUtils.CalculateThickness(partHit, Mathf.Max(armorCos, 1E-5f));
 
+                            // If there's spacing between the plates, or there's a change of density
+                            if (distance > nextDist || prevDens != Armor.Density)
+                            {
+                                nextDist = distance + partArmour;
+                                prevDens = Armor.Density;
+
+                                partArmour *= factor;
+
+                                // Increment factor
+                                factor *= 1.05f;
+                            }
+                            else
+                            {
+                                nextDist = distance + partArmour;
+                                prevDens = Armor.Density;
+
+                                partArmour *= factor;
+                            }
+
                             partArmour *= warheadType == WarheadTypes.ShapedCharge ? Armor.HEATEquiv : Armor.HEEquiv;
 
                             //if (BDArmorySettings.DEBUG_WEAPONS)
                             //{
                             //    Debug.Log($"[BDArmory.ExplosionFX] Part: {partHit.name}; Thickness: {partArmour}mm; Angle: {Mathf.Rad2Deg * Mathf.Acos(armorCos)}; Contributed: {factor * Mathf.Max(partArmour / armorCos, 1)}mm; Distance: {hit.distance};");
                             //}
-
-                            partArmour *= factor;
-
-                            factor *= 1.05f;
 
                             var RA = partHit.FindModuleImplementing<ModuleReactiveArmor>();
                             if (RA != null)

@@ -10,6 +10,8 @@ namespace BDArmory.Utils
     {
         // This values represent percentage of the blast radius where we consider that the damage happens.
 
+        public static double clampScaledMaxPressure = CalculateIncidentImpulse(0.0674, 1, Math.Log10(0.0674));
+
         // Methodology based on AASTP-1: MANUAL OF NATO SAFETY PRINCIPLES FOR THE STORAGE OF MILITARY AMMUNITION AND EXPLOSIVES
         // Link: http://www.rasrinitiative.org/pdfs/AASTP-1-Ed1-Chge-3-Public-Release-110810.pdf
         // NOTE: Only use Edition 1, modern editions do NOT include these equations
@@ -46,8 +48,10 @@ namespace BDArmory.Utils
 
             float effectivePartArea = CalculateEffectiveBlastAreaToPart(range, part);
 
-            double maxforce = CalculateForce(maxPressurePerMs, effectivePartArea, minDistPositivePhase);
-            double minforce = CalculateForce(minPressurePerMs, effectivePartArea, maxDistPositivePhase);
+            // Because we're hacking the maxPressure equation by using dodgy equation fits, we've gotta clamp this
+            // pressure otherwise we launch stuff off into infinity and beyond
+            double maxforce = CalculateForce(Math.Min(maxPressurePerMs, clampScaledMaxPressure * cubeRootExplosiveMass), effectivePartArea, minDistPositivePhase);
+            double minforce = CalculateForce(Math.Min(minPressurePerMs, clampScaledMaxPressure * cubeRootExplosiveMass), effectivePartArea, maxDistPositivePhase);
 
             float positivePhase = (float)(minDistPositivePhase + maxDistPositivePhase) / 2f;
 
@@ -103,7 +107,8 @@ namespace BDArmory.Utils
         {
             //float cubeRootOfChargeWeight = (float)Math.Pow(explosiveCharge, 1f / 3f);
 
-            return Mathf.Clamp(distanceToHit, 0.0674f * cubeRootOfChargeWeight, 40f * cubeRootOfChargeWeight);
+            // This clamps it down to a min of no more than 0.25 m
+            return Mathf.Clamp(distanceToHit, 0.0674f * Mathf.Min(cubeRootOfChargeWeight, 3.70919881306f), 40f * cubeRootOfChargeWeight);
         }
 
         private static double CalculateIncidentImpulse(double scaledDistance, double cubeRootOfChargeWeight, double t)
@@ -111,10 +116,15 @@ namespace BDArmory.Utils
             //double t = Math.Log10(scaledDistance); //Math.Log(scaledDistance) / Math.Log(10);
             //double cubeRootOfChargeWeight = Math.Pow(explosiveCharge, 0.3333333);
             double ii = 0;
+            // NOTE: Very dodgy equation fit that just extends the below line to the left. Is it accurate? Probably not...
+            if (scaledDistance < 0.0674)
+            {
+                ii = 1.2594913561 - 1.884778638708 * t;
+            }
             // Functions from page 393-394 of AASTP-1 Edition 1 Change 3 (specifically)
             // Note scaling by the cube-root of charge weight is indicated on
             // page 274 of the PDF
-            if (scaledDistance <= 0.955)
+            else if (scaledDistance <= 0.955)
             {
                 double U = 2.06761908721 + 3.0760329666 * t;
                 var U2 = U * U;
@@ -148,13 +158,22 @@ namespace BDArmory.Utils
             return ii;
         }
 
+        // Minimum valid tMinPhaseTime
+        public static double tMinPhaseTime = Math.Log10(0.178);
+
         // Calculate positive phase time in ms from AASTP-1
         private static double CalculatePositivePhaseTime(double scaledDistance, double cubeRootOfChargeWeight, double t)
         {
-            scaledDistance = Math.Min(Math.Max(scaledDistance, 0.178), 40); // Formula only valid for scaled distances between 0.178 and 40 m
+            //scaledDistance = Math.Min(Math.Max(scaledDistance, 0.178), 40); // Formula only valid for scaled distances between 0.178 and 40 m
             //double t = Math.Log10(scaledDistance); //Math.Log(scaledDistance) / Math.Log(10);
             //double cubeRootOfChargeWeight = Math.Pow(explosiveCharge, 0.3333333);
             double ii = 0;
+
+            // Clamp to valid scaledDistance value, since formula is only valid down to 0.178
+            if (t < tMinPhaseTime)
+            {
+                t = tMinPhaseTime;
+            }
 
             if (scaledDistance <= 1.01)
             {

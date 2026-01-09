@@ -10,26 +10,40 @@
 - Sensors:
 	- Totally rework RWR system. New fields "RWRMWSRange" (range of MWS system in m) and "RWRMWSUpdateRate" (player UI update interval in s for MWS system) added.
 	- Fix targeting pod NRE when not targeting vessels.
-	- Fix radar part info menu not displaying correct FoV limits
+	- Fix radar part info menu not displaying correct FoV limits.
+	- Add radarChaffNotchClutterFactor field, with up to two values for notch velocity and notch range chaff factors.
+		- When radar notching is enabled, chaff gets additional bonuses from a target beaming (moving at 90° to the radar) or notching (beaming at low altitudes).
+		- The first value in radarChaffNotchClutterFactor determines the additional chaff effectiveness when the target is moving at 90° to the target, independent of the other modifiers.
+		- The second value in radarChaffNotchClutterFactor determines the additional chaff effectiveness when the target is actively notching, independent of the other modifiers.
+		- E.G. if radarChaffClutterFactor, and both radarChaffNotchClutterFactor values are set to 1.0, the target's position is offset by chaff by up to 3 times the original offset.
 - Weapons:
+	- Fixed NRE for turrets without a pitchTransform. While not recommended, nor formally supported, such turrets should no longer spam NREs.
 	- Explosions:
 		- Re-worked explosion physics, now explosions perform armor penetration and HP based attenuation checks at the true location of each of the parts.
-		- Fixed instances where the armor calcs could return infinite armor
+		- Fixed instances where the armor calcs could return infinite armor.
+		- "Improved" shaped-charge model that somewhat better matches real results.
+		- Enable shrapnel damage to non-armored parts.
+		- Add debug messages with Debug Armor on regarding projectile destruction when non-sabot projectiles ricochet off of thick sloped armor, causing explosive bullets to not detonate. 
 	- Missiles:
+		- Added consistency/"anti-cheat" checks for missile explosive mass, ensuring missiles don't need to be replaced after a mod update.
 		- Added Helmet Mounted Display/Sight for IR missiles. Can be added to any cockpit, when enabled allows targeting of "uncagedLock = true" missiles via mouse.
-		- Re-worked "uncagedLock" functionality
-			- Missiles with "uncagedLock = false" have fixed seeker-cones prior to finding a target
-				- Turrets and pilot AI with "uncagedLock = false" will aim towards the target rather than lead the target
-			- Missiles with "uncagedLock = true" can be slaved to a radar lock, an HMD/HMS target, or an IRST lock (in that order of priority)
-		- Added altitude-based fuzes for missiles
+		- Re-worked "uncagedLock" functionality.
+			- Missiles with "uncagedLock = false" have fixed seeker-cones prior to finding a target.
+				- Turrets and pilot AI with "uncagedLock = false" will aim towards the target rather than lead the target.
+			- Missiles with "uncagedLock = true" can be slaved to a radar lock, an HMD/HMS target, or an IRST lock (in that order of priority).
+		- Added altitude-based fuzes for missiles.
 			- "altitudeFuzeMode" can be set to -2, -1, 0, 1 or 2. -2/2 are descending/ascending detonation checks with a MSL altimeter, -1/1 are descending/ascending detonation checks with a radar altimeter.
-			- "altitudeDetonationAlt" is the altitude to detonate the fuze at in m
-		- Inertial guidance missiles will no longer be able to be guided via non-ranging IRST
-		- New "adjustableProxyFuze" bool, allows for fixed detonation distance
-		- Fuze details now listed in the part info menu
+			- "altitudeDetonationAlt" is the altitude to detonate the fuze at in m.
+		- Inertial guidance missiles will no longer be able to be guided via non-ranging IRST.
+		- New "adjustableProxyFuze" bool, allows for fixed detonation distance.
+		- Fuze details now listed in the part info menu.
 		- Add "torqueLimiter" bool and "torqueMargin" fields to missiles.
-			- Setting "torqueLimiter" to false disables the torque-based AoA limiter (The BDA+ dev team does not take responsability for any wobbliness caused by this!)
+			- Setting "torqueLimiter" to false disables the torque-based AoA limiter (The BDA+ dev team does not take responsibility for any wobbliness caused by this!)
 			- "torqueMargin" is a value between 0 and 1 that represents the torque withheld to deal with the missile overshooting the requested AoA. Defaults to 0.1, reducing this value may increase missile performance but also could lead to wobbles.
+		- Added "chaffNotchEffectivity" field, which acts the same as the "radarChaffNotchClutterFactor" field detailed in Sensors, but for the missile's onboard sensor.
+		- SARH missiles now use the product of "chaffEffectivity" and their parent radar's "radarChaffClutterFactor" (as well as "chaffNotchEffectivity" and "radarChaffNotchClutterFactor") to determine chaff behavior.
+- Armor:
+	- Fixed edge case where B9 Procedural Wings are given fixed hitpoints or are used for armor plates, which would previously cause "armorVolume" to be zero.
 
 v1.12.0.0
 IMPROVEMENTS / FIXES
