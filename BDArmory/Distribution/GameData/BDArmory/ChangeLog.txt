@@ -1,4 +1,8 @@
 ﻿IMPROVEMENTS / FIXES
+- Part Changes:
+	- AIM-9 Sidewinder now has "uncagedLock = true" to reflect changes in "uncagedlock" behavior.
+	- Improve documentation of features in AIM-9 config.
+	- KKV now uses a BDCustomWarhead for its kinetic warhead.
 - AI / WM:
 	- Guard Mode now uses more "realistic" RWR/MWS and visual detection checks against missiles and vessels by taking advantage of overhauled RWR system.
 		- Fixed inconsistent detection ranges vs. missiles, now missiles will be detected within specified MWS range if omni RWR/MWS or if pinged by ARH missile.
