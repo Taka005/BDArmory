@@ -3045,7 +3045,7 @@ namespace BDArmory.Weapons.Missiles
                         currDragArea = currLiftArea;
                     }
 
-                    if (currMaxTorqueAero >= 0)
+                    if (parsedMaxTorqueAero[1] >= 0)
                         currMaxTorqueAero = parsedMaxTorqueAero[1];
 
                     if (deployed && deployedLiftInCruise)
