@@ -665,7 +665,8 @@ namespace BDArmory.Targeting
             if (weaponManager && weaponManager.vesselRadarData && weaponManager.vesselRadarData.locked)
             {
                 RadarDisplayData tgt = weaponManager.vesselRadarData.lockedTargetData;
-                Vector3 radarTargetPos = tgt.targetData.predictedPositionWithChaffFactor(tgt.detectedByRadar.radarChaffClutterFactor);
+                ModuleRadar detectedRadar = tgt.detectedByRadar;
+                Vector3 radarTargetPos = tgt.targetData.predictedPositionWithChaffFactor(detectedRadar.radarChaffClutterFactor, detectedRadar._radarChaffNotchVFac, detectedRadar._radarChaffNotchRFac);
                 Vector3 targetDirection = radarTargetPos - cameraParentTransform.position;
 
                 //Quaternion lookRotation = Quaternion.LookRotation(radarTargetPos-cameraParentTransform.position, VectorUtils.GetUpDirection(cameraParentTransform.position));

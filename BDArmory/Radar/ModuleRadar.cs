@@ -133,7 +133,14 @@ namespace BDArmory.Radar
                                                        //default to 0.25, so all cross sections of landed/splashed/submerged vessels are reduced to 1/4th, as these vessel usually a quite large
         [KSPField]
         public float radarChaffClutterFactor = 1.0f;     //Factor defining how effective the radar is at compensating for enemy chaff (0 = ineffective, 1 = no decrease in signal position/strength)
-                                                         //default to 1, since that's legacy behavior. Relevant for guiding SARH ordnance.
+                                                         //default to 1, since that's legacy behavior. Relevant for guiding SARH ordnance. Allows up to two values for modifying chaff and notchMod.
+
+        [KSPField]
+        public string radarChaffNotchClutterFactor = "1.0";
+
+        public float _radarChaffNotchVFac;
+        public float _radarChaffNotchRFac;
+
         [KSPField]
         public int sonarType = 0; //0 = Radar; 1 == Active Sonar; 2 == Passive Sonar
 
@@ -526,7 +533,36 @@ namespace BDArmory.Radar
             }
         }
 
-        public void SetRadarLimits()
+        void SetNotchChaffFac()
+        {
+            string[] chaffStrings = radarChaffNotchClutterFactor.Split([',']);
+            if (chaffStrings.Length == 0)
+            {
+                _radarChaffNotchVFac = 1.0f;
+                _radarChaffNotchRFac = 1.0f;
+                return;
+            }
+
+            if (float.TryParse(chaffStrings[0], out float temp))
+            {
+                _radarChaffNotchVFac = temp;
+            }
+            else
+            {
+                _radarChaffNotchVFac = 1.0f;
+            }
+
+            if (chaffStrings.Length > 1 && float.TryParse(chaffStrings[1], out temp))
+            {
+                _radarChaffNotchRFac = temp;
+            }
+            else
+            {
+                _radarChaffNotchRFac = _radarChaffNotchVFac;
+            }
+        }
+
+        void SetRadarLimits()
         {
             ParseRadarLimits(directionalFieldOfView, out radarAzOffset, out radarAzFOV, out radarAzLimits, out radarMinMaxAzLimits);
             // Retain old radar characteristics, if omnidirectional the radar should be able to see targets at +/- 90, otherwise
@@ -539,7 +575,7 @@ namespace BDArmory.Radar
             }
         }
 
-        public void ParseRadarLimits(in string radarLimitString, out float radarOffset, out float radarFOV, out float[] radarLimits, out float[] radarMinMaxLimits, bool elevationLimits = false)
+        void ParseRadarLimits(in string radarLimitString, out float radarOffset, out float radarFOV, out float[] radarLimits, out float[] radarMinMaxLimits, bool elevationLimits = false)
         {
             // If we're parsing elevation limits
             if (elevationLimits)
@@ -635,6 +671,7 @@ namespace BDArmory.Radar
                 linkedToVessels = new List<VesselRadarData>();
 
                 SetRadarLimits();
+                SetNotchChaffFac();
 
                 signalPersistTime = omnidirectional
                     ? 360 / (scanRotationSpeed + 5)

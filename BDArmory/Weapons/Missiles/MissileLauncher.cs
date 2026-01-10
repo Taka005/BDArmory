@@ -54,6 +54,9 @@ namespace BDArmory.Weapons.Missiles
         [KSPField]
         public string antiradTargetTypes = "0,5";
 
+        [KSPField]
+        public string chaffNotchEffectivity = "1.0";
+
         public MissileTurret missileTurret = null;
         public BDRotaryRail rotaryRail = null;
         public BDDeployableRail deployableRail = null;
@@ -914,6 +917,7 @@ namespace BDArmory.Weapons.Missiles
             ParseModes();
             InitializeEngagementRange(minStaticLaunchRange, maxStaticLaunchRange);
             uncagedLock = (allAspect) ? allAspect : uncagedLock;
+            SetNotchChaffFac();
             guidanceFailureRatePerFrame = (guidanceFailureRate >= 1) ? 1f : 1f - Mathf.Exp(Mathf.Log(1f - guidanceFailureRate) * Time.fixedDeltaTime); // Convert from per-second failure rate to per-frame failure rate
             invManeuvergLimit = 1f / maneuvergLimit;
             // MMLs **shouldn't** be checking the base config, hence checkBaseConfig being a thing
@@ -2597,7 +2601,7 @@ namespace BDArmory.Weapons.Missiles
                         {
                             radarTarget = scannedTargets[lockIndex];
                             TargetAcquired = true;
-                            TargetPosition = radarTarget.predictedPositionWithChaffFactor(chaffEffectivity);
+                            TargetPosition = radarTarget.predictedPositionWithChaffFactor(chaffEffectivity, chaffNotchVFac, chaffNotchRFac);
                             TargetVelocity = radarTarget.velocity;
                             TargetAcceleration = radarTarget.acceleration;
                             targetGPSCoords = VectorUtils.WorldPositionToGeoCoords(TargetPosition, vessel.mainBody);
@@ -4116,7 +4120,7 @@ namespace BDArmory.Weapons.Missiles
             part.rb.AddTorque(AoA * simpleStableTorque * dragMagnitude * torqueAxis);
         }
 
-        public void ParseAntiRadTargetTypes()
+        void ParseAntiRadTargetTypes()
         {
             // Start with 0
             antiradTargets = 0;
@@ -4297,6 +4301,35 @@ namespace BDArmory.Weapons.Missiles
             }
 
             return floatArray;
+        }
+
+        void SetNotchChaffFac()
+        {
+            string[] chaffStrings = chaffNotchEffectivity.Split([',']);
+            if (chaffStrings.Length == 0)
+            {
+                chaffNotchVFac = 1.0f;
+                chaffNotchRFac = 1.0f;
+                return;
+            }
+
+            if (float.TryParse(chaffStrings[0], out float temp))
+            {
+                chaffNotchVFac = temp;
+            }
+            else
+            {
+                chaffNotchVFac = 1.0f;
+            }
+
+            if (chaffStrings.Length > 1 && float.TryParse(chaffStrings[1], out temp))
+            {
+                chaffNotchRFac = temp;
+            }
+            else
+            {
+                chaffNotchRFac = chaffNotchVFac;
+            }
         }
 
         private string GetBrevityCode()

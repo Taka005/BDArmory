@@ -273,20 +273,22 @@ namespace BDArmory.Radar
                 return (TargetSignatureData.noTarget, false);
         }
 
-        // The function previously did this, no clue why, but I've split off this behavior
-        // into its own function
-        public TargetSignatureData detectedRadarTargetGetRadar(Vessel desiredTarget, MissileFire mf) //passive sonar torpedoes, but could also be useful for LOAL missiles fired at detected but not locked targets, etc.
+        // Used for INS stuff
+        public (TargetSignatureData, bool) detectedRadarTargetGetRadar(Vessel desiredTarget, MissileFire mf) //passive sonar torpedoes, but could also be useful for LOAL missiles fired at detected but not locked targets, etc.
         {
             int temp = detectedRadarTargetIndex(desiredTarget, mf);
             if (temp >= 0)
             {
                 RadarDisplayData t = displayedTargets[temp];
                 TargetSignatureData tempData = t.targetData;
-                tempData.lockedByRadar = t.detectedByRadar;
-                return tempData;
+                if (!t.locked)
+                {
+                    tempData.lockedByRadar = t.detectedByRadar;
+                }
+                return (tempData, t.locked);
             }
             else
-                return TargetSignatureData.noTarget;
+                return (TargetSignatureData.noTarget, false);
         }
 
         public TargetSignatureData detectedRadarTarget() //passive sonar torpedoes, but could also be useful for LOAL missiles fired at detected but not locked targets ,etc.
@@ -767,7 +769,8 @@ namespace BDArmory.Radar
             }
             weaponManager.slavingTurrets = true;
             TargetSignatureData lockedTarget = lockedTargetData.targetData;
-            weaponManager.slavedPosition = lockedTarget.predictedPositionWithChaffFactor(lockedTargetData.detectedByRadar.radarChaffClutterFactor);
+            ModuleRadar detectedRadar = lockedTargetData.detectedByRadar;
+            weaponManager.slavedPosition = lockedTarget.predictedPositionWithChaffFactor(detectedRadar.radarChaffClutterFactor, detectedRadar._radarChaffNotchVFac, detectedRadar._radarChaffNotchRFac);
             weaponManager.slavedVelocity = lockedTarget.velocity;
             weaponManager.slavedAcceleration = lockedTarget.acceleration;
             weaponManager.slavedTarget = lockedTarget;

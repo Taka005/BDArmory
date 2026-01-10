@@ -679,6 +679,8 @@ namespace BDArmory.Weapons.Missiles
             }
             activeRadarRange = ActiveRadarRange;
             chaffEffectivity = ChaffEffectivity;
+            chaffNotchVFac = ChaffEffectivity;
+            chaffNotchRFac = ChaffEffectivity;
             missileCMRange = MissileCMRange;
             missileCMInterval = MissileCMInterval;
             hasIFF = HasIFF;

@@ -1437,7 +1437,7 @@ namespace BDArmory.Radar
 
         private static float CalculateRadarNotchingModifier(Vector3 position, Vector3 vesselposition, Vector3 vesselsrfvel, FloatCurve radarRangeGate, FloatCurve radarVelocityGate,
             float radarMaxVelocityGate, float radarMaxRangeGate, float radarMinVelocityGate, float radarMinRangeGate,
-            float terrainRange, float targetRange, float targetAlt, out float notchMod)
+            float terrainRange, float targetRange, float targetAlt, out float notchVMod, out float notchRMod)
         {
             terrainRange -= targetRange;
 
@@ -1445,7 +1445,8 @@ namespace BDArmory.Radar
 
             //terrainRange *= 0.001f; // m to km
 
-            notchMod = 0f;
+            notchVMod = 0f;
+            notchRMod = 0f;
 
             if (radarRangeGate.minTime == float.MaxValue || radarVelocityGate.minTime == float.MaxValue)
                 return 1f;
@@ -1461,22 +1462,22 @@ namespace BDArmory.Radar
 
             inLineSpeed = Mathf.Max(inLineSpeed, radarMinVelocityGate);
 
-            notchMod = (1f - Mathf.Clamp01(radarVelocityGate.Evaluate(inLineSpeed))) * BDArmorySettings.RADAR_NOTCHING_FACTOR;
+            notchVMod = (1f - Mathf.Clamp01(radarVelocityGate.Evaluate(inLineSpeed))) * BDArmorySettings.RADAR_NOTCHING_FACTOR;
 
             if (radarMaxRangeGate < terrainRange)
             {
-                if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils]: Current notch multiplier: 1. Current notchMod: {notchMod}.");
+                if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils]: Current notch multiplier: 1. Current notchVMod: {notchVMod}, notchRMod: 0.");
                 return 1f;
             }
 
             terrainRange = Mathf.Max(terrainRange, radarMinRangeGate);
 
-            float multiplier = notchMod * Mathf.Clamp01(radarRangeGate.Evaluate(terrainRange));
-            notchMod += multiplier;
+            float multiplier = notchVMod * Mathf.Clamp01(radarRangeGate.Evaluate(terrainRange));
+            notchRMod = multiplier;
 
             multiplier = 1f - multiplier;
 
-            if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils]: Current notch multiplier: {multiplier}. Current notchMod: {notchMod}.");
+            if (BDArmorySettings.DEBUG_RADAR) Debug.Log($"[BDArmory.RadarUtils]: Current notch multiplier: {multiplier}. Current notchVMod: {notchVMod}, notchRMod: {notchRMod}.");
 
             return multiplier;
         }
@@ -1500,10 +1501,11 @@ namespace BDArmory.Radar
         private static bool RadarTerrainNotchingCheck(bool isNotSonar, Vector3 position, FloatCurve radarRangeGate, FloatCurve radarVelocityGate,
             float radarMaxVelocityGate, float radarMaxRangeGate, float radarMinVelocityGate, float radarMinRangeGate,
             Vessel radarVessel, Vessel targetVessel, Vector3 targetPosition, float distance, out float terrainR, out float terrainAngle,
-            out float notchMultiplier, out float notchMod, bool isMissile = false)
+            out float notchMultiplier, out float notchVMod, out float notchRMod, bool isMissile = false)
         {
             // NOTE: Distance here HAS to be given in km for radars and m for missiles, why? because radar FloatCurves are in km and missile FloatCurves are in m
-            notchMod = 0f;
+            notchVMod = 0f;
+            notchRMod = 0f;
             notchMultiplier = 1f;
             terrainR = 0f;
             terrainAngle = 90f;
@@ -1519,7 +1521,7 @@ namespace BDArmory.Radar
                         return false;
                     notchMultiplier = CalculateRadarNotchingModifier(position, targetVessel.CoM, targetVessel.srf_velocity,
                         radarRangeGate, radarVelocityGate, radarMaxVelocityGate, radarMaxRangeGate, radarMinVelocityGate, radarMinRangeGate,
-                         terrainR, distance, (float)targetVessel.radarAltitude, out notchMod);
+                         terrainR, distance, (float)targetVessel.radarAltitude, out notchVMod, out notchRMod);
                 }
                 else
                 {
@@ -1586,13 +1588,14 @@ namespace BDArmory.Radar
                     {
                         float terrainR = 0f, terrainAngle = 0f;
                         float notchMultiplier = 1f;
-                        float notchMod = 0f;
+                        float notchVMod = 0f;
+                        float notchRMod = 0f;
 
                         // evaluate range
 
                         if (!RadarTerrainNotchingCheck(radar.sonarMode == ModuleRadar.SonarModes.None, ray.origin, radar.radarRangeGate, radar.radarVelocityGate,
                             radar.radarMaxVelocityGate, radar.radarMaxRangeGate, radar.radarMinVelocityGate, radar.radarMinRangeGate, radar.vessel,
-                            loadedvessels.Current, loadedvessels.Current.CoM, distance, out terrainR, out terrainAngle, out notchMultiplier, out notchMod))
+                            loadedvessels.Current, loadedvessels.Current.CoM, distance, out terrainR, out terrainAngle, out notchMultiplier, out notchVMod, out notchRMod))
                             continue;
 
                         // get vessel's radar signature
@@ -1611,7 +1614,9 @@ namespace BDArmory.Radar
                             signature *= GetStandoffJammingModifier(radar.vessel, radar.WeaponManager.Team, ray.origin, loadedvessels.Current, signature);
                             if (radar.sonarMode == ModuleRadar.SonarModes.Active && radar.vessel.Splashed && loadedvessels.Current.Splashed) signature *= GetVesselBubbleFactor(ray.origin, loadedvessels.Current);
                             if (radar.radarCanNotch)
+                            {
                                 signature *= notchMultiplier;
+                            }
                         }
                         else
                         {
@@ -1714,11 +1719,12 @@ namespace BDArmory.Radar
                         float terrainR = float.MaxValue;
                         float terrainAngle = 90f;
                         float notchMultiplier = 1f;
-                        float notchMod = 0f;
+                        float notchVMod = 0f;
+                        float notchRMod = 0f;
 
                         if (!RadarTerrainNotchingCheck(missile.GetWeaponClass() != WeaponClasses.SLW, ray.origin, missile.activeRadarRangeGate, missile.activeRadarVelocityGate,
                             missile.activeRadarVelocityFilter, missile.activeRadarRangeFilter, missile.activeRadarVelocityGate.minTime, missile.activeRadarRangeGate.minTime, missile.vessel,
-                            loadedvessels.Current, loadedvessels.Current.CoM, distance, out terrainR, out terrainAngle, out notchMultiplier, out notchMod, true))
+                            loadedvessels.Current, loadedvessels.Current.CoM, distance, out terrainR, out terrainAngle, out notchMultiplier, out notchVMod, out notchRMod, true))
                             continue;
 
                         // get vessel's radar signature
@@ -1740,7 +1746,9 @@ namespace BDArmory.Radar
                         float baseSignature = signature;
                         // Does notching affect the notch mult?
                         if (missile.activeRadarCanNotch)
+                        {
                             signature *= notchMultiplier;
+                        }
 
                         // check SCR if we're checking notching, are not a torpedo, the target isn't splashed and the radar is active
                         // technically the notchMultiplier < 1f condition should account for the rest
@@ -1768,7 +1776,7 @@ namespace BDArmory.Radar
 
                                 if (dataIndex < dataArray.Length)
                                 {
-                                    dataArray[dataIndex] = new TargetSignatureData(loadedvessels.Current, signature, _notchMod: notchMod, _range: distance);
+                                    dataArray[dataIndex] = new TargetSignatureData(loadedvessels.Current, signature, _notchVMod: notchVMod, _notchRMod: notchRMod, _range: distance);
                                     dataIndex++;
                                     hasLocked = true;
                                 }
@@ -1869,13 +1877,14 @@ namespace BDArmory.Radar
                     {
                         float terrainR = 0f, terrainAngle = 0f;
                         float notchMultiplier = 1f;
-                        float notchMod = 0f;
+                        float notchVMod = 0f;
+                        float notchRMod = 0f;
 
                         Vector3 directionToTarget = vectorToTarget / distance;
                         
                         if (!RadarTerrainNotchingCheck(radar.sonarMode == ModuleRadar.SonarModes.None, position, radar.radarRangeGate, radar.radarVelocityGate,
                             radar.radarMaxVelocityGate, radar.radarMaxRangeGate, radar.radarMinVelocityGate, radar.radarMinRangeGate, radar.vessel,
-                            loadedvessels.Current, loadedvessels.Current.CoM, distance, out terrainR, out terrainAngle, out notchMultiplier, out notchMod))
+                            loadedvessels.Current, loadedvessels.Current.CoM, distance, out terrainR, out terrainAngle, out notchMultiplier, out notchVMod, out notchRMod))
                             continue;
 
 
@@ -1936,7 +1945,7 @@ namespace BDArmory.Radar
                                         Array.Resize(ref dataArray, BDATargetManager.LoadedVessels.Count);
                                     }
 
-                                    dataArray[dataIndex] = new TargetSignatureData(loadedvessels.Current, signature, _range: 1000f * distance);
+                                    dataArray[dataIndex] = new TargetSignatureData(loadedvessels.Current, signature, _notchVMod: notchVMod, _notchRMod: notchRMod, _range: 1000f * distance);
                                     dataArray[dataIndex].lockedByRadar = radar;
                                     dataIndex++;
                                     hasLocked = true;
@@ -2049,14 +2058,15 @@ namespace BDArmory.Radar
                 //TODO: Performance! better if we could switch to sqrMagnitude...
 
                 float notchMultiplier = 1f;
-                float notchMod = 0f;
+                float notchVMod = 0f;
+                float notchRMod = 0f;
 
                 float terrainR = float.MaxValue;
                 float terrainAngle = 90f;
 
                 if (!RadarTerrainNotchingCheck(radar.sonarMode == ModuleRadar.SonarModes.None, ray.origin, radar.radarRangeGate, radar.radarVelocityGate,
                             radar.radarMaxVelocityGate, radar.radarMaxRangeGate, radar.radarMinVelocityGate, radar.radarMinRangeGate, radar.vessel,
-                            lockedVessel, lockedVessel.CoM, distance, out terrainR, out terrainAngle, out notchMultiplier, out notchMod))
+                            lockedVessel, lockedVessel.CoM, distance, out terrainR, out terrainAngle, out notchMultiplier, out notchVMod, out notchRMod))
                     return false;
 
                 // get vessel's radar signature
@@ -2086,7 +2096,7 @@ namespace BDArmory.Radar
                     if ((signature >= minTrackSig) && (RadarCanDetect(radar, signature, distance)))
                     {
                         // can be tracked
-                        radar.ReceiveContactData(new TargetSignatureData(lockedVessel, signature, _notchMod: notchMod, _range: 1000f * distance), locked);
+                        radar.ReceiveContactData(new TargetSignatureData(lockedVessel, signature, _notchVMod: notchVMod, _notchRMod: notchRMod, _range: 1000f * distance), locked);
                     }
                     else
                     {
@@ -2097,7 +2107,7 @@ namespace BDArmory.Radar
                             if (baseSignature < minTrackSig || !RadarCanDetect(radar, baseSignature, distance) || (GetRadarNotchingSCR(baseSignature, fov, distance, terrainR, terrainAngle) < radar.radarMinTrackSCR))
                                 return false;
 
-                            radar.ReceiveContactData(new TargetSignatureData(lockedVessel, signature, _notchMod: notchMod, _range: 1000f * distance), locked);
+                            radar.ReceiveContactData(new TargetSignatureData(lockedVessel, signature, _notchVMod: notchVMod, _notchRMod: notchRMod, _range: 1000f * distance), locked);
                         }
                         else
                             return false;

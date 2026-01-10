@@ -154,6 +154,12 @@ namespace BDArmory.Weapons.Missiles
         [KSPField]
         public float chaffEffectivity = 1f;                            // Modifies how the missile targeting is affected by chaff, 1 is fully affected (normal behavior), lower values mean less affected (0 is ignores chaff), higher values means more affected
 
+        //[KSPField]
+        //public float chaffNotchEffectivity = 1f;                       // Modifies how the missile targeting is affected by chaff while notching, 1 is fully affected (normal behavior), lower values mean less affected (0 is ignores chaff), higher values means more affected
+
+        protected float chaffNotchVFac = 1f;
+        protected float chaffNotchRFac = 1f;
+
         [KSPField]
         public float flareEffectivity = 1f;                            // Modifies how the missile targeting is affected by flares, 1 is fully affected (normal behavior), lower values mean less affected (0 is ignores flares), higher values means more affected
 
@@ -1023,7 +1029,10 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                             //    TargetPosition = radarTarget.predictedPosition;
                             //}
                             //else
-                            TargetPosition = radarTarget.predictedPositionWithChaffFactor(!ActiveRadar ? vrd.lockedTargetData.detectedByRadar.radarChaffClutterFactor : chaffEffectivity);
+                            ModuleRadar lockingRadar = t.lockedByRadar;
+                            TargetPosition = radarTarget.predictedPositionWithChaffFactor(!ActiveRadar ? lockingRadar.radarChaffClutterFactor * chaffEffectivity : chaffEffectivity,
+                                                                                          !ActiveRadar ? lockingRadar._radarChaffNotchVFac * chaffNotchVFac : chaffNotchVFac,
+                                                                                          !ActiveRadar ? lockingRadar._radarChaffNotchRFac * chaffNotchRFac : chaffNotchRFac);
                             TargetVelocity = radarTarget.velocity;
                             TargetAcceleration = radarTarget.acceleration;
                             targetVessel = t.targetInfo; //reset targetvessel in case of canRelock getting a new target
@@ -1053,7 +1062,7 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                                 //if (weaponClass == WeaponClasses.SLW)
                                 //    TargetPosition = radarTarget.predictedPosition;
                                 //else
-                                TargetPosition = radarTarget.predictedPositionWithChaffFactor(chaffEffectivity);
+                                TargetPosition = radarTarget.predictedPositionWithChaffFactor(chaffEffectivity, chaffNotchVFac, chaffNotchRFac);
                                 TargetVelocity = radarTarget.velocity;
                                 TargetAcceleration = Vector3.zero;
                                 TargetAcquired = true;
@@ -1121,7 +1130,7 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                                         //if (weaponClass == WeaponClasses.SLW)
                                         //    TargetPosition = radarTarget.predictedPosition + (radarTarget.velocity * Time.fixedDeltaTime);
                                         //else
-                                        TargetPosition = radarTarget.predictedPositionWithChaffFactor(chaffEffectivity);
+                                        TargetPosition = radarTarget.predictedPositionWithChaffFactor(chaffEffectivity, chaffNotchVFac, chaffNotchRFac);
 
                                         TargetVelocity = radarTarget.velocity;
                                         TargetAcceleration = radarTarget.acceleration;
@@ -1170,7 +1179,7 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                             }
                             TargetAcquired = true;
 
-                            TargetPosition = radarTarget.predictedPositionWithChaffFactor(chaffEffectivity);
+                            TargetPosition = radarTarget.predictedPositionWithChaffFactor(chaffEffectivity, chaffNotchVFac, chaffNotchRFac);
                             TargetVelocity = radarTarget.velocity;
                             TargetAcceleration = Vector3.zero;
                             ActiveRadar = false;
@@ -1281,7 +1290,7 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                     //if (weaponClass == WeaponClasses.SLW)
                     //    TargetPosition = radarTarget.predictedPosition + (radarTarget.velocity * Time.fixedDeltaTime);
                     //else
-                    TargetPosition = radarTarget.predictedPositionWithChaffFactor(chaffEffectivity);
+                    TargetPosition = radarTarget.predictedPositionWithChaffFactor(chaffEffectivity, chaffNotchVFac, chaffNotchRFac);
                     TargetVelocity = radarTarget.velocity;
                     TargetAcceleration = radarTarget.acceleration;
 
@@ -1432,7 +1441,7 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
         {
             Vector3 TargetCoords_;
             Vector3 TargetLead;
-            bool detectedByRadar = false;
+            ModuleRadar detectedByRadar = null;
             bool activeDatalink = false;
             if (!setInertialTarget)
             {
@@ -1466,11 +1475,17 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                     if (FiredByWM != null && FiredByWM.vesselRadarData)
                     {
                         if (FiredByWM._radarsEnabled || weaponClass == WeaponClasses.SLW && FiredByWM._sonarsEnabled)
-                            (INStarget, radarLocked) = FiredByWM.vesselRadarData.detectedRadarTargetLock(targetVessel.Vessel, FiredByWM); //is the target tracked by radar or ISRT?
+                        {
+                            (INStarget, radarLocked) = FiredByWM.vesselRadarData.detectedRadarTargetGetRadar(targetVessel.Vessel, FiredByWM); //is the target tracked by radar or ISRT?
+                        }
                         if (INStarget.exists)
-                            detectedByRadar = true;
+                        {
+                            detectedByRadar = INStarget.lockedByRadar;
+                        }
                         else
+                        {
                             if (FiredByWM._irstsEnabled) INStarget = FiredByWM.vesselRadarData.activeIRTarget(targetVessel.Vessel, FiredByWM, true);
+                        }
                     }
                     if (INStarget.exists)
                     {
@@ -1485,7 +1500,7 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                                 TargetINSCoords = VectorUtils.WorldPositionToGeoCoords(targetVessel.Vessel.CoM, targetVessel.Vessel.mainBody);
                                 TimeOfLastINS = TimeIndex;
                                 TargetLead = MissileGuidance.GetAirToAirFireSolution(this, targetVessel.Vessel, out INStimetogo);
-                                if (detectedByRadar) TargetLead += (INStarget.predictedPositionWithChaffFactor(chaffEffectivity) - INStarget.position);
+                                if (detectedByRadar) TargetLead += (INStarget.predictedPositionWithChaffFactor(detectedByRadar.radarChaffClutterFactor, detectedByRadar._radarChaffNotchVFac, detectedByRadar._radarChaffNotchRFac) - INStarget.position);
                                 TargetCoords_ = VectorUtils.WorldPositionToGeoCoords(TargetLead, targetVessel.Vessel.mainBody);
                                 targetGPSCoords = TargetCoords_;
                             }
@@ -1498,7 +1513,7 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                                     TargetINSCoords = VectorUtils.WorldPositionToGeoCoords(targetVessel.Vessel.CoM, targetVessel.Vessel.mainBody);
                                     TimeOfLastINS = TimeIndex;
                                     TargetLead = MissileGuidance.GetAirToAirFireSolution(this, targetVessel.Vessel, out INStimetogo);
-                                    if (detectedByRadar) TargetLead += (INStarget.predictedPositionWithChaffFactor(chaffEffectivity) - INStarget.position);
+                                    if (detectedByRadar) TargetLead += (INStarget.predictedPositionWithChaffFactor(detectedByRadar.radarChaffClutterFactor, detectedByRadar._radarChaffNotchVFac, detectedByRadar._radarChaffNotchRFac) - INStarget.position);
                                     TargetCoords_ = VectorUtils.WorldPositionToGeoCoords(TargetLead, targetVessel.Vessel.mainBody);
                                     targetGPSCoords = TargetCoords_;
                                 }
