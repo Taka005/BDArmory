@@ -653,8 +653,9 @@ namespace BDArmory.WeaponMounts
             var wait = new WaitForFixedUpdate();
             yield return wait;
             Ray ray = new Ray(ml.transform.position, ml.MissileReferenceTransform.forward);
-            Vector3 localOrigin = turret.pitchTransform.InverseTransformPoint(ray.origin);
-            Vector3 localDirection = turret.pitchTransform.InverseTransformDirection(ray.direction);
+            Transform turretTransform = turret.referenceTransform;
+            Vector3 localOrigin = turretTransform.InverseTransformPoint(ray.origin);
+            Vector3 localDirection = turretTransform.InverseTransformDirection(ray.direction);
             float forwardSpeed = ml.decoupleSpeed;
             while (ml && Vector3.SqrMagnitude(ml.transform.position - ray.origin) < railLength * railLength)
             {
@@ -663,8 +664,8 @@ namespace BDArmory.WeaponMounts
                 float accel = thrust / ml.part.mass;
                 forwardSpeed += accel * Time.fixedDeltaTime;
 
-                ray.origin = turret.pitchTransform.TransformPoint(localOrigin);
-                ray.direction = turret.pitchTransform.TransformDirection(localDirection);
+                ray.origin = turretTransform.TransformPoint(localOrigin);
+                ray.direction = turretTransform.TransformDirection(localDirection);
 
                 Vector3 projPos = Vector3.Project(ml.vessel.transform.position - ray.origin, ray.direction) + ray.origin;
                 Vector3 railVel = part.rb.GetPointVelocity(projPos);
@@ -676,8 +677,8 @@ namespace BDArmory.WeaponMounts
                 //else ml.reloadableRail.SpawnedMissile.vessel.SetWorldVelocity(railVel + (forwardSpeed * ray.direction));
                 yield return wait;
 
-                ray.origin = turret.pitchTransform.TransformPoint(localOrigin);
-                ray.direction = turret.pitchTransform.TransformDirection(localDirection);
+                ray.origin = turretTransform.TransformPoint(localOrigin);
+                ray.direction = turretTransform.TransformDirection(localDirection);
             }
         }
 

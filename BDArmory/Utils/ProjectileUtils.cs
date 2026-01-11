@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 using BDArmory.Competition;
@@ -392,10 +393,10 @@ namespace BDArmory.Utils
             var Armor = hitPart.FindModuleImplementing<HitpointTracker>();
             if (Armor != null)
             {
-                if (!IsArmorPart(hitPart))
-                {
-                    if (Armor.ArmorTypeNum == 1) return; //ArmorType "None"; no armor to block/reduce blast, take full damage
-                }
+                //if (!IsArmorPart(hitPart))
+                //{
+                //    if (Armor.ArmorTypeNum == 1) return; //ArmorType "None"; no armor to block/reduce blast, take full damage
+                //}
                 float Ductility = Armor.Ductility;
                 float hardness = Armor.Hardness;
                 float Strength = Armor.Strength;
@@ -580,7 +581,7 @@ namespace BDArmory.Utils
 
                 float ArmorTolerance = (((Strength * (1 + ductility)) + Density) / 1000f) * (float)hitPart.GetArmorThickness(); //either this or blowthrough factor should probably get reviewed at some point
 
-                ArmorTolerance *= BDArmorySettings.EXP_PEN_RESIST_MULT;
+                ArmorTolerance *= 4f * BDArmorySettings.EXP_PEN_RESIST_MULT;
 
                 float blowthroughFactor = (float)BlastPressure / ArmorTolerance; //as damage to armor might be a bit high. Otoh, how much damage is to be expected from, say, a 5" naval HE shell vs 50mm of armor?
                 //have this scaled by blowthrough factor? afterall a very powerful blast right next to the plate is more likely to punch a localzied hole rather than generally push the whole plate, no?
@@ -865,22 +866,24 @@ namespace BDArmory.Utils
                 return newCaliber;
             }
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float CalculateBulletLength(float bulletMass, float caliber, bool sabot = false)
+        {
+            return ((bulletMass * 1000.0f * 400.0f) / ((caliber * caliber * Mathf.PI) * (sabot ? 19.0f : 11.34f)) + 1.0f) * 10.0f;
+        }
+
         public static bool CalculateBulletStatus(float projMass, float newCaliber, bool sabot = false)
         {
             //does the bullet suvive its impact?
             //calculate bullet lengh, in mm
-            float density = 11.34f;
-            if (sabot)
-            {
-                density = 19.1f;
-            }
-            float bulletLength = ((projMass * 1000) / ((newCaliber * newCaliber * Mathf.PI / 400) * density) + 1) * 10; //srf.Area in mmm2 x density of lead to get mass per 1 cm length of bullet / total mass to get total length,
+            float bulletLength = CalculateBulletLength(projMass, newCaliber, sabot); //srf.Area in mmm2 x density of lead to get mass per 1 cm length of bullet / total mass to get total length,
                                                                                                                         //+ 10 to accound for ogive/mushroom head post-deformation instead of perfect cylinder
             if (newCaliber > (bulletLength * 2)) //has the bullet flattened into a disc, and is no longer a viable penetrator?
             {
                 if (BDArmorySettings.DEBUG_ARMOR)
                 {
-                    Debug.Log("[BDArmory.ProjectileUtils]: Bullet deformed past usable limit");
+                    Debug.Log($"[BDArmory.ProjectileUtils]: Bullet deformed past usable limit! L/D: {bulletLength} / {newCaliber}");
                 }
                 return false;
             }

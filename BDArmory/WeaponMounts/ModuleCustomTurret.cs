@@ -151,7 +151,7 @@ namespace BDArmory.WeaponMounts
 
         void FixedUpdate()
         {
-            if (!HighLogic.LoadedSceneIsFlight) return;
+            if (!HighLogic.LoadedSceneIsFlight || turretID == 0) return;
             var wm = WeaponManager;
             if (wm && wm.CurrentMissile && wm.CurrentMissile.customTurret.Count > 0 && wm.CurrentMissile.customTurret.Contains(this))
             {

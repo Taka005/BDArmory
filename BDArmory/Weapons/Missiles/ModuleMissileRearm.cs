@@ -168,6 +168,11 @@ UI_ProgressBar(affectSymCounterparts = UI_Scene.None, controlEnabled = false, sc
                     if (parts.Current.partConfig == null || parts.Current.partPrefab == null)
                         continue;
                     if (parts.Current.partPrefab.partInfo.name != MissileName) continue;
+                    if (parts.Current.partPrefab.FindModuleImplementing<MissileLauncher>() == null)
+                    {
+                        Debug.LogError($"[BDArmory.ModuleMissileRearm] ERROR: Found part with sharing the name {MissileName} which does not contain a MissileLauncher module!");
+                        continue;
+                    }
                     missilePart = parts.Current;
                     if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.ModuleMissileRearm]: found {missilePart.partPrefab.partInfo.name}");
                     break;
@@ -207,7 +212,14 @@ UI_ProgressBar(affectSymCounterparts = UI_Scene.None, controlEnabled = false, sc
                         Debug.LogError("[BDArmory.ModuleMissileRearm]: Failed to parse maxOffBoresight configNode: " + e.Message);
                     }
                 }
-                MML.subMunitionPath = MML.GetMeshurl((UrlDir.UrlConfig)GameDatabase.Instance.root.GetConfig(missilePart.partPrefab.partInfo.partUrl));
+                UrlDir.UrlConfig partConfigTemp = (UrlDir.UrlConfig)GameDatabase.Instance.root.GetConfig(missilePart.partPrefab.partInfo.partUrl);
+                if (partConfigTemp == null)
+                {
+                    partConfigTemp = missilePart.partPrefab.partInfo.partUrlConfig;
+                    Debug.LogWarning($"[BDArmory.ModuleMissileRearm]: GetConfig from partURL {missilePart.partPrefab.partInfo.partUrl} failed! Using missilePart.partPrefab.partInfo.partUrlConfig. Potentially multiple parts in one file!");
+                }
+                    
+                MML.subMunitionPath = MML.GetMeshurl(partConfigTemp);
             }
         }
 

@@ -577,7 +577,7 @@ namespace BDArmory.Weapons.Missiles
             MissileState = MissileStates.Cruise;
 
             _missileIgnited = true;
-            RadarWarningReceiver.WarnMissileLaunch(MissileReferenceTransform.position, GetForwardTransform(), TargetingMode == TargetingModes.Radar);
+            RadarWarningReceiver.WarnMissileLaunch(MissileReferenceTransform.position, GetForwardTransform(), TargetingMode == TargetingModes.Radar, vessel);
         }
 
         private bool ShouldExecuteNextStage()
@@ -648,6 +648,8 @@ namespace BDArmory.Weapons.Missiles
             part.force_activate();
             RefreshGuidanceMode();
 
+            antiradTargets = (1 << 1 | 1 << 6);
+
             UpdateTargetingMode((TargetingModes)Enum.Parse(typeof(TargetingModes), _targetingLabel));
 
             _targetDecoupler = FindFirstDecoupler(part.parent, null);
@@ -677,6 +679,8 @@ namespace BDArmory.Weapons.Missiles
             }
             activeRadarRange = ActiveRadarRange;
             chaffEffectivity = ChaffEffectivity;
+            chaffNotchVFac = ChaffEffectivity;
+            chaffNotchRFac = ChaffEffectivity;
             missileCMRange = MissileCMRange;
             missileCMInterval = MissileCMInterval;
             hasIFF = HasIFF;

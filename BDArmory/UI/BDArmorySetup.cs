@@ -247,6 +247,7 @@ namespace BDArmory.UI
 
         public static string textureDir = "BDArmory/Textures/";
 
+        bool cursorOnGUI = false;
         bool drawCursor;
         Texture2D cursorTexture = GameDatabase.Instance.GetTexture(textureDir + "aimer", false);
         bool temporarilyShowMouse = false;
@@ -318,12 +319,16 @@ namespace BDArmory.UI
             get { return lgct ? lgct : lgct = GameDatabase.Instance.GetTexture(textureDir + "greenCircle3", false); }
         }
 
+        public const float largeGreenCircleScale = 256f / 230f; // Circle is 230 pixels in diameter vs. 256 texture size
+
         private Texture2D gct;
 
         public Texture2D greenCircleTexture
         {
             get { return gct ? gct : gct = GameDatabase.Instance.GetTexture(textureDir + "greenCircle2", false); }
         }
+
+        public const float greenCircleScale = 128f / 64f; // Circle is 64 pixels in diameter vs. 128 texture size
 
         private Texture2D gpct;
 
@@ -726,6 +731,7 @@ namespace BDArmory.UI
                 if (BDInputUtils.GetKeyDown(BDInputSettingsFields.DEBUG_CLEAR_DEV_CONSOLE)) Debug.ClearDeveloperConsole();
 #endif
                 if (temporarilyShowMouse != (temporarilyShowMouse = BDInputUtils.GetKey(BDInputSettingsFields.TEMPORARILY_SHOW_MOUSE))) UpdateCursorState();
+                if (cursorOnGUI && !GUIUtils.CheckMouseIsOnGui()) UpdateCursorState();
             }
             else if (HighLogic.LoadedSceneIsEditor)
             {
@@ -793,7 +799,8 @@ namespace BDArmory.UI
             if (HighLogic.LoadedSceneIsFlight)
             {
                 drawCursor = false;
-                if (!MapView.MapIsEnabled && !GUIUtils.CheckMouseIsOnGui() && !PauseMenu.isOpen)
+                cursorOnGUI = GUIUtils.CheckMouseIsOnGui();
+                if (!MapView.MapIsEnabled && !cursorOnGUI && !PauseMenu.isOpen)
                 {
                     if (weaponManager.selectedWeapon != null && weaponManager.weaponIndex > 0 &&
                         !weaponManager.guardMode)
@@ -817,6 +824,12 @@ namespace BDArmory.UI
                     {
                         Cursor.visible = false;
                         drawCursor = false;
+                        return;
+                    }
+
+                    if (!weaponManager.guardMode && weaponManager.isHMDEnabled)
+                    {
+                        Cursor.visible = false;
                         return;
                     }
                 }
@@ -1914,6 +1927,19 @@ namespace BDArmory.UI
                             OnGUIWM.DynamicRadarOverride = !OnGUIWM.DynamicRadarOverride;
                         }
                         moduleLines += 1.1f;
+                    }
+
+                    if (OnGUIWM.hasHMD)
+                    {
+                        numberOfModules++;
+                        bool isEnabled = OnGUIWM.isHMDEnabled;
+                        string label = StringUtils.Localize("#LOC_BDArmory_WMWindow_HMD");
+                        Rect HMDRect = new Rect(leftIndent, +(moduleLines * entryHeight), columnWidth - 2 * leftIndent, entryHeight);
+                        if (GUI.Button(HMDRect, label, isEnabled ? centerLabelOrange : centerLabel))
+                        {
+                            OnGUIWM.ToggleHMD();
+                        }
+                        moduleLines++;
                     }
 
                     //RWR
