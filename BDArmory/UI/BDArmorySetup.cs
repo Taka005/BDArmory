@@ -1929,7 +1929,7 @@ namespace BDArmory.UI
                         moduleLines += 1.1f;
                     }
 
-                    if (OnGUIWM.hasHMD)
+                    if (OnGUIWM.HMD && OnGUIWM.hasHMD)
                     {
                         numberOfModules++;
                         bool isEnabled = OnGUIWM.isHMDEnabled;
