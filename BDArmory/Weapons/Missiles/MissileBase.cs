@@ -866,10 +866,14 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                 //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[MissileBase] offboresightAngle {offBoresightAngle > maxOffBoresight}; lockFailtimer: {lockFailTimer}; heatTarget? {heatTarget.exists}; predictedheattaret? {predictedHeatTarget.exists}; heatTarget vessel {(heatTarget.exists && heatTarget.vessel != null ? heatTarget.vessel.name : "null")}");
                 // Update heat target
                 if (activeRadarRange < 0)
+                {
                     heatTarget = BDATargetManager.GetAcousticTarget(SourceVessel, vessel, lookRay, predictedHeatTarget, lockedSensorFOV * 0.5f, heatThreshold, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity,
                         FiredByWM, targetVessel, IFF: hasIFF);
+                }
                 else
+                {
                     heatTarget = BDATargetManager.GetHeatTarget(SourceVessel, vessel, lookRay, predictedHeatTarget, lockedSensorFOV * 0.5f, heatThreshold, frontAspectHeatModifier, uncagedLock, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity, FiredByWM, targetVessel, IFF: hasIFF);
+                }
 
                 // heatTarget.vessel == null should account for flares and decoys, but out of an abundance of caution
                 // I've added a .isDecoy flag to TargetSignatureData, might be useful for other purposes too
@@ -888,6 +892,9 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                 }
                 else
                 {
+                    TargetPosition = predictedHeatTarget.position;
+                    TargetVelocity = predictedHeatTarget.velocity;
+                    TargetAcceleration = Vector3.zero;
                     lockFailTimer += Time.fixedDeltaTime;
                 }
 

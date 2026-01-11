@@ -6928,7 +6928,10 @@ namespace BDArmory.Control
                                         {
                                             // Note this doesn't consider flares...
                                             if (targetHeatSignature < 0)
-                                                (targetHeatSignature, Part tempPart) = BDATargetManager.GetVesselHeatSignature(targetVessel, targetDir * 50f + vessel.CoM);
+                                            { 
+                                                targetHeatSignature = BDATargetManager.GetVesselHeatTarget(targetVessel, targetDir * 50f + vessel.CoM, distance * distance);
+                                            }
+                                            
                                             if (targetHeatSignature * ((BDArmorySettings.ASPECTED_IR_SEEKERS && Vector3.Dot(targetVessel.vesselTransform.up, mlauncher.GetForwardTransform()) > 0.25f) ? mlauncher.frontAspectHeatModifier : 1) < heatThresh)
                                                 candidateTDPS *= 0.0001f; //Heatseeker, but IR sig is below missile threshold, skip to something else unless nothing else available
                                             //candidateTDPS *= 0.0001f; //Heatseeker, but IR sig is below missile threshold, skip to something else unless nothing else available
@@ -7540,6 +7543,7 @@ namespace BDArmory.Control
                                         if (srfSpeed > 1) //prioritize cluster bombs for moving targets
                                         {
                                             candidateYield *= (candidateCluster * 2);
+                                            if (targetWeaponPriority < candidatePriority) //use priority bomb
                                             if (targetWeaponPriority < candidatePriority) //use priority bomb
                                             {
                                                 targetWeapon = item.Current;
@@ -9866,6 +9870,8 @@ namespace BDArmory.Control
                 //bool logging = BDArmorySettings.DEBUG_MISSILES && BDArmorySettings.DEBUG_AI;
 
                 int skipIRindex = 0;
+                bool skipIRSigCheck = false;
+                float IRHeatSig = 0;
                 bool skipRadarCheck = false;
                 bool radarLocked = false;
                 bool INSDetected = false;
@@ -9914,6 +9920,8 @@ namespace BDArmory.Control
                         inARHRange = false;
                         targetDist = -1f;
                         skipIRindex = 0;
+                        skipIRSigCheck = false;
+                        IRHeatSig = 0;
                         skipRWRCheck = false;
                         // Doesn't need to be reset, as it'll be set within the loop, but in case the function is changed such
                         // that this is required...
@@ -10050,6 +10058,7 @@ namespace BDArmory.Control
                                 if (skipIRindex >= pointDefenseIRMissileCount) continue;
 
                                 for (int i = 0; i < skipIRindex; i++)
+                                {
                                     // If we've already checked the current type of missile and failed...
                                     if (pointDefenseIRMissileSkipArr[i] == currMissile.shortName)
                                     {
@@ -10057,18 +10066,46 @@ namespace BDArmory.Control
                                         //    Debug.Log($"[BDArmory.MissileFire - {(this.vessel != null ? vessel.GetName() : "null")}]: PD skipping IR missile: {currMissile.shortName}");
                                         continue;
                                     }
-                                // Look for a better way to do this...
-                                SearchForHeatTarget(currMissile, PDMslTgts[MissileID]);
-                                // If we haven't gotten a heat target, continue
-                                if (!heatTarget.exists ||
-                                    (heatTarget.vessel != targetVessel) ||
-                                    heatTarget.signalStrength * ((BDArmorySettings.ASPECTED_IR_SEEKERS && Vector3.Dot(targetVessel.vesselTransform.up, currMissile.transform.forward) > 0.25f) ? currMissile.frontAspectHeatModifier : 1) < currMissile.heatThreshold)
+                                }
+
+                                if (!skipIRSigCheck)
+                                {
+                                    IRHeatSig = BDATargetManager.GetVesselHeatTarget(targetVessel, vessel.CoM, targetDist * targetDist);
+                                }
+
+                                if (IRHeatSig * ((BDArmorySettings.ASPECTED_IR_SEEKERS && Vector3.Dot(targetVessel.vesselTransform.up, currMissile.GetForwardTransform()) > 0.25f) ? currMissile.frontAspectHeatModifier : 1) < currMissile.heatThreshold)
                                 {
                                     // Write down the missile type that failed to lock
                                     //if (logging)
                                     //    Debug.Log($"[BDArmory.MissileFire - {(this.vessel != null ? vessel.GetName() : "null")}]: PD IR missile: {currMissile.shortName}, failed to lock. Noted as skipIRindex: {skipIRindex}");
                                     pointDefenseIRMissileSkipArr[skipIRindex] = currMissile.shortName;
                                     skipIRindex++;
+                                    continue;
+                                }
+
+                                // Look for a better way to do this...
+                                SearchForHeatTarget(currMissile, PDMslTgts[MissileID]);
+
+                                // If no heat target -> we're probably out of view
+                                if (!heatTarget.exists)
+                                {
+                                    continue;
+                                }
+
+                                // If we get decoyed -> we're gonna need a better missile, so skip this one
+                                if (heatTarget.isDecoy)
+                                {
+                                    // Write down the missile type that failed to lock
+                                    //if (logging)
+                                    //    Debug.Log($"[BDArmory.MissileFire - {(this.vessel != null ? vessel.GetName() : "null")}]: PD IR missile: {currMissile.shortName}, failed to lock. Noted as skipIRindex: {skipIRindex}");
+                                    pointDefenseIRMissileSkipArr[skipIRindex] = currMissile.shortName;
+                                    skipIRindex++;
+                                    continue;
+                                }
+
+                                // If we haven't gotten a heat target, continue
+                                if (heatTarget.vessel != targetVessel)
+                                {
                                     continue;
                                 }
                             }
