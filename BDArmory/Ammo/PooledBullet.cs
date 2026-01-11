@@ -981,8 +981,9 @@ namespace BDArmory.Bullets
 
             impactSpeed = impactVelocity.magnitude;
 
-            float length = ((bulletMass * 1000.0f * 400.0f) / ((caliber * caliber *
-                    Mathf.PI) * (sabot ? 19.0f : 11.34f)) + 1.0f) * 10.0f;
+            float length = ProjectileUtils.CalculateBulletLength(bulletMass, caliber, sabot);
+            /*             (bulletMass * 1000.0f * 400.0f) / ((caliber * caliber *
+                    Mathf.PI) * (sabot ? 19.0f : 11.34f)) + 1.0f) * 10.0f;*/
 
             // New system to wear down hypervelocity projectiles over distance
             // This is based on an equation that was derived for shaped charges. Now this isn't
@@ -1195,9 +1196,12 @@ namespace BDArmory.Bullets
                     // improve performance somewhat for sabot rounds, which is a good
                     // thing since that new model requires the use of Mathf.Log and
                     // Mathf.Exp.
-                    float bulletEnergy = ProjectileUtils.CalculateProjectileEnergy(bulletMass, impactSpeed);
-                    float armorStrength = ProjectileUtils.CalculateArmorStrength(caliber, thickness, Ductility, Strength, Density, safeTemp, hitPart);
-                    newCaliber = ProjectileUtils.CalculateDeformation(armorStrength, bulletEnergy, caliber, impactSpeed, hardness, Density, HERatio, apBulletMod, sabot);
+                    if (impactSpeed < 1200f) // Impacts > 1200 m/s use erosion mechanics
+                    {
+                        float bulletEnergy = ProjectileUtils.CalculateProjectileEnergy(bulletMass, impactSpeed);
+                        float armorStrength = ProjectileUtils.CalculateArmorStrength(caliber, thickness, Ductility, Strength, Density, safeTemp, hitPart);
+                        newCaliber = ProjectileUtils.CalculateDeformation(armorStrength, bulletEnergy, caliber, impactSpeed, hardness, Density, HERatio, apBulletMod, sabot);
+                    }
 
                     // Also set the params to the non-sabot ones
                     muParam1 = Armor.muParam1;
@@ -1477,7 +1481,7 @@ namespace BDArmory.Bullets
             }
             else
             {
-                Debug.Log("[PooledBUllet].ArmorVars not found; hitPart null");
+                Debug.LogWarning("[BDArmory.PooledBullet].ArmorVars not found; hitPart null!");
             }
             //determine what happens to bullet
             //pen < 1: bullet stopped by armor
@@ -1490,19 +1494,21 @@ namespace BDArmory.Bullets
                     bool viableBullet = ProjectileUtils.CalculateBulletStatus(bulletMass, caliber, sabot);
                     if (!viableBullet)
                     {
+                        if (BDArmorySettings.DEBUG_ARMOR) Debug.Log($"[BDArmory.PooledBullet]: Bullet crushed (L/D < 0.5) during ricochet! Killing bullet WITHOUT detonation!");
                         distanceTraveled += bulletHit.hit.distance;
                         KillBullet();
                         return true;
                     }
                     else
                     {
-                        //rounds w/ contact fuzes are going to detoante anyway
+                        //rounds w/ contact fuzes are going to detonate anyway
                         if (fuzeType == BulletFuzeTypes.Impact || fuzeType == BulletFuzeTypes.Timed)
                         {
                             ExplosiveDetonation(hitPart, bulletHit.hit, bulletRay);
                             ProjectileUtils.CalculateShrapnelDamage(hitPart, bulletHit.hit, caliber, tntMass, 0, sourceVesselName, ExplosionSourceType.Bullet, bulletMass, penetrationFactor); //calc daamge from bullet exploding 
                         }
-                        if (fuzeType == BulletFuzeTypes.Delay)
+                        // Should penetrating fuzes also get triggered here? I guess they should...
+                        if (fuzeType == BulletFuzeTypes.Delay || fuzeType == BulletFuzeTypes.Penetrating)
                         {
                             fuzeTriggered = true;
                         }
@@ -1519,7 +1525,9 @@ namespace BDArmory.Bullets
                         hitPart.rb.AddForceAtPosition(impactVelocity.normalized * accelerationMagnitude, bulletHit.hit.point, ForceMode.Acceleration);
 
                         if (BDArmorySettings.DEBUG_WEAPONS)
+                        {
                             Debug.Log("[BDArmory.PooledBullet]: Force Applied " + Math.Round(accelerationMagnitude, 2) + "| Vessel mass in kgs=" + hitPart.vessel.GetTotalMass() * 1000 + "| bullet effective mass =" + (bulletMass - tntMass));
+                        }
                     }
                     distanceTraveled += bulletHit.hit.distance;
                     hasPenetrated = false;
@@ -1550,7 +1558,7 @@ namespace BDArmory.Bullets
                 // New Post Pen Behavior, this is quite game-ified and not really based heavily on
                 // actual proper equations, however it does try to get the same kind of behavior as
                 // would be found IRL. Primarily, this means high velocity impacts will be mostly
-                // eroding the projectile rather than slowing it down (all studies of this behavior
+                // eroding the projectile rather than slowing it down. All studies of this behavior
                 // show residual velocity only decreases slightly during penetration while the
                 // projectile is getting eroded, then starts decreasing rapidly as the projectile
                 // approaches a L/D ratio of 1. Erosion is drastically increased at 2500 m/s + in
@@ -1880,7 +1888,7 @@ namespace BDArmory.Bullets
 
         public static bool isSabot(float bulletMass, float caliber)
         {
-            return ((((bulletMass * 1000f) / ((caliber * caliber * Mathf.PI / 400f) * 19f) + 1f) * 10f) > caliber * 4f);
+            return ProjectileUtils.CalculateBulletLength(bulletMass, caliber, true) > caliber * 4f;
         }
 
         public static float calcBulletBallisticCoefficient(float caliber, float bulletMass)
@@ -2401,7 +2409,7 @@ namespace BDArmory.Bullets
             //15 degrees should virtually guarantee a ricochet, but 75 degrees should nearly always be fine
             float chance = (((angleFromNormal - 5) / 75) * (hitTolerance / 150)) * 100 / Mathf.Clamp01(impactVel / 600);
             float random = UnityEngine.Random.Range(0f, 100f);
-            if (BDArmorySettings.DEBUG_WEAPONS) Debug.Log("[BDArmory.PooledBullet]: Ricochet chance: " + chance);
+            if (BDArmorySettings.DEBUG_ARMOR) Debug.Log($"[BDArmory.PooledBullet]: Ricochet if {random} < {chance}!");
             if (random < chance)
             {
                 DoRicochet(p, hit, angleFromNormal, fractionOfDistance, period);
