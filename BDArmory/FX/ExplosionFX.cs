@@ -503,7 +503,8 @@ namespace BDArmory.FX
         {
             RaycastHit hit;
             float distance;
-            if (IsInLineOfSight(part, ExplosivePart, hitDist, out hit, out distance, direction, directionOverride))
+            float spallSectionalDensity;
+            if (IsInLineOfSight(part, ExplosivePart, hitDist, out hit, out distance, out spallSectionalDensity, direction, directionOverride))
             {
                 //if (IsAngleAllowed(Direction, hit))
                 //{
@@ -517,6 +518,7 @@ namespace BDArmory.FX
                         TimeToImpact = distance / (shapedChargeRay ? SCVelocity : ExplosionVelocity),
                         HitPoint = hit.point,
                         Hit = hit,
+                        SpallSectionalDensity = spallSectionalDensity,
                         SourceVesselName = sourceVesselName,
                         withinAngleofEffect = angleOverride ? true : IsAngleAllowed(Direction, hit, part),
                         IntermediateParts = LoSIntermediateParts, // A copy is made internally.
@@ -567,7 +569,7 @@ namespace BDArmory.FX
         /// <param name="distance">The distance of the hit</param>
         /// <param name="intermediateParts">Update the LoSIntermediateParts list</param>
         /// <returns></returns>
-        private bool IsInLineOfSight(Part part, Part explosivePart, float startDist, out RaycastHit hit, out float distance, Vector3 direction = default, bool directionOverride = false, bool intermediateParts = true)
+        private bool IsInLineOfSight(Part part, Part explosivePart, float startDist, out RaycastHit hit, out float distance, out float spallSectionalDensity, Vector3 direction = default, bool directionOverride = false, bool intermediateParts = true)
         {
             Ray partRay;
             float range = blastRange > SCRange ? blastRange : SCRange;
@@ -608,6 +610,8 @@ namespace BDArmory.FX
             float factor = 1.0f;
             float nextDist = 0f; // Next expected hit distance
             float prevDens = 0f; // Previous armor density
+            spallSectionalDensity = 0f;
+            float linerInfluencedSpallSectionalDensity = 0f; // This is the amount of spalling that can be modified by spall liners
             for (int i = 0; i < totalHitCount; ++i)
             {
                 hit = sortedLoSHits[i];
@@ -623,84 +627,109 @@ namespace BDArmory.FX
 
                 if (partHit == part)
                 {
+                    // Add liner influenced spall
+                    spallSectionalDensity += linerInfluencedSpallSectionalDensity;
                     return true;
                 }
-                if (partHit != part)
+
+                // ignoring collisions against the explosive, or explosive vessel for certain explosive types (e.g., missile/rocket casing)
+                if (partHit == explosivePart || (explosivePart != null && ignoreCasingFor.Contains(ExplosionSource) && partHit.vessel == explosivePart.vessel))
                 {
-                    // ignoring collisions against the explosive, or explosive vessel for certain explosive types (e.g., missile/rocket casing)
-                    if (partHit == explosivePart || (explosivePart != null && ignoreCasingFor.Contains(ExplosionSource) && partHit.vessel == explosivePart.vessel))
-                    {
-                        continue;
-                    }
-                    if (FlightGlobals.currentMainBody != null && hit.collider.gameObject == FlightGlobals.currentMainBody.gameObject) return false; // Terrain hit. Full absorption. Should avoid NREs in the following. FIXME This doesn't seem correct anymore: "Kerbin Zn1232223233" vs "Kerbin", but doesn't seem to cause issues either.
-                    if (intermediateParts)
-                    {
-                        var partHP = partHit.Damage();
-                        if (ProjectileUtils.IsArmorPart(partHit)) partHP = 100f;
+                    continue;
+                }
+                if (FlightGlobals.currentMainBody != null && hit.collider.gameObject == FlightGlobals.currentMainBody.gameObject) return false; // Terrain hit. Full absorption. Should avoid NREs in the following. FIXME This doesn't seem correct anymore: "Kerbin Zn1232223233" vs "Kerbin", but doesn't seem to cause issues either.
+                if (intermediateParts)
+                {
+                    float partHP = partHit.Damage();
+                    if (ProjectileUtils.IsArmorPart(partHit)) partHP = 100f;
 
-                        // Ignore parts that are already dead but not yet removed from the game or have already been added.
-                        if (partHP <= 0 || _LoSIntermediateParts.Contains(partHit)) continue;
+                    // Ignore parts that are already dead but not yet removed from the game or have already been added.
+                    if (partHP <= 0 || _LoSIntermediateParts.Contains(partHit)) continue;
 
-                        //var partArmour = partHit.GetArmorThickness();
-                        float partArmour = 0f;
-                        var Armor = partHit.FindModuleImplementing<HitpointTracker>();
-                        if (Armor != null && partHit.Rigidbody != null)
+                    //var partArmour = partHit.GetArmorThickness();
+                    float partArmour = 0f;
+                    var Armor = partHit.FindModuleImplementing<HitpointTracker>();
+                    if (Armor != null && partHit.Rigidbody != null)
+                    {
+                        Vector3 correctedDirection = hit.point + partHit.Rigidbody.velocity * TimeIndex - Position;
+                        float armorCos = Mathf.Abs(Vector3.Dot(correctedDirection.sqrMagnitude < 1E-10f ? partRay.direction : correctedDirection.normalized, -hit.normal));
+                        partArmour = ProjectileUtils.CalculateThickness(partHit, Mathf.Max(armorCos, 1E-5f));
+
+                        float currSectionalDensity = Armor.Density * partArmour;
+                        // Very basic, handwavy spall model, ductile materials will reduce spalling, while non-ductile materials will contribute to spalling
+                        // Ductile materials that are more resistant, will reduce spalling by more than ductile materials that are less resistant.
+                        // Technically we should be comparing penetration resistance of the spall liner to the average spall penetration, but then we'd have
+                        // to start looking at the proportion of spall fragments could penetrate through it, which would involve quite a bit of math for such
+                        // a hot path we're just not gonna do that.
+                        if (Armor.Ductility > 0.2f)
                         {
-                            Vector3 correctedDirection = hit.point + partHit.Rigidbody.velocity * TimeIndex - Position;
-                            float armorCos = Mathf.Abs(Vector3.Dot(correctedDirection.sqrMagnitude < 1E-10f ? partRay.direction : correctedDirection.normalized, -hit.normal));
-                            partArmour = ProjectileUtils.CalculateThickness(partHit, Mathf.Max(armorCos, 1E-5f));
-
-                            // If there's spacing between the plates, or there's a change of density
-                            if (distance > nextDist || prevDens != Armor.Density)
+                            linerInfluencedSpallSectionalDensity = Mathf.Max(linerInfluencedSpallSectionalDensity - Armor.HEEquiv * currSectionalDensity, 0.0f);
+                        }
+                        else
+                        {
+                            // For non-ductile materials, we're gonna require 0.25 * the HEAT caliber of spacing for the plate to help
+                            // resist some of the spalling
+                            if (distance - 5f * 0.001f * Caliber > nextDist)
                             {
-                                nextDist = distance + partArmour;
-                                prevDens = Armor.Density;
+                                linerInfluencedSpallSectionalDensity = Mathf.Max(linerInfluencedSpallSectionalDensity - Armor.HEEquiv * currSectionalDensity, 0.0f);
+                            }
 
-                                partArmour *= factor;
+                            // But depending on how good of armor it is, it might end up adding more spall than less, to simulate knock-on effects
+                            linerInfluencedSpallSectionalDensity += BDArmorySettings.HEAT_SPALL_MAX_RED * currSectionalDensity;
+                        }
 
-                                // Increment factor
-                                factor *= 1.05f;
+                        spallSectionalDensity += (1f - BDArmorySettings.HEAT_SPALL_MAX_RED) * currSectionalDensity;
+
+                        // If there's spacing between the plates, or there's a change of density
+                        if (distance > nextDist || prevDens != Armor.Density)
+                        {
+                            nextDist = distance + partArmour;
+                            prevDens = Armor.Density;
+
+                            partArmour *= factor;
+
+                            // Increment factor
+                            factor *= 1.05f;
+                        }
+                        else
+                        {
+                            nextDist = distance + partArmour;
+                            prevDens = Armor.Density;
+
+                            partArmour *= factor;
+                        }
+
+                        partArmour *= warheadType == WarheadTypes.ShapedCharge ? Armor.HEATEquiv : Armor.HEEquiv;
+
+                        //if (BDArmorySettings.DEBUG_WEAPONS)
+                        //{
+                        //    Debug.Log($"[BDArmory.ExplosionFX] Part: {partHit.name}; Thickness: {partArmour}mm; Angle: {Mathf.Rad2Deg * Mathf.Acos(armorCos)}; Contributed: {factor * Mathf.Max(partArmour / armorCos, 1)}mm; Distance: {hit.distance};");
+                        //}
+
+                        var RA = partHit.FindModuleImplementing<ModuleReactiveArmor>();
+                        if (RA != null)
+                        {
+                            if (RA.NXRA)
+                            {
+                                partArmour *= RA.armorModifier;
                             }
                             else
                             {
-                                nextDist = distance + partArmour;
-                                prevDens = Armor.Density;
-
-                                partArmour *= factor;
-                            }
-
-                            partArmour *= warheadType == WarheadTypes.ShapedCharge ? Armor.HEATEquiv : Armor.HEEquiv;
-
-                            //if (BDArmorySettings.DEBUG_WEAPONS)
-                            //{
-                            //    Debug.Log($"[BDArmory.ExplosionFX] Part: {partHit.name}; Thickness: {partArmour}mm; Angle: {Mathf.Rad2Deg * Mathf.Acos(armorCos)}; Contributed: {factor * Mathf.Max(partArmour / armorCos, 1)}mm; Distance: {hit.distance};");
-                            //}
-
-                            var RA = partHit.FindModuleImplementing<ModuleReactiveArmor>();
-                            if (RA != null)
-                            {
-                                if (RA.NXRA)
+                                if (((ExplosionSource == ExplosionSourceType.Bullet || ExplosionSource == ExplosionSourceType.Rocket) && (Caliber > RA.sensitivity && partHit == projectileHitPart)) ||   //bullet/rocket hit
+                                    ((ExplosionSource == ExplosionSourceType.Missile || ExplosionSource == ExplosionSourceType.BattleDamage) && (distance < Power / 2))) //or close range detonation likely to trigger ERA
                                 {
-                                    partArmour *= RA.armorModifier;
-                                }
-                                else
-                                {
-                                    if (((ExplosionSource == ExplosionSourceType.Bullet || ExplosionSource == ExplosionSourceType.Rocket) && (Caliber > RA.sensitivity && partHit == projectileHitPart)) ||   //bullet/rocket hit
-                                        ((ExplosionSource == ExplosionSourceType.Missile || ExplosionSource == ExplosionSourceType.BattleDamage) && (distance < Power / 2))) //or close range detonation likely to trigger ERA
-                                    {
-                                        partArmour = 300 * RA.armorModifier * Mathf.Clamp(0.405f * Mathf.Tan(Mathf.Acos(armorCos)), 0f, 2f);
-                                        // Complex models for ERA interactions with HEAT would be far too excessive given the amount of times
-                                        // this code is being used so a simple tan based model inspired by "Stopping Power of Explosive Reactive Armours
-                                        // Against Different Shaped Charge Diameters or at Different Angles" and "Momentum Theory of Explosive Reactive Armours"
-                                        // by Manfred Held was used.
-                                    }
+                                    partArmour = 300 * RA.armorModifier * Mathf.Clamp(0.405f * Mathf.Tan(Mathf.Acos(armorCos)), 0f, 2f);
+                                    // Complex models for ERA interactions with HEAT would be far too excessive given the amount of times
+                                    // this code is being used so a simple tan based model inspired by "Stopping Power of Explosive Reactive Armours
+                                    // Against Different Shaped Charge Diameters or at Different Angles" and "Momentum Theory of Explosive Reactive Armours"
+                                    // by Manfred Held was used.
                                 }
                             }
                         }
-
-                        LoSIntermediateParts.Add((hit.distance, partHP, partArmour));
-                        _LoSIntermediateParts.Add(partHit);
                     }
+
+                    LoSIntermediateParts.Add((hit.distance, partHP, partArmour));
+                    _LoSIntermediateParts.Add(partHit);
                 }
             }
 
@@ -1225,14 +1254,16 @@ namespace BDArmory.FX
                                 if (penetrationFactor > 0)
                                 {
                                     BulletHitFX.CreateBulletHit(part, eventToExecute.HitPoint, eventToExecute.Hit, eventToExecute.Hit.normal, true, Caliber, penetrationFactor > 0 ? penetrationFactor : 0f, SourceVesselTeam, eventToExecute.ColliderLocalHitPoint);
-                                    damage = part.AddBallisticDamage(warheadType == WarheadTypes.ShapedCharge ? Power * 0.0555f : ProjMass, Caliber, 1f, penetrationFactor, dmgMult,
+                                    if (BDArmorySettings.DEBUG_DAMAGE) Debug.Log($"[BDArmory.ExplosionsFX] Applying ballistic damage to part with base mass: {(warheadType == WarheadTypes.ShapedCharge ? Power * 0.0555f : ProjMass)} kg{(warheadType == WarheadTypes.ShapedCharge ? $" and spall mass: {Mathf.Max(eventToExecute.SpallSectionalDensity, 0.0f) * 1e-9f * 0.125f * Caliber * Caliber * Mathf.PI}." : "")} kg");
+                                    // Want to add more damage for HEAT, so we'll add 25% of the estimated spall density, we assume the HEAT hole has twice the area of the HEAT jet to account for the material flowing backwards.
+                                    damage = part.AddBallisticDamage(warheadType == WarheadTypes.ShapedCharge ? (Power * 0.0555f + Mathf.Max(eventToExecute.SpallSectionalDensity, 0.0f) * 1e-9f * 0.125f * Caliber * Caliber * Mathf.PI) : ProjMass, Caliber, BDArmorySettings.EXP_DMG_MOD_HEAT, penetrationFactor, dmgMult,
                                         warheadType switch
                                         {
                                             WarheadTypes.ShapedCharge => SCVelocity,
                                             WarheadTypes.Kinetic => ImpactSpeed,
                                             _ => ExplosionVelocity //technically this should be the sum vector of the explosion vel (perpendicular to missile vel), and missile vel since the rods are physical projectiles that would be inheriting their parent's vel
                                         },
-                                        ExplosionSource);
+                                        ExplosionSource, true);
                                     totalDamageApplied[vesselHit] += damage;
                                 }
 
@@ -1421,8 +1452,8 @@ namespace BDArmory.FX
             {
                 case WarheadTypes.ContinuousRod:
                     //eFx.AngleOfEffect = 165;
-                    eFx.Caliber = caliber > 0 ? caliber / 4 : 30;
-                    eFx.ProjMass = 0.3f + (tntMassEquivalent / 75);
+                    eFx.Caliber = caliber > 0 ? caliber / 4f : 30f;
+                    eFx.ProjMass = 0.3f + (tntMassEquivalent / 75f);
                     break;
                 case WarheadTypes.ShapedCharge:
                     //eFx.AngleOfEffect = 10f;
@@ -1537,6 +1568,7 @@ namespace BDArmory.FX
         public Vector3 ColliderLocalHitPoint { get; set; } = default;
         public RaycastHit Hit { get; set; }
         public float NegativeForce { get; set; }
+        public float SpallSectionalDensity { get; set; }
         public string SourceVesselName { get; set; }
         public bool withinAngleofEffect { get; set; }
         public List<(float, float, float)> IntermediateParts

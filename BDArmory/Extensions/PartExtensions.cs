@@ -154,7 +154,8 @@ namespace BDArmory.Extensions
                                                float penetrationfactor,
                                                float bulletDmgMult,
                                                float impactVelocity,
-                                               ExplosionSourceType sourceType) //bullet/rocket kinetic damage
+                                               ExplosionSourceType sourceType,
+                                               bool explosiveDamage = false) //bullet/rocket kinetic damage
         {
             if (BDArmorySettings.PAINTBALL_MODE)
             {
@@ -178,28 +179,37 @@ namespace BDArmory.Extensions
             //1e-4 constant for adjusting MegaJoules for gameplay
 
             float damage_;
-            switch (sourceType)
+            if (!explosiveDamage)
             {
-                case ExplosionSourceType.Rocket:
-                    damage_ = (0.5f * (mass * impactVelocity * impactVelocity))
-                            * (BDArmorySettings.DMG_MULTIPLIER / 100) * bulletDmgMult * multiplier
-                            * 1e-4f * BDArmorySettings.BALLISTIC_DMG_FACTOR;
-                    break;
-                case ExplosionSourceType.BattleDamage:
-                    damage_ = (0.5f * (mass * impactVelocity * impactVelocity))
-                            * (BDArmorySettings.DMG_MULTIPLIER / 100) * bulletDmgMult * multiplier
-                            * 1e-4f * BDArmorySettings.EXP_DMG_MOD_BATTLE_DAMAGE;
-                    break;
-                case ExplosionSourceType.Bullet:
-                    damage_ = (0.5f * (mass * impactVelocity * impactVelocity))
-                            * (BDArmorySettings.DMG_MULTIPLIER / 100) * bulletDmgMult * multiplier
-                            * 1e-4f * BDArmorySettings.BALLISTIC_DMG_FACTOR;
-                    break;
-                default: // Other?    
-                    damage_ = (0.5f * (mass * impactVelocity * impactVelocity))
-                            * (BDArmorySettings.DMG_MULTIPLIER / 100) * bulletDmgMult * multiplier
-                            * 1e-4f * BDArmorySettings.BALLISTIC_DMG_FACTOR;
-                    break;
+                switch (sourceType)
+                {
+                    case ExplosionSourceType.Rocket:
+                        damage_ = (0.5f * (mass * impactVelocity * impactVelocity))
+                                * (BDArmorySettings.DMG_MULTIPLIER / 100) * bulletDmgMult * multiplier
+                                * 1e-4f * BDArmorySettings.BALLISTIC_DMG_FACTOR;
+                        break;
+                    case ExplosionSourceType.BattleDamage:
+                        damage_ = (0.5f * (mass * impactVelocity * impactVelocity))
+                                * (BDArmorySettings.DMG_MULTIPLIER / 100) * bulletDmgMult * multiplier
+                                * 1e-4f * BDArmorySettings.EXP_DMG_MOD_BATTLE_DAMAGE;
+                        break;
+                    case ExplosionSourceType.Bullet:
+                        damage_ = (0.5f * (mass * impactVelocity * impactVelocity))
+                                * (BDArmorySettings.DMG_MULTIPLIER / 100) * bulletDmgMult * multiplier
+                                * 1e-4f * BDArmorySettings.BALLISTIC_DMG_FACTOR;
+                        break;
+                    default: // Other?    
+                        damage_ = (0.5f * (mass * impactVelocity * impactVelocity))
+                                * (BDArmorySettings.DMG_MULTIPLIER / 100) * bulletDmgMult * multiplier
+                                * 1e-4f * BDArmorySettings.BALLISTIC_DMG_FACTOR;
+                        break;
+                }
+            }
+            else
+            {
+                damage_ = (0.5f * (mass * impactVelocity * impactVelocity))
+                        * ExplosiveDamageModifier(sourceType, bulletDmgMult * multiplier)
+                        * 1e-4f;
             }
 
             //////////////////////////////////////////////////////////
