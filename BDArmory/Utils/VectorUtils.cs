@@ -407,8 +407,8 @@ namespace BDArmory.Utils
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float AnglePreNormalized(Vector3 from, Vector3 to)
         {
-            float num2 = Mathf.Clamp(Vector3.Dot(from, to), -1f, 1f);
-            return Mathf.Acos(num2) * 57.29578f;
+            double num2 = BDAMath.Clamp(Vector3d.Dot(from, to), -1d, 1d);
+            return (float)(Math.Acos(num2) * 57.295779513082325);
         }
 
         /// <summary>
@@ -478,15 +478,15 @@ namespace BDArmory.Utils
         public static float GetAngleOnPlane(Vector3 dir, Vector3 forward, Vector3 left)
         {
             // Get the projections
-            float x = Vector3.Dot(dir, forward);
-            float y = Vector3.Dot(dir, left);
+            double x = Vector3d.Dot(dir, forward);
+            double y = Vector3d.Dot(dir, left);
 
             // Check for if the desired vector is straight up/down
-            if (Mathf.Abs(x) < 2f * Vector3.kEpsilon && Mathf.Abs(y) < 2f * Vector3.kEpsilon)
+            if (Math.Abs(x) < 2E-5 && Math.Abs(y) < 2E-5)
                 return 0f;
 
             // Return the azimuth/elevation
-            return Mathf.Rad2Deg * Mathf.Atan2(y, x);
+            return (float) (57.295779513082325 * Math.Atan2(y, x));
         }
 
         /// <summary>
@@ -506,6 +506,19 @@ namespace BDArmory.Utils
         }
 
         /// <summary>
+        /// Get elevation angle of a vector, relative to an up vector, with both vectors being normalized
+        /// 
+        /// </summary>
+        /// <param name="dir">Direction vector.</param>
+        /// <param name="up">Up vector.</param>
+        /// <returns>The angle of "dir" relative to "up", in degrees, as an elevation angle, with range -90° to 90°.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float GetElevationPreNorm(Vector3 dir, Vector3 up)
+        {
+            return 90f - AnglePreNormalized(up, dir);
+        }
+
+        /// <summary>
         /// Get elevation angle of a vector, relative to an up vector.
         /// Note that this basically an alternate form of Vector3.Angle,
         /// somewhat optimized for the case where the up vector is a
@@ -521,14 +534,14 @@ namespace BDArmory.Utils
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float GetElevation(Vector3 dir, Vector3 up)
         {
-            float dirMag = dir.magnitude;
-            if (dirMag < 1E-15f)
+            double dirMag = Vector3d.Magnitude(dir);
+            if (dirMag < 1E-15)
             {
                 return 0f;
             }
 
-            float num2 = Mathf.Clamp(Vector3.Dot(up, dir) / dirMag, -1f, 1f);
-            return 90f - (float)Math.Acos(num2) * 57.29578f;
+            double num2 = BDAMath.Clamp(Vector3d.Dot(up, dir) / dirMag, -1d, 1d);
+            return 90f - (float)(Math.Acos(num2) * 57.295779513082325);
         }
 
         /// <summary>

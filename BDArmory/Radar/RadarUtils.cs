@@ -292,7 +292,7 @@ namespace BDArmory.Radar
                 // This is why we flip these in the function. It's also why `elAngle` has to be multiplied by a negative 1!
                 //VectorUtils.GetAzimuthElevation(directionOfRadar, ti.Vessel.ReferenceTransform.up, ti.Vessel.ReferenceTransform.forward, out float azAngle, out float elAngle);
                 float azAngle = VectorUtils.GetAngleOnPlane(directionOfRadar, ti.Vessel.ReferenceTransform.up, ti.Vessel.ReferenceTransform.right);
-                float elAngle = VectorUtils.GetElevation(directionOfRadar, ti.Vessel.ReferenceTransform.forward, distance, 1.0f);
+                float elAngle = VectorUtils.GetElevation(directionOfRadar, ti.Vessel.ReferenceTransform.forward, distance);
 
                 // Note that we would've also had to negate azAngle (due to the flipped z axis) but since we assume craft are left/right symmetric
                 // we just use an Abs here.
@@ -1861,7 +1861,7 @@ namespace BDArmory.Radar
                     // Get azimuth and elevation relative to the target
                     //VectorUtils.GetAzimuthElevation(vectorToTarget, forwardVector, upVector, out float targetAz, out float targetEl);
                     float targetAz = VectorUtils.GetAngleOnPlane(vectorToTarget, forwardVector, rightVector);
-                    float targetEl = VectorUtils.GetElevation(vectorToTarget, upVector, distance, 1.0f);
+                    float targetEl = VectorUtils.GetElevation(vectorToTarget, upVector, distance);
 
                     // Correct for omnidirectional radars
                     if (directionAngle > 180f)

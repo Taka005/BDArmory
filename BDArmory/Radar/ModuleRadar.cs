@@ -1163,14 +1163,14 @@ namespace BDArmory.Radar
             if (omnidirectional)
             {
                 // Check elevation only, determine angle from the vertical axis
-                return (Mathf.Abs(VectorUtils.GetElevation(dir, currUp, 1.0f, 1.0f) - radarElOffset) < 0.5f * radarElFOV);
+                return (Mathf.Abs(VectorUtils.GetElevationPreNorm(dir, currUp) - radarElOffset) < 0.5f * radarElFOV);
             }
             else
             {
                 // Target exists and omnidirectional, we must check if we're within radar FoV
                 // Radar azimuth is reversed, for whatever reason
                 float az = VectorUtils.GetAngleOnPlane(dir, currForward, currRight);
-                float el = VectorUtils.GetElevation(dir, currUp, 1.0f, 1.0f);
+                float el = VectorUtils.GetElevationPreNorm(dir, currUp);
 
                 // Check if we're outside FoV
                 return (Mathf.Abs(az - radarAzOffset) < 0.5f * radarAzFOV && Mathf.Abs(el - radarElOffset) < 0.5f * radarElFOV);
