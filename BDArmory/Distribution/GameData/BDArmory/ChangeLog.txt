@@ -1,4 +1,5 @@
-﻿IMPROVEMENTS / FIXES
+﻿v1.12.1.0
+IMPROVEMENTS / FIXES
 - Part Changes:
 	- AIM-9 Sidewinder now has "uncagedLock = true" to reflect changes in "uncagedlock" behavior.
 	- Improve documentation of features in AIM-9 config.
