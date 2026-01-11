@@ -948,8 +948,8 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                 }
                 else //lost active laser target, home on last known position
                 {
-                    Ray smokeRay = new Ray(vessel.CoM, isCLOS ? lockedCamera.transform.position : (lastLaserPoint - vessel.CoM));
-                    if (CMSmoke.RaycastSmoke(smokeRay))
+                    Ray smokeRay = new Ray(vessel.CoM, (isCLOS && lockedCamera) ? lockedCamera.transform.position : (lastLaserPoint - vessel.CoM));
+                    if ((!isCLOS || lockedCamera) && CMSmoke.RaycastSmoke(smokeRay))
                     {
                         float angle = VectorUtils.FullRangePerlinNoise(0.75f * Time.time, 10) * BDArmorySettings.SMOKE_DEFLECTION_FACTOR;
                         TargetPosition = isCLOS ? 
