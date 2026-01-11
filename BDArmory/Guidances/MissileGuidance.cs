@@ -1071,7 +1071,8 @@ namespace BDArmory.Guidances
             Vector3 missileVel = missileVessel.Velocity();
             Vector3 relVelocity = targetVelocity - missileVel;
             Vector3 relRange = targetPosition - missileVessel.CoM;
-            if (Vector3.Dot(relRange, relVelocity) < 0)
+            timeToGo = -relRange.sqrMagnitude / Vector3.Dot(relRange, relVelocity);
+            if (timeToGo < 0)
             {
                 gLimit = -1f;
                 return GetAirToAirTarget(targetPosition, targetVelocity, Vector3.zero, missileVessel, out timeToGo);
@@ -1080,8 +1081,10 @@ namespace BDArmory.Guidances
             Vector3 RefVector = missileVel.normalized;
             Vector3 normalAccel = -N * relVelocity.magnitude * Vector3.Cross(RefVector, RotVector);
             gLimit = normalAccel.magnitude / (float)PhysicsGlobals.GravitationalAcceleration;
-            timeToGo = missileVessel.TimeToCPA(targetPosition, targetVelocity, Vector3.zero, 120f);
-            return missileVessel.CoM + missileVel * timeToGo + normalAccel * timeToGo * timeToGo;
+            //timeToGo = missileVessel.TimeToCPA(targetPosition, targetVelocity, Vector3.zero, 120f);
+            float leadTime = Mathf.Clamp(timeToGo, 0f, 8f);
+            //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileGuidance] PN gLimit: {gLimit}, dot: {Vector3.Dot(relRange, relVelocity)}, ttgo: {timeToGo}"); 
+            return missileVessel.CoM + missileVel * leadTime + normalAccel * leadTime * leadTime;
         }
 
         private static Vector3 GetPNAccel(Vector3 targetPosition, Vector3 targetVelocity, Vessel missileVessel, float N)
@@ -1102,6 +1105,12 @@ namespace BDArmory.Guidances
             Vector3 missileVel = missileVessel.Velocity();
             Vector3 relVelocity = targetVelocity - missileVel;
             Vector3 relRange = targetPosition - missileVessel.CoM;
+            timeToGo = -relRange.sqrMagnitude / Vector3.Dot(relRange, relVelocity);
+            if (timeToGo < 0)
+            {
+                gLimit = -1f;
+                return GetAirToAirTarget(targetPosition, targetVelocity, Vector3.zero, missileVessel, out timeToGo);
+            }
             Vector3 RotVector = Vector3.Cross(relRange, relVelocity) / Vector3.Dot(relRange, relRange);
             Vector3 RefVector = missileVel.normalized;
             Vector3 normalAccel = -N * relVelocity.magnitude * Vector3.Cross(RefVector, RotVector);
@@ -1110,8 +1119,9 @@ namespace BDArmory.Guidances
             accelBias = Vector3.Cross(RefVector, accelBias);
             normalAccel -= 0.5f * N * accelBias;
             gLimit = normalAccel.magnitude / (float)PhysicsGlobals.GravitationalAcceleration;
-            timeToGo = missileVessel.TimeToCPA(targetPosition, targetVelocity, targetAcceleration, 120f);
-            return missileVessel.CoM + missileVel * timeToGo + normalAccel * timeToGo * timeToGo;
+            float leadTime = Mathf.Clamp(timeToGo, 0f, 8f);
+            //timeToGo = missileVessel.TimeToCPA(targetPosition, targetVelocity, targetAcceleration, 120f);
+            return missileVessel.CoM + missileVel * leadTime + normalAccel * leadTime * leadTime;
         }
         public static float GetLOSRate(Vector3 targetPosition, Vector3 targetVelocity, Vessel missileVessel)
         {
@@ -1998,8 +2008,8 @@ namespace BDArmory.Guidances
                     Vector3 torqueDirection = Vector3.Cross(forward, targetDirection) / Mathf.Sin(turningAngle * Mathf.Deg2Rad);
                     //Debug.Log($"[BDArmory.MissileGuidance]: torqueDirection = {torqueDirection}, sqrMagnitude = {torqueDirection.sqrMagnitude}.");
 
-                    if (turningAngle < 1f)
-                        turningAngle *= turningAngle;
+                    //if (turningAngle < 1f)
+                    //    turningAngle *= turningAngle;
 
                     float torque = Mathf.Clamp(Mathf.Min(turningAngle, AoALim) * 4f * steerMult, 0f, maxTorque);
 
@@ -2100,7 +2110,7 @@ namespace BDArmory.Guidances
                     finalTorque = aeroTorque;
                 }
 
-                if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_MISSILES) ml.debugString.AppendLine($"achieved g: {(ml.vessel.acceleration.ProjectOnPlanePreNormalized(velNorm).magnitude) * (1f / 9.81f):F5}, lift: {liftForce / ml.part.mass * (1f / 9.81f):F5}, CL: {liftCurve.Evaluate(AoA):F5}\nAoA: {AoA:F5}, AoALim: {AoALim:F5}, MaxAoA: {maxAoA:F5}\nTargetAngle: {targetAngle:F5}, TurningAngle: {turningAngle:F5}\nmaxTorque: {maxTorque}, maxTorqueAero: {maxTorqueAero * dynamicq}, currTorque: {finalTorque.magnitude}, liftArea: {liftArea}, dragArea: {dragArea}");
+                if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_MISSILES) ml.debugString.AppendLine($"achieved g: {(ml.vessel.acceleration.ProjectOnPlanePreNormalized(velNorm).magnitude) * (1f / 9.81f):F5}, lift: {liftForce / ml.part.mass * (1f / 9.81f):F5}, CL: {liftCurve.Evaluate(AoA):F5}\nAoA: {AoA:F5}, AoALim: {AoALim:F5}, MaxAoA: {maxAoA:F5}\nTargetAngle: {targetAngle:F5}, TurningAngle: {turningAngle:F5}\nmaxTorque (Aero): {maxTorque:F2} ({maxTorqueAero * dynamicq:F2}), currTorque: {finalTorque.magnitude:F2}\nliftArea: {liftArea}, dragArea: {dragArea}");
 
                 finalTorque = ml.transform.InverseTransformDirection(finalTorque).ProjectOnPlanePreNormalized(Vector3.forward);
 
