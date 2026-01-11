@@ -57,7 +57,7 @@ namespace BDArmory.Weapons
             FireBullet(_warheadType, _warheadType.projectileCount, sourceInfo, graphicsInfo, nukeInfo,
                         true, _warheadType.projectileTTL + (detTime < 0.0f ? 0.0f : detTime), TimeWarp.fixedDeltaTime, detRange, detTime,
                         false, null, null, false, 1f, 1f,
-                        true, currentSpeed, 0f, transform.up, true, maxDeviation);
+                        true, currentSpeed, 0f, direction, true, maxDeviation);
 
         }
 

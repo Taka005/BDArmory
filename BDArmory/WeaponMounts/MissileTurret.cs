@@ -296,6 +296,10 @@ namespace BDArmory.WeaponMounts
                 {
                     Events["EditorToggleAnimation"].guiActiveEditor = true;
                 }
+                if (startsDeployed)
+                {
+                    deployAnimState.normalizedTime = 1;
+                }
             }
 
             if (HighLogic.LoadedSceneIsFlight)
