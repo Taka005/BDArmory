@@ -649,7 +649,7 @@ namespace BDArmory.WeaponMounts
             var wait = new WaitForFixedUpdate();
             yield return wait;
             Ray ray = new Ray(ml.transform.position, ml.MissileReferenceTransform.forward);
-            Transform turretTransform = turret.referenceTransform;
+            Transform turretTransform = turret.pitchTransform ? turret.pitchTransform : turret.yawTransform;
             Vector3 localOrigin = turretTransform.InverseTransformPoint(ray.origin);
             Vector3 localDirection = turretTransform.InverseTransformDirection(ray.direction);
             float forwardSpeed = ml.decoupleSpeed;
