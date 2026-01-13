@@ -1251,7 +1251,7 @@ namespace BDArmory.FX
                                     penetrationFactor = 10f * (warheadType == WarheadTypes.ShapedCharge ? 0.5528789891f : 0.1601427673f) / (remainingPen);
                                 }
 
-                                if (penetrationFactor > 0)
+                                if (penetrationFactor > 1)
                                 {
                                     BulletHitFX.CreateBulletHit(part, eventToExecute.HitPoint, eventToExecute.Hit, eventToExecute.Hit.normal, true, Caliber, penetrationFactor > 0 ? penetrationFactor : 0f, SourceVesselTeam, eventToExecute.ColliderLocalHitPoint);
                                     if (BDArmorySettings.DEBUG_DAMAGE) Debug.Log($"[BDArmory.ExplosionsFX] Applying ballistic damage to part with base mass: {(warheadType == WarheadTypes.ShapedCharge ? Power * 0.0555f : ProjMass)} kg{(warheadType == WarheadTypes.ShapedCharge ? $" and spall mass: {Mathf.Max(eventToExecute.SpallSectionalDensity, 0.0f) * 1e-9f * 0.125f * Caliber * Caliber * Mathf.PI}." : "")} kg");
@@ -1265,17 +1265,17 @@ namespace BDArmory.FX
                                         },
                                         ExplosionSource, true);
                                     totalDamageApplied[vesselHit] += damage;
-                                }
 
-                                if (penetrationFactor > 1 && warheadType != WarheadTypes.Kinetic)
-                                {
-                                    if (damageWithoutIntermediateParts > 0)
+                                    if (warheadType != WarheadTypes.Kinetic)
                                     {
-                                        damage += part.AddExplosiveDamage(shapedEffect ? (0.2f * blastInfo.Damage +  0.8f * damageWithoutIntermediateParts) : blastInfo.Damage, Caliber, ExplosionSource, dmgMult);
-                                        totalDamageApplied[vesselHit] += damage;
-                                    }
+                                        if (damageWithoutIntermediateParts > 0)
+                                        {
+                                            damage += part.AddExplosiveDamage(shapedEffect ? (0.2f * blastInfo.Damage + 0.8f * damageWithoutIntermediateParts) : blastInfo.Damage, Caliber, ExplosionSource, dmgMult);
+                                            totalDamageApplied[vesselHit] += damage;
+                                        }
 
-                                    if (float.IsNaN(damage)) Debug.LogError("DEBUG NaN damage!");
+                                        if (float.IsNaN(damage)) Debug.LogError("DEBUG NaN damage!");
+                                    }
                                 }
                             }
                             else
