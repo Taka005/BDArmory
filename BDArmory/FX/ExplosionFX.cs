@@ -680,16 +680,17 @@ namespace BDArmory.FX
 
                         spallSectionalDensity += (1f - BDArmorySettings.HEAT_SPALL_MAX_RED) * currSectionalDensity;
 
+                        bool densityChange;
                         // If there's spacing between the plates, or there's a change of density
-                        if (distance > nextDist || prevDens != Armor.Density)
+                        if ((densityChange = prevDens != Armor.Density) || distance > nextDist)
                         {
-                            nextDist = distance + partArmour;
+                            nextDist = distance + partArmour * 0.001f;
                             prevDens = Armor.Density;
 
                             partArmour *= factor;
 
                             // Increment factor
-                            factor *= 1.05f;
+                            factor *= (warheadType == WarheadTypes.ShapedCharge && (densityChange || distance - nextDist > 5f * Caliber * 0.001f)) ? 1.1f : 1.05f;
                         }
                         else
                         {
@@ -703,7 +704,8 @@ namespace BDArmory.FX
 
                         //if (BDArmorySettings.DEBUG_WEAPONS)
                         //{
-                        //    Debug.Log($"[BDArmory.ExplosionFX] Part: {partHit.name}; Thickness: {partArmour}mm; Angle: {Mathf.Rad2Deg * Mathf.Acos(armorCos)}; Contributed: {factor * Mathf.Max(partArmour / armorCos, 1)}mm; Distance: {hit.distance};");
+                        //    float origLoS = ProjectileUtils.CalculateThickness(partHit, Mathf.Max(armorCos, 1E-5f));
+                        //    Debug.Log($"[BDArmory.ExplosionFX] Part: {partHit.name}; Thickness: {partHit.GetArmorThickness()} mm; LoS: {origLoS}; Adjusted LoS : {origLoS * (warheadType == WarheadTypes.ShapedCharge ? Armor.HEATEquiv : Armor.HEEquiv)} mm; Angle: {Mathf.Rad2Deg * Mathf.Acos(armorCos)}; factor: {factor / 1.05f}; Contributed: {partArmour} mm; Distance: {hit.distance} m; nextDistance: {nextDist} m");
                         //}
 
                         var RA = partHit.FindModuleImplementing<ModuleReactiveArmor>();
@@ -1010,7 +1012,7 @@ namespace BDArmory.FX
                             float blastResistance = 1.05f * (0.1f * currPart.hp * invdmgModifier + 40f * BDArmorySettings.EXP_PEN_RESIST_MULT * currPart.armor);
                             currtntMassCubeRoot *= (blastImpulse - blastResistance) / blastImpulse;
 
-                            if (BDArmorySettings.DEBUG_DAMAGE) Debug.Log($"[BDArmory.ExplosionFX] Part at index {i} reduced blastImpulse: {blastImpulse} by blastResistance: {blastResistance}.");
+                            if (BDArmorySettings.DEBUG_DAMAGE) Debug.Log($"[BDArmory.ExplosionFX] Part {i + 1}/{eventToExecute.IntermediateParts.Count} reduced blastImpulse: {blastImpulse} by blastResistance: {blastResistance}.");
 
                             cumulativeHPOfIntermediateParts += currPart.hp;
                             cumulativeArmorOfIntermediateParts += currPart.armor;
@@ -1150,27 +1152,61 @@ namespace BDArmory.FX
                                 }*/
                                 if (warheadType == WarheadTypes.ShapedCharge)
                                 {
+                                    float EPrev = 14f;
+                                    float ECurr = 14f;
+                                    float kOffset = 0f;
+                                    float SCFac = SCInvFac;
+
+                                    float standoffTemp;
+
                                     for (int i = 0; i < eventToExecute.IntermediateParts.Count; i++)
                                     {
                                         (float dist, float hp, float armor) currPart = eventToExecute.IntermediateParts[i];
 
-                                        float standoffTemp = currPart.dist * SCInvFac;
+                                        standoffTemp = (currPart.dist - kOffset) / (ECurr * SCFac);
 
                                         // Calculate Penetration at part i
                                         float currPen = remainingPen / (1f + (standoffTemp * standoffTemp));
 
-                                        standoffTemp = (currPen - currPart.armor);
+                                        float penRatio = (currPen - currPart.armor);
+                                        
+                                        if (BDArmorySettings.DEBUG_ARMOR)
+                                        {
+                                            Debug.Log($"[BDArmory.ExplosionsFX] Shaped Calc for part {i + 1}/{eventToExecute.IntermediateParts.Count} at dist: {currPart.dist} m; with remainingPen: {remainingPen} mm; armor: {currPart.armor} mm; currPen: {currPen} mm; factor: {penRatio / currPen}; ECurr: {ECurr}; kOffset: {kOffset}; standoffTemp: {standoffTemp}; standoffFactor: {currPen / remainingPen}; origStandoffFactor: {1f / (1f + (currPart.dist * currPart.dist / ((14f * SCFac) * (14f * SCFac))))}.");
+                                        }
 
-                                        if (standoffTemp > 0)
+                                        if (penRatio > 0)
                                         {
                                             // If still have remaining pen, reduce remainingPen by % difference
-                                            remainingPen *= (standoffTemp / currPen);
+                                            penRatio /= currPen;
+                                            remainingPen *= penRatio;
+
+                                            // Apply the loss of jet focus and diameter reduction
+                                            if (ECurr > 6f)
+                                            {
+                                                // Jet unfocuses / gets squeezed down -> effective E (efficiency) gets reduced (since it's E * Caliber in the denominator)
+                                                // Allow for a max reduction to 14 - 8 = 6
+                                                ECurr = Mathf.Max(ECurr - 8f * 1.05f * (1f - penRatio), 6f);
+                                                // Because we have a new effective E, we have to shift the curve to get the same penetration value at the current distance
+                                                // This simply sets the result of 1 / (1 + standoffTemp * standoffTemp) to be equal between the two E values
+                                                kOffset = (EPrev - ECurr) * (currPart.dist - kOffset) / EPrev + kOffset;
+                                                // Now set the previous effective E to the current value
+                                                EPrev = ECurr;
+                                            }
                                         }
                                         else
                                         {
                                             remainingPen = 0;
                                             break;
                                         }
+                                    }
+
+                                    standoffTemp = (realDistance - kOffset) / (ECurr * SCFac);
+                                    remainingPen = remainingPen / (1f + (standoffTemp * standoffTemp));
+
+                                    if (BDArmorySettings.DEBUG_ARMOR)
+                                    {
+                                        Debug.Log($"[BDArmory.ExplosionsFX] Shaped Charge final penetration for part {part.name} at realDist: {realDistance} m; with scaledPen: {remainingPen * (1f + (standoffTemp * standoffTemp))} mm; remainingPen: {remainingPen} mm; EFinal: {ECurr}; kOffset: {kOffset}; standoffTemp: {standoffTemp}; standoffFactor: {1f / (1f + (standoffTemp * standoffTemp))};  origStandoffFactor: {1f / (1f + (realDistance * realDistance / ((14f * SCFac) * (14f * SCFac))))}.");
                                     }
                                 }
                                 else
@@ -1460,7 +1496,8 @@ namespace BDArmory.FX
                     //eFx.AngleOfEffect = 5f;
                     eFx.cosAngleOfEffect = BDArmorySettings.HEAT_CONE_HALF_ANGLE > 0f ? Mathf.Cos(Mathf.Deg2Rad * BDArmorySettings.HEAT_CONE_HALF_ANGLE) : 2f; // cos(5 degrees)
                     eFx.Caliber = caliber > 0 ? caliber * 0.05f : 6f;
-                    eFx.SCInvFac = 1f / (14f * 20f * 0.001f * eFx.Caliber);
+                    //eFx.SCInvFac = 1f / (14f * 20f * 0.001f * eFx.Caliber);
+                    eFx.SCInvFac = 20f * 0.001f * eFx.Caliber;
 
                     // Hypervelocity jet caliber determined by rule of thumb equation for the caliber based on
                     // "The Hollow Charge Effect" Bulletin of the Institution of Mining and Metallurgy. No. 520, March 1950
