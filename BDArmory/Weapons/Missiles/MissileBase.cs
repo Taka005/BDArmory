@@ -892,9 +892,12 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                 }
                 else
                 {
-                    TargetPosition = predictedHeatTarget.position;
-                    TargetVelocity = predictedHeatTarget.velocity;
-                    TargetAcceleration = Vector3.zero;
+                    if (predictedHeatTarget.exists)
+                    {
+                        TargetPosition = predictedHeatTarget.position;
+                        TargetVelocity = predictedHeatTarget.velocity;
+                        TargetAcceleration = Vector3.zero;
+                    }
                     lockFailTimer += Time.fixedDeltaTime;
                 }
 
