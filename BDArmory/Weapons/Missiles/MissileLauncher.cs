@@ -186,6 +186,12 @@ namespace BDArmory.Weapons.Missiles
         public bool adjustableProxyFuze = true;
 
         [KSPField]
+        public float fuzeArmingDelay = 0f;
+
+        [KSPField]
+        public bool impactFuzeArmingDelay = false;
+
+        [KSPField]
         public string audioClipPath = string.Empty;
 
         AudioClip thrustAudio;
@@ -2034,9 +2040,19 @@ namespace BDArmory.Weapons.Missiles
 
                     UpdateThrustForces();
                     UpdateGuidance();
-                    CheckAltitudeDetonation();
-                    CheckDetonationState(); // this needs to be after UpdateGuidance()
-                    CheckDetonationDistance();
+                    if (TimeIndex > fuzeArmingDelay)
+                    {
+                        CheckAltitudeDetonation();
+                        CheckDetonationState(); // this needs to be after UpdateGuidance()
+                        CheckDetonationDistance();
+                    }
+                    else if (!impactFuzeArmingDelay)
+                    {
+                        // Setup, arm and check the impact fuze
+                        CheckDetonationState(preventProxyArming: true);
+                        CheckDetonationDistance();
+                    }
+
                     CheckCountermeasureDistance();
 
                     //RaycastCollisions();
@@ -4680,6 +4696,11 @@ namespace BDArmory.Weapons.Missiles
             {
                 if (proxyDetonate)
                 {
+                    output.AppendLine($"- Fuze Arming Delay: {fuzeArmingDelay} s");
+                    if (!impactFuzeArmingDelay)
+                    {
+                        output.AppendLine($" - No impact fuze arming delay.");
+                    }
                     float tempDetDist = DetonationDistance;
                     if (tempDetDist == -1)
                     {
@@ -4700,6 +4721,10 @@ namespace BDArmory.Weapons.Missiles
                 else
                 {
                     output.AppendLine($"- Impact Fuze");
+                    if (impactFuzeArmingDelay)
+                    {
+                        output.AppendLine($"- Fuze Arming Delay: {fuzeArmingDelay} s");
+                    }
                 }
 
                 if (altitudeFuze != AltitudeFuzeMode.None)

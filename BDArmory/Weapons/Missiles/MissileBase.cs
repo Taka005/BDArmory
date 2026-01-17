@@ -1751,7 +1751,7 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
             return VesselModuleRegistry.GetModules<BDExplosivePart>(vessel).Max(x => x.tntMass);
         }
 
-        public void CheckDetonationState(bool separateWarheads = false)
+        public void CheckDetonationState(bool separateWarheads = false, bool preventProxyArming = false)
         {
             //Guard clauses
             //if (!TargetAcquired) return;
@@ -1833,7 +1833,9 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                 case DetonationDistanceStates.CheckingProximity:
                     {
                         if (!TargetAcquired) return;
-                        if (DetonationDistance == 0)
+
+                        // If impact fuze, or arming delay has prevented the proxy fuze from arming itself
+                        if (DetonationDistance == 0 || preventProxyArming)
                         {
                             if (weaponClass == WeaponClasses.Bomb) return;
 
