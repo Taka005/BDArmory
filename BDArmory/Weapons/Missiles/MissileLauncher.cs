@@ -768,7 +768,17 @@ namespace BDArmory.Weapons.Missiles
                             customTurret.Add(servo.Current);
                             servo.Current.SetReferenceTransform(MissileReferenceTransform);
                         }
-                    if (customTurret.Count == 0) customTurretID = 0;
+                    if (customTurret.Count == 0)
+                    {
+                        Fields["customTurretLoft"].guiActive = false;
+                        Fields["customTurretLoftFac"].guiActive = false;
+                        customTurretID = 0;
+                    }
+                    else
+                    {
+                        Fields["customTurretLoft"].guiActive = true;
+                        Fields["customTurretLoftFac"].guiActive = true;
+                    }
                 }
             }
             if (HighLogic.LoadedSceneIsEditor)
@@ -1423,12 +1433,16 @@ namespace BDArmory.Weapons.Missiles
             if (p == null)
             {
                 Fields["customTurretID"].guiActiveEditor = false;
+                Fields["customTurretLoft"].guiActiveEditor = false;
+                Fields["customTurretLoftFac"].guiActiveEditor = false;
                 return;
             }
             var turret = p.FindModuleImplementing<ModuleCustomTurret>();
             if (turret != null)
             {
                 Fields["customTurretID"].guiActiveEditor = true;
+                Fields["customTurretLoft"].guiActiveEditor = true;
+                Fields["customTurretLoftFac"].guiActiveEditor = true;
                 return;
             }
             FindTurretInParents(p.parent);

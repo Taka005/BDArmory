@@ -415,6 +415,16 @@ namespace BDArmory.WeaponMounts
             var wm = WeaponManager;
             if (wm && wm.CurrentMissile)
             {
+                if (wm.guardMode)
+                {
+                    slaved = slavedGuard;
+                    if (slavedGuard) return; // Guard Mode provides the target
+                }
+                else
+                {
+                    slavedGuard = false;
+                }
+
                 if (wm.slavingTurrets)
                 {
                     slaved = true;
@@ -429,10 +439,6 @@ namespace BDArmory.WeaponMounts
                     slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(activeMissile, wm.mainTGP.targetPointPosition, wm.mainTGP.lockedVessel ? wm.mainTGP.lockedVessel.Velocity() : Vector3.zero, turretLoft, turretLoftFac);
                     return;
                 }
-                if (wm.guardMode)
-                    slaved = slavedGuard;
-                else
-                    slavedGuard = false;
             }
         }
 

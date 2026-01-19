@@ -2659,10 +2659,14 @@ namespace BDArmory.Control
                         if (vesselRadarData.locked)
                         {
                             if (!vesselRadarData.SwitchActiveLockedTarget(guardTarget))
+                            {
                                 vesselRadarData.TryLockTarget(guardTarget);
+                            }
                         }
                         else
+                        {
                             vesselRadarData.TryLockTarget(guardTarget);
+                        }
 
                         yield return new WaitForSecondsFixed(0.5f);
                         if (guardTarget && vesselRadarData && vesselRadarData.locked &&
@@ -2727,7 +2731,9 @@ namespace BDArmory.Control
                                     if (vesselRadarData.locked)
                                     {
                                         if (vesselRadarData.SwitchActiveLockedTarget(targetVessel))
+                                        {
                                             lockSuccess = true;
+                                        }
                                         else
                                         {
                                             // if a low lock capacity radar, and it already has a lock on another target, TLT will return false, because the radar already at lock cap
@@ -2771,11 +2777,15 @@ namespace BDArmory.Control
                                         }
                                     }
                                     else
+                                    {
                                         lockSuccess = vesselRadarData.TryLockTarget(targetVessel);
+                                    }
 
                                     // If not successful, wait for `tryLockTime` before making another lock attempt
                                     if (!lockSuccess)
+                                    {
                                         yield return new WaitForSecondsFixed(tryLockTime);
+                                    }
                                     else
                                     {
                                         // If successful, wait for a FixedUpdate while `UpdateLockedTargets` runs
@@ -2813,7 +2823,7 @@ namespace BDArmory.Control
                                                 if (ml.customTurret[i].vessel != vessel) continue;
                                                 angle = VectorUtils.Angle(ml.MissileReferenceTransform.forward, ml.customTurret[i].slavedTargetPosition - ml.MissileReferenceTransform.position);
                                                 ml.customTurret[i].slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(ml, targetVessel.CoM, targetVessel.Velocity(),
-                                                    (ml.GuidanceMode == GuidanceModes.AAMLoft || ml.GuidanceMode == GuidanceModes.Kappa));
+                                                    ml.customTurretLoft, ml.customTurretLoftFac);
                                                 ml.customTurret[i].AimToTarget(ml.customTurret[i].slavedTargetPosition);
                                             }
                                             yield return wait;
@@ -3010,7 +3020,7 @@ namespace BDArmory.Control
                                             if (ml.customTurret[i].vessel != vessel) continue;
                                             angle = VectorUtils.Angle(ml.MissileReferenceTransform.forward, ml.customTurret[i].slavedTargetPosition - ml.MissileReferenceTransform.position);
                                             ml.customTurret[i].slavedTargetPosition = useUncaged ? MissileGuidance.GetAirToAirFireSolution(ml, heatTarget.predictedPosition, heatTarget.velocity,
-                                                (ml.GuidanceMode == GuidanceModes.AAMLoft || ml.GuidanceMode == GuidanceModes.Kappa)) : heatTarget.predictedPosition;
+                                                ml.customTurretLoft, ml.customTurretLoftFac) : heatTarget.predictedPosition;
                                             ml.customTurret[i].AimToTarget(ml.customTurret[i].slavedTargetPosition);
                                         }
                                         yield return wait;
@@ -3219,7 +3229,7 @@ namespace BDArmory.Control
                                             if (ml.customTurret[i].vessel != vessel) continue;
                                             angle = VectorUtils.Angle(ml.MissileReferenceTransform.forward, ml.customTurret[i].slavedTargetPosition - ml.MissileReferenceTransform.position);
                                             ml.customTurret[i].slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(ml, targetVessel.CoM, targetVessel.Velocity(),
-                                                (ml.GuidanceMode == GuidanceModes.AAMLoft || ml.GuidanceMode == GuidanceModes.Kappa));
+                                                ml.customTurretLoft, ml.customTurretLoftFac);
                                             ml.customTurret[i].AimToTarget(ml.customTurret[i].slavedTargetPosition);
                                         }
                                         yield return wait;
@@ -3347,7 +3357,7 @@ namespace BDArmory.Control
                                             if (ml.customTurret[i].vessel != vessel) continue;
                                             angle = VectorUtils.Angle(ml.MissileReferenceTransform.forward, ml.customTurret[i].slavedTargetPosition - ml.MissileReferenceTransform.position);
                                             ml.customTurret[i].slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(ml, antiRadiationTarget, targetVessel.Velocity(),
-                                                (ml.GuidanceMode == GuidanceModes.AAMLoft || ml.GuidanceMode == GuidanceModes.Kappa));
+                                                ml.customTurretLoft, ml.customTurretLoftFac);
                                             ml.customTurret[i].AimToTarget(ml.customTurret[i].slavedTargetPosition);
                                         }
                                         yield return wait;
@@ -3659,8 +3669,8 @@ namespace BDArmory.Control
                                                 if (ml.customTurret[i] == null) continue;
                                                 if (ml.customTurret[i].vessel != vessel) continue;
                                                 angle = VectorUtils.Angle(ml.MissileReferenceTransform.forward, ml.customTurret[i].slavedTargetPosition - ml.MissileReferenceTransform.position);
-                                                ml.customTurret[i].slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(ml, targetVessel.CoM, targetVessel.Velocity(), 
-                                                    (ml.GuidanceMode == GuidanceModes.AAMLoft || ml.GuidanceMode == GuidanceModes.Kappa));
+                                                ml.customTurret[i].slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(ml, targetVessel.CoM, targetVessel.Velocity(),
+                                                    ml.customTurretLoft, ml.customTurretLoftFac);
                                                 ml.customTurret[i].AimToTarget(ml.customTurret[i].slavedTargetPosition);
                                             }
                                             yield return wait;

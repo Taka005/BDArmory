@@ -396,6 +396,14 @@ namespace BDArmory.Weapons.Missiles
 UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene.All, affectSymCounterparts = UI_Scene.All)]
         public float customTurretID = 0;
 
+        [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = false, guiName = "#LOC_BDArmory_TurretLoft"),
+         UI_Toggle(scene = UI_Scene.All)]
+        public bool customTurretLoft = false; // Turret fires at a lofted trajectory
+
+        [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = false, guiName = "#LOC_BDArmory_TurretLoftFac"),
+            UI_FloatRange(minValue = 0, maxValue = 1, stepIncrement = 0.05f, scene = UI_Scene.Editor, affectSymCounterparts = UI_Scene.Editor)]
+        public float customTurretLoftFac = 0.5f; // Factor for optimumVelocity for lofting, lower means a more lofted trajectory
+
         [KSPField]
         public bool terminalHoming = false;
 

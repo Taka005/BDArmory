@@ -53,7 +53,7 @@ namespace BDArmory.WeaponMounts
         public Vector3 yawNormal;
 
         public Vector3 slavedTargetPosition;
-        public bool slaved;
+        public bool slaved = false;
         public bool manuallyControlled = false;
         public bool isYawRotor => Servo != null;
         MissileFire WeaponManager
@@ -152,22 +152,27 @@ namespace BDArmory.WeaponMounts
         void FixedUpdate()
         {
             if (!HighLogic.LoadedSceneIsFlight || turretID == 0) return;
-            var wm = WeaponManager;
-            if (wm && wm.CurrentMissile && wm.CurrentMissile.customTurret.Count > 0 && wm.CurrentMissile.customTurret.Contains(this))
+
+            slaved = false;
+
+            MissileFire wm = WeaponManager;
+            MissileBase currMissile;
+            if (wm && (currMissile = wm.CurrentMissile) && currMissile.customTurret.Count > 0 && currMissile.customTurret.Contains(this))
             {
                 if (wm.slavingTurrets)
                 {
                     slaved = true;
-                    slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(wm.CurrentMissile, wm.slavedPosition, wm.slavedVelocity,
-                        (wm.CurrentMissile.GuidanceMode == GuidanceModes.AAMLoft || wm.CurrentMissile.GuidanceMode == GuidanceModes.Kappa));
+                    slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(currMissile, wm.slavedPosition, wm.slavedVelocity,
+                        currMissile.customTurretLoft, currMissile.customTurretLoftFac);
                 }
                 else if (wm.mainTGP != null && ModuleTargetingCamera.windowIsOpen && wm.mainTGP.slaveTurrets)
                 {
                     slaved = true;
                     slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(wm.CurrentMissile, wm.mainTGP.targetPointPosition, wm.mainTGP.lockedVessel ? wm.mainTGP.lockedVessel.Velocity() : Vector3.zero,
-                        (wm.CurrentMissile.GuidanceMode == GuidanceModes.AAMLoft || wm.CurrentMissile.GuidanceMode == GuidanceModes.Kappa));
+                        currMissile.customTurretLoft, currMissile.customTurretLoftFac);
                 }
             }
+
             if (slaved)
             {
                 AimToTarget(slavedTargetPosition);
