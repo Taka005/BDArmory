@@ -765,6 +765,11 @@ namespace BDArmory.Control
         [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_TargetPriority_TargetAttackVIP", advancedTweakable = true, groupName = "targetPriority", groupDisplayName = "#LOC_BDArmory_TargetPriority_Settings", groupStartCollapsed = true),//Attack Enemy VIPs
             UI_FloatRange(minValue = -10f, maxValue = 10f, stepIncrement = 0.1f, scene = UI_Scene.All)]
         public float targetWeightAttackVIP = 0f;
+
+        private string targetUncontrolledLabel = StringUtils.Localize("#LOC_BDArmory_TargetPriority_Uncontrolled");
+        [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_TargetPriority_Uncontrolled", advancedTweakable = true, groupName = "targetPriority", groupDisplayName = "#LOC_BDArmory_TargetPriority_Settings", groupStartCollapsed = true),//Is target controllable?
+            UI_FloatRange(minValue = -10f, maxValue = 10f, stepIncrement = 0.1f, scene = UI_Scene.All)]
+        public float targetWeightUncontrolled = 0f;
         #endregion
 
         #region Countermeasure Settings
@@ -6166,6 +6171,7 @@ namespace BDArmory.Control
             var TargetProtectTeammateFields = Fields["targetWeightProtectTeammate"];
             var TargetProtectVIPFields = Fields["targetWeightProtectVIP"];
             var TargetAttackVIPFields = Fields["targetWeightAttackVIP"];
+            var TargetUncontrolledFields = Fields["targetWeightUncontrolled"];
 
             // Calculate score values
             var targetWM = target.WeaponManager;
@@ -6184,6 +6190,7 @@ namespace BDArmory.Control
             float targetProtectTeammateValue = target.TargetPriProtectTeammate(targetWM, this);
             float targetProtectVIPValue = target.TargetPriProtectVIP(targetWM, this);
             float targetAttackVIPValue = target.TargetPriAttackVIP(targetWM);
+            float targetUncontrolledValue = target.Vessel.IsControllable ? 0f : 1f;
 
             // Calculate total target score
             float targetScore = targetBiasValue * (
@@ -6200,7 +6207,8 @@ namespace BDArmory.Control
                 targetWeightAoD * targetAoDValue +
                 targetWeightProtectTeammate * targetProtectTeammateValue +
                 targetWeightProtectVIP * targetProtectVIPValue +
-                targetWeightAttackVIP * targetAttackVIPValue);
+                targetWeightAttackVIP * targetAttackVIPValue +
+                targetWeightUncontrolled * targetUncontrolledValue);
 
             // Update GUI
             TargetBiasFields.guiName = targetBiasLabel + $": {targetBiasValue:0.00}";
@@ -6218,6 +6226,7 @@ namespace BDArmory.Control
             TargetProtectTeammateFields.guiName = targetProtectTeammateLabel + $": {targetProtectTeammateValue:0.00}";
             TargetProtectVIPFields.guiName = targetProtectVIPLabel + $": {targetProtectVIPValue:0.00}";
             TargetAttackVIPFields.guiName = targetAttackVIPLabel + $": {targetAttackVIPValue:0.00}";
+            TargetUncontrolledFields.guiName = targetUncontrolledLabel + $": {targetUncontrolledValue:0.00}";
 
             TargetScoreLabel = targetScore.ToString("0.00");
             TargetLabel = target.Vessel.GetName();

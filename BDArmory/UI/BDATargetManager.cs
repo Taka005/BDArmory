@@ -335,7 +335,9 @@ namespace BDArmory.UI
                                 thrustTransform = closestPart.FindModelTransform(transformName);
                                 propEngine = closestPart.GetComponent<ModuleEngines>() ? closestPart.GetComponent<ModuleEngines>().velCurve.Evaluate(1.1f) <= 0 : false; // Props don't generate thrust above Mach 1--will catch props that don't use Firespitter
                                 if (!propEngine)
+                                {
                                     afterburner = closestPart.GetComponent<MultiModeEngine>() ? !closestPart.GetComponent<MultiModeEngine>().runningPrimary : false;
+                                }
                             }
                         }
                         // Set thrustTransform as heat source position for engines
@@ -1551,7 +1553,8 @@ namespace BDArmory.UI
                             mf.targetWeightAoD * target.Current.TargetPriAoD(mf) +
                             mf.targetWeightProtectTeammate * target.Current.TargetPriProtectTeammate(targetMf, mf) +
                             mf.targetWeightProtectVIP * target.Current.TargetPriProtectVIP(targetMf, mf) +
-                            mf.targetWeightAttackVIP * target.Current.TargetPriAttackVIP(targetMf));
+                            mf.targetWeightAttackVIP * target.Current.TargetPriAttackVIP(targetMf) +
+                            (target.Current.Vessel.IsControllable ? 0f : mf.targetWeightUncontrolled));
                         if (BDArmorySettings.DEBUG_AI || BDArmorySettings.DEBUG_TELEMETRY) debugTargetScores.Add((target.Current.Vessel.GetName(), targetScore));
                         if (finalTarget == null || targetScore > finalTargetScore)
                         {

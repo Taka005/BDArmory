@@ -876,6 +876,7 @@ namespace BDArmory.UI
                 { "targetWeightProtectTeammate", gameObject.AddComponent<NumericInputField>().Initialise(0, weaponManager.targetWeightProtectTeammate, -10, 10) },
                 { "targetWeightProtectVIP", gameObject.AddComponent<NumericInputField>().Initialise(0, weaponManager.targetWeightProtectVIP, -10, 10) },
                 { "targetWeightAttackVIP", gameObject.AddComponent<NumericInputField>().Initialise(0, weaponManager.targetWeightAttackVIP, -10, 10) },
+                { "targetWeightUncontrolled", gameObject.AddComponent<NumericInputField>().Initialise(0, weaponManager.targetWeightUncontrolled, -10, 10) },
             };
         }
 
@@ -1899,6 +1900,19 @@ namespace BDArmory.UI
                         var field = textNumFields["targetWeightAttackVIP"];
                         field.tryParseValue(GUI.TextField(InputFieldRect(priorityLines, priorityLabelWidth), field.possibleValue, 4, field.style));
                         OnGUIWM.targetWeightAttackVIP = (float)field.currentValue;
+                    }
+
+                    GUI.Label(LabelRect(++priorityLines, priorityLabelWidth), StringUtils.Localize("#LOC_BDArmory_WMWindow_targetUncontrolled"), leftLabel); //target controllable
+                    if (!NumFieldsEnabled)
+                    {
+                        OnGUIWM.targetWeightUncontrolled = BDAMath.RoundToUnit(GUI.HorizontalSlider(SliderRect(priorityLines, priorityLabelWidth), OnGUIWM.targetWeightUncontrolled, -10, 10), 0.1f);
+                        GUI.Label(RightLabelRect(priorityLines), OnGUIWM.targetWeightUncontrolled.ToString(), leftLabel);
+                    }
+                    else
+                    {
+                        var field = textNumFields["targetWeightUncontrolled"];
+                        field.tryParseValue(GUI.TextField(InputFieldRect(priorityLines, priorityLabelWidth), field.possibleValue, 4, field.style));
+                        OnGUIWM.targetWeightUncontrolled = (float)field.currentValue;
                     }
 
                     priorityLines += 1.1f;
