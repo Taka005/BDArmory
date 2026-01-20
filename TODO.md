@@ -6,7 +6,6 @@
 - WM without AI or with stationary ground AI sometimes just sits there without attacking valid targets.
 - Check whether `base.OnStart(state);` in `MissileLauncher.OnStart` can be re-enabled and some common stuff be moved to MissileBase.cs.
 - Improve custom turret aiming.
-- Fix `FlightGlobals.GetBodyByName("Kerbin")` calls for mods that replace Kerbin.
 
 - Clean up invalid UTF-8 chars by searching for `[^\x00-\x7f±°ñ—α→θψφρqω₀π²·δ↔∫•∈"γgμν‽Δ↕]` (add more to exclude as necessary). Ignore localisation files.
 

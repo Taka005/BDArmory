@@ -1,4 +1,8 @@
-﻿v1.12.0.0
+﻿IMPROVEMENTS / FIXES
+- General:
+	- Fix GetBodyByName("Kerbin") issues for mods that replace Kerbin.
+
+v1.12.0.0
 IMPROVEMENTS / FIXES
 - UI:
 	- Adjust the "Steel Equivalent Thickness" display in the armor GUI to show a more intuitive value.
