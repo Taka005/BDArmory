@@ -1,4 +1,34 @@
-﻿IMPROVEMENTS / FIXES
+IMPROVEMENTS / FIXES
+- AI / WM:
+	- Fix Guard Mode using incorrect heat signature value for IR missile selection.
+	- Add "Attack Uncontrolled Tgt." Weight to the Weapon Manager, setting this to negative makes the AI prioritize targets under control, thus avoiding wasting ammo on vehicles with knocked out crews. NOTE: Be cautious when using this on aircraft, this includes g-loc'd pilots!
+	- Fix AI not accurately locking targets via the targeting pod at high speeds.
+- Weapons:
+	- Explosions:
+		- Re-implemented the shaped charge unfocusing/squeezing mechanic, where as the shaped charge jet penetrates armor, it loses coherence and diameter.
+		- Add spall to shaped charge damage calculations, shaped charge now carries along a % of the spall it produces as it penetrates causing additional damage.
+			- Spaced armor and materials with high ductility can be used as spall liners, which will reduce some of this spall, up to a configurable percentage. This is set by default to 50% in the settings.cfg file, using the "HEAT_SPALL_MAX_RED" setting, higher means more spall can be reduced with spall liners.
+			- Add "HEAT Spall Dmg. Multiplier" setting that affects shaped charge kinetic damage.
+		- Fix shaped charges applying kinetic damage without actually penetrating the part they hit.
+		- Apply missing explosion source multiplier for shaped charge kinetic damage.
+		- Rename incorrectly named "Implosive Damage Multiplier" setting to "Exp. Impulse Multiplier". This setting modifies the force with which explosions push vessels (the ones that aren't blown up at least...).
+	- Warheads:
+		- Add "bulletDmgMult" field to BDCustomWarhead modules, allowing their damage to be tuned.
+	- Missiles:
+		- Fix graphical glitch where Helmet Mounted Display/Sight appearing in WM modules despite there not being a cockpit with a HMD.
+		- Fix NREs that would occur when a CLOS missile has its guiding targeting pod destroyed.
+		- Add CLOS missile control deadzone via "beamgDeadzone", the missile will ignore acceleration commands below this value (to simulate things like beam-width and manual missile control).
+		- Fix pronav and augpronav missiles not properly guiding on targets when launched from extreme off-boresight angles.
+		- Add arming delay to missiles with the "fuzeArmingDelay" field specifying the arming delay in seconds and the "impactFuzeArmingDelay" bool field specifying if the impact fuze should also have an arming delay.
+		- Add spinning missiles, missiles can now be given a spin using "spinRate", specifying the spin rate in revolutions per second (clockwise-positive when looking from behind the missile) and "spinAccel", a proportional control constant for missile's spin rate, higher values will mean the missile spins up faster. Note this value should be relatively small, by default it is 0.005.
+		- Fix INS and GPS missiles fired from multi-missile launchers being fired towards (0, 0, 0) when dumbfired by the AI.
+		- Fix IR missiles not turning towards a target they lost track of.
+		- Custom Turrets:
+			- Add Lofted Aimpoint and Loft Vel. Fac. settings to missiles on custom turrets, giving them function parity with regular missile turrets.
+		- Improved debug telemetry output format.
+
+v1.12.1.0
+IMPROVEMENTS / FIXES
 - Part Changes:
 	- AIM-9 Sidewinder now has "uncagedLock = true" to reflect changes in "uncagedlock" behavior.
 	- Improve documentation of features in AIM-9 config.
