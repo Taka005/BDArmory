@@ -4141,7 +4141,7 @@ namespace BDArmory.Weapons.Missiles
             if (spinRate == 0)
             {
                 //Vector3 spin = Vector3.Project(part.rb.angularVelocity, forward);// * 8 * Time.fixedDeltaTime;
-                part.rb.angularVelocity.ProjectOnPlanePreNormalized(forward);
+                part.rb.angularVelocity = part.rb.angularVelocity.ProjectOnPlanePreNormalized(forward);
             }
             else
             {
