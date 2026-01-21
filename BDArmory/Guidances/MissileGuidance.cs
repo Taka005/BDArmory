@@ -116,17 +116,23 @@ namespace BDArmory.Guidances
         }
 
         public static Vector3 GetCLOSTarget(Vector3 sensorPos, Vector3 currentPos, Vector3 currentVelocity, Vector3 targetPos, Vector3 targetVel,
-            float correctionFactor, float N, out float gLimit)
+            float correctionFactor, float N, float deadzone, out float gLimit)
         {
             targetPos += targetVel * Time.fixedDeltaTime;
             Vector3 accel = GetCLOSAccel(sensorPos, Vector3.zero, currentPos, currentVelocity, targetPos, targetVel, Vector3.zero, correctionFactor, N);
             gLimit = accel.magnitude;
 
+            if (gLimit < deadzone)
+            {
+                gLimit = 0f;
+                return currentPos + 4f * currentVelocity;
+            }
+
             return currentPos + 4f * currentVelocity + 16f * accel;
         }
 
         public static Vector3 GetThreePointTarget(Vector3 sensorPos, Vector3 sensorVel, Vector3 currentPos, Vector3 currentVelocity, Vector3 targetPos, Vector3 targetVel,
-            float correctionFactor, float N, out float gLimit)
+            float correctionFactor, float N, float deadzone, out float gLimit)
         {
             Vector3 relVelocity = targetVel - sensorVel;
             Vector3 relRange = targetPos - sensorPos;
@@ -137,11 +143,17 @@ namespace BDArmory.Guidances
             accel -= 2f * Vector3.Cross(currentVelocity, angVel);
             gLimit = accel.magnitude / 9.80665f;
 
+            if (gLimit < deadzone)
+            {
+                gLimit = 0f;
+                return currentPos + 4f * currentVelocity;
+            }
+
             return currentPos + 4f * currentVelocity + 16f * accel;
         }
 
         public static Vector3 GetCLOSLeadTarget(Vector3 sensorPos, Vector3 sensorVel, Vector3 currentPos, Vector3 currentVelocity, Vector3 targetPos, Vector3 targetVel,
-            float correctionFactor, float N, float beamLeadFactor, out float gLimit, MissileLauncher ml)
+            float correctionFactor, float N, float deadzone, float beamLeadFactor, out float gLimit, MissileLauncher ml)
         {
             Vector3 relVelocity = targetVel - sensorVel;
             Vector3 relRange = targetPos - sensorPos;
@@ -164,8 +176,10 @@ namespace BDArmory.Guidances
             // Once below the max leadTime, the LoS vector moves towards the target at half of angVel due to the nature of half-rectification
             // guidance, hence when we get the CLOS accel we use half of angVel
             // Now that half-rectification has been generalized, this is beamLeadFactor rather than 0.5.
-            if (leadTime < 8)
+            if (leadTime < 8f)
+            {
                 angVel *= (1f - beamLeadFactor);
+            }
 
             Vector3 accel = GetCLOSAccel(sensorPos, sensorVel, currentPos, currentVelocity, sensorPos + corrRelRange, targetVel, angVel, correctionFactor, N);
 
@@ -173,6 +187,12 @@ namespace BDArmory.Guidances
 
             //accel -= 2f * Vector3.Cross(currentVelocity, angVel);
             gLimit = accel.magnitude / 9.80665f;
+
+            if (gLimit < deadzone)
+            {
+                gLimit = 0f;
+                return currentPos + 4f * currentVelocity;
+            }
 
             return currentPos + 4f * currentVelocity + 16f * accel;
         }
@@ -218,14 +238,18 @@ namespace BDArmory.Guidances
             
             // We calculate how much remains of currentVelocity once we subtract away the velocity command
             float temp = 1f - velCommand.sqrMagnitude / (currentSpeed * currentSpeed);
-            
+
             if (temp < 0f)
+            {
                 // If the velocity command is greater than the currentSpeed then pointing we maximize
                 // our velocity normal to the beam
                 velCommand = velCommand.normalized;
+            }
             else
+            {
                 // Otherwise, we put what remains of currentVelocity into velocity along the beamDir
                 velCommand = velCommand / currentSpeed + BDAMath.Sqrt(temp) * beamDir;
+            }
 
             // We use velCommand crossed with velDir as our angular velocity command since it's more
             // efficient than using a linear angular error based command like was used in the previous
