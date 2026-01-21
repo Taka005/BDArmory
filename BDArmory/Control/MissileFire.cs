@@ -3500,7 +3500,6 @@ namespace BDArmory.Control
                                 float turretStartTime = attemptStartTime;
                                 if (ml.customTurret.Count > 0)
                                 {
-                                    vesselRadarData.SlaveTurrets();
                                     while (Time.time - turretStartTime < Mathf.Max(targetScanInterval / 2f, 2) && targetVessel && ml && angle > 5)//ml.customTurret[0].fireFOV
                                     {
                                         for (int i = 0; i < ml.customTurret.Count; i++)
