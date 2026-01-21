@@ -491,9 +491,13 @@ namespace BDArmory.Targeting
                 if (groundStabilized && !slewingToPosition)
                 {
                     if (lockedVessel != null)
+                    {
                         groundTargetPosition = lockedVessel.CoM;
+                    }
                     else
+                    {
                         groundTargetPosition = VectorUtils.GetWorldSurfacePostion(bodyRelativeGTP, vessel.mainBody);//vessel.mainBody.GetWorldSurfacePosition(bodyRelativeGTP.x, bodyRelativeGTP.y, bodyRelativeGTP.z);
+                    }
 
                     Vector3 lookVector = groundTargetPosition - cameraParentTransform.position;
                     //cameraParentTransform.rotation = Quaternion.LookRotation(lookVector);
@@ -1327,7 +1331,9 @@ namespace BDArmory.Targeting
                 {
                     KerbalEVA hitEVA = rayHit.collider.gameObject.GetComponentUpwards<KerbalEVA>();
                     if (hitEVA)
+                    {
                         p = hitEVA.part;
+                    }
 
                     bool pCheck = false;
 
@@ -1433,7 +1439,9 @@ namespace BDArmory.Targeting
                 {
                     KerbalEVA hitEVA = rayHit.collider.gameObject.GetComponentUpwards<KerbalEVA>();
                     if (hitEVA)
+                    {
                         p = hitEVA.part;
+                    }
                     if (p && p.vessel)
                     {
                         groundTargetPosition = p.vessel.CoM;
@@ -1465,6 +1473,7 @@ namespace BDArmory.Targeting
         void ClearTarget()
         {
             groundStabilized = false;
+            lockedVessel = null;
         }
 
         Coroutine resetCamera;
@@ -1528,17 +1537,52 @@ namespace BDArmory.Targeting
             var wait = new WaitForFixedUpdate();
             Vector3 cameraPos;
             Vector3 cameraForward;
-            while (!stopPTPR && VectorUtils.Angle((cameraForward = cameraParentTransform.transform.forward), (tgtVessel != null ? tgtVessel.CoM : position) - (cameraPos = cameraParentTransform.transform.position)) > 0.1f)
+            CoMLock = tgtVessel;
+            float tolerance;
+            if (tgtVessel)
             {
+                tolerance = 0.8f * tgtVessel.GetRadius(); // Use 80% of target radius as threshold for now
+                // If bug reports come in of the TGP never acquiring lock on large targets, consider going
+                // to just the plain radius instead.
+                tolerance *= tolerance;
+            }
+            else
+            {
+                tolerance = 10f * 10f;
+            }
+            while (!stopPTPR)
+            {
+                // If...
+                if (surfaceDetected && // We've hit something
+                    (targetPointPosition - position).sqrMagnitude <= tolerance) // And we're within tolerance
+                {
+                    break; // Break out of the loop
+                }
+
+                cameraForward = cameraParentTransform.transform.forward;
+                (float distance, Vector3 relativeDir) = ((tgtVessel != null ? tgtVessel.CoM : position) - (cameraPos = cameraParentTransform.transform.position)).MagNorm();
+
+                // If no tgtVessel or the tgtVessel is too far, break if angle < 0.1°
+                if ((!tgtVessel || distance > maxRayDistance) && VectorUtils.AnglePreNormalized(cameraForward, relativeDir) < 0.1f) break;
+
                 if (tgtVessel != null)
                 {
                     position = tgtVessel.CoM + tgtVessel.Velocity() * Time.fixedDeltaTime;
-                    if ((tgtVessel.CoM - cameraPos).sqrMagnitude < maxRayDistance * maxRayDistance)
-                        lockedVessel = tgtVessel;
-                    else
-                        lockedVessel = null;
+                    //if ((tgtVessel.CoM - cameraPos).sqrMagnitude < maxRayDistance * maxRayDistance)
+                    //{
+                    //    lockedVessel = tgtVessel;
+                    //}
+                    //else
+                    //{
+                    //    lockedVessel = null;
+                    //}
                 }
-                else lockedVessel = null;
+                else
+                {
+                    // Clear any potential vessel targets if we're not looking for a vessel
+                    lockedVessel = null;
+                }
+
                 Vector3 newForward = Vector3.RotateTowards(cameraForward, position - cameraPos, traverseRate * Mathf.Deg2Rad * Time.fixedDeltaTime, 0);
                 //cameraParentTransform.rotation = Quaternion.LookRotation(newForward, VectorUtils.GetUpDirection(transform.position));
                 PointCameraModel(newForward);

@@ -3367,14 +3367,20 @@ namespace BDArmory.Weapons.Missiles
                     sensorVel = targetingPod.vessel.Velocity();
                     sensorPos = targetingPod.cameraParentTransform.position + (sensorVel * Time.fixedDeltaTime);
                     if (targetingPod.lockedVessel)
+                    {
                         targetVel = targetingPod.lockedVessel.Velocity();
+                    }
                     else
                     {
                         MissileFire weaponManagerTemp;
                         if (targetingPod.radarLock && (weaponManagerTemp = targetingPod.WeaponManager) != null && weaponManagerTemp.vesselRadarData && weaponManagerTemp.vesselRadarData.locked)
+                        {
                             targetVel = weaponManagerTemp.vesselRadarData.lockedTargetData.targetData.velocity;
+                        }
                         else
+                        {
                             targetVel = Vector3.zero;
+                        }
                     }
                 }
                 else if (TargetingMode == TargetingModes.Radar)
