@@ -1132,7 +1132,7 @@ namespace BDArmory.Weapons.Missiles
                     }
                     else // Kill relative velocity to target
                         relVel = vessel.Velocity() - targetVelocity;
-                    rcsVector = -Vector3.ProjectOnPlane(relVel, forwardDir);
+                    rcsVector = -relVel.ProjectOnPlane(forwardDir);
                 }
             }
             else
@@ -1190,7 +1190,7 @@ namespace BDArmory.Weapons.Missiles
             Vector3 roll = referenceRoll != direction.normalized ? referenceRoll : commander.transform.forward;
 
             // Orient the control point towards direction (finger) with perpendicular as the up vector (thumb).
-            Vector3 perpendicular = Vector3.ProjectOnPlane(roll, direction.normalized);
+            Vector3 perpendicular = roll.ProjectOnPlanePreNormalized(direction.normalized);
             dynamic.transform.rotation = Quaternion.LookRotation(perpendicular, direction.normalized); // VAB orientation.
         }
 
