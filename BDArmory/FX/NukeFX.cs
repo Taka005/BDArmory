@@ -80,7 +80,11 @@ namespace BDArmory.FX
         {
             get
             {
-                if (_KerbinSeaLevelAtmDensity == 0) _KerbinSeaLevelAtmDensity = (float)FlightGlobals.GetBodyByName("Kerbin").atmDensityASL;
+                if (_KerbinSeaLevelAtmDensity == 0)
+                {
+                    var kerbin = FlightGlobals.GetBodyByName("Kerbin"); // Some mods replace Kerbin, which can break this, so we fall back to a hard-coded value.
+                    _KerbinSeaLevelAtmDensity = kerbin != null ? (float)kerbin.atmDensityASL : 1.224977f;
+                }
                 return _KerbinSeaLevelAtmDensity;
             }
         }
@@ -412,7 +416,7 @@ namespace BDArmory.FX
                     {
                         ExecuteBuildingBlastEvent((BuildingNukeHitEvent)eventToExecute);
                     }
-                }                
+                }
             }
 
             if (hasDetonated && explosionEvents.Count == 0 && TimeIndex > MaxTime)
@@ -507,7 +511,7 @@ namespace BDArmory.FX
                                 damage = ProjectileUtils.IsArmorPart(part) ? blastDamage : part.AddExplosiveDamage(blastDamage, 1, ExplosionSource, 1); //armor panels return damage = 0, so adding exception so they still score properly
                                 // no damage reduction from very thick armor, but no multiplier from damage type, either, should balance out. And any comp that allows nukes probably isn't going to be weighting DamageIn...
                             }
-                            if (damage > 0) 
+                            if (damage > 0)
                             {
                                 if (BDArmorySettings.BATTLEDAMAGE)
                                 {

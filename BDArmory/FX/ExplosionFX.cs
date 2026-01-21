@@ -87,7 +87,11 @@ namespace BDArmory.FX
         {
             get
             {
-                if (_KerbinSeaLevelAtmDensity == 0) _KerbinSeaLevelAtmDensity = (float)FlightGlobals.GetBodyByName("Kerbin").atmDensityASL;
+                if (_KerbinSeaLevelAtmDensity == 0)
+                {
+                    var kerbin = FlightGlobals.GetBodyByName("Kerbin"); // Some mods replace Kerbin, which can break this, so we fall back to a hard-coded value.
+                    _KerbinSeaLevelAtmDensity = kerbin != null ? (float)kerbin.atmDensityASL : 1.224977f;
+                }
                 return _KerbinSeaLevelAtmDensity;
             }
         }
@@ -637,7 +641,7 @@ namespace BDArmory.FX
                 {
                     continue;
                 }
-                if (FlightGlobals.currentMainBody != null && hit.collider.gameObject == FlightGlobals.currentMainBody.gameObject) return false; // Terrain hit. Full absorption. Should avoid NREs in the following. FIXME This doesn't seem correct anymore: "Kerbin Zn1232223233" vs "Kerbin", but doesn't seem to cause issues either.
+                if (FlightGlobals.currentMainBody != null && hit.collider.gameObject == FlightGlobals.currentMainBody.gameObject) return false; // Terrain hit. Full absorption. Should avoid NREs in the following.
                 if (intermediateParts)
                 {
                     float partHP = partHit.Damage();
