@@ -3463,7 +3463,7 @@ namespace BDArmory.Control
                             MissileTurret multiLauncherTurret = mlauncher.multiLauncher ? mlauncher.multiLauncher.turret : null;
                             if (mLauncherTurret) mLauncherTurret.slavedGuard = true;
                             if (multiLauncherTurret) multiLauncherTurret.slavedGuard = true;
-                            while (Time.time - attemptStartTime < attemptDuration && (!laserPointDetected || (foundCam && (foundCam.groundTargetPosition - targetVessel.CoM).sqrMagnitude > targetpaintAccuracyThreshold)))
+                            while (Time.time - attemptStartTime < attemptDuration && targetVessel && (!laserPointDetected || (foundCam && (foundCam.groundTargetPosition - targetVessel.CoM).sqrMagnitude > targetpaintAccuracyThreshold)))
                             {
                                 if (ml.customTurret.Count > 0)
                                 {
@@ -3776,7 +3776,7 @@ namespace BDArmory.Control
                                 float dumbfireFOV = 1f; // Match firing conditions for dumbfired weapons in GetLaunchAuthorization
                                 if (ml.customTurret.Count > 0)
                                 {
-                                    vesselRadarData.SlaveTurrets();
+                                    if (vesselRadarData && vesselRadarData.lockedTargetData.vessel == targetVessel) vesselRadarData.SlaveTurrets();
                                     while (Time.time - turretStartTime < Mathf.Max(targetScanInterval / 2f, 2) && targetVessel && ml && angle > dumbfireFOV)//ml.customTurret[0].fireFOV
                                     {
                                         for (int i = 0; i < ml.customTurret.Count; i++)
