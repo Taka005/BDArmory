@@ -114,7 +114,7 @@ namespace BDArmory.Weapons.Missiles
         public float spinRate = 0f;
 
         [KSPField]
-        public float spinAccel = 0.005f;
+        public float spinAccel = 0.25f;
 
         [KSPField]
         public string maxTorqueAero = "0";
@@ -2472,7 +2472,7 @@ namespace BDArmory.Weapons.Missiles
 
                 if (aero && aeroSteerDamping > 0f)
                 {
-                    part.rb.AddRelativeTorque(-aeroSteerDamping * part.transform.InverseTransformDirection(part.rb.angularVelocity.ProjectOnPlanePreNormalized(part.rb.transform.forward)));
+                    part.rb.AddRelativeTorque(-aeroSteerDamping * part.transform.InverseTransformDirection(part.rb.angularVelocity.ProjectOnPlanePreNormalized(MissileReferenceTransform.forward)));
                 }
 
                 if (hasRCS && !guidanceActive)
@@ -4135,19 +4135,19 @@ namespace BDArmory.Weapons.Missiles
             part.rb.angularDrag = 0;
             part.angularDrag = 0;
 
-            Vector3 forward = part.rb.transform.forward;
+            Vector3 forward = MissileReferenceTransform.forward;
 
-            // This worked, but not on all missiles for some reason...
             if (spinRate == 0)
             {
-                //Vector3 spin = Vector3.Project(part.rb.angularVelocity, forward);// * 8 * Time.fixedDeltaTime;
+                //Vector3 spin = Vector3.Project(part.rb.angularVelocity, MissileReferenceTransform.forward);// * 8 * Time.fixedDeltaTime;
+                //part.rb.angularVelocity -= spin;
                 part.rb.angularVelocity = part.rb.angularVelocity.ProjectOnPlanePreNormalized(forward);
             }
             else
             {
                 float currSpinRate = Vector3.Dot(part.rb.angularVelocity, forward);
                 // Use proportional control, multiply spinRate by 2*pi to get rad/s
-                part.rb.angularVelocity += (spinAccel * (spinRate * 6.283185307179586476925f - currSpinRate)) * forward;
+                part.rb.angularVelocity += (Time.fixedDeltaTime * spinAccel * (spinRate * 6.283185307179586476925f - currSpinRate)) * forward;
             }
 
             //rigidbody.maxAngularVelocity = 7;
