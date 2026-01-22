@@ -4184,14 +4184,7 @@ namespace BDArmory.Weapons.Missiles
             // Start with 0
             antiradTargets = 0;
 
-            // Because we're not using flag enums, this has to be done in a for loop
-            // maybe there's a smarter way to do this?
-            RadarWarningReceiver.RWRThreatTypes[] temp = OtherUtils.ParseEnumArray<RadarWarningReceiver.RWRThreatTypes>(antiradTargetTypes);
-            for (int i = 0; i < temp.Length; i++)
-            {
-                // Set the RWRThreatType + 1 (to account for -1 None) bit to 1
-                antiradTargets |= 1 << ((int)temp[i] + 1);
-            }
+            antiradTargets = OtherUtils.ParseEnumArray<RadarWarningReceiver.RWRThreatTypes>(antiradTargetTypes).ToBits();
             //Debug.Log($"[BDArmory.MissileLauncher] antiradTargets: {string.Join(", ", antiradTargets)}");
         }
 

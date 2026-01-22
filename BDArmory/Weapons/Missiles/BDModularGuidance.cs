@@ -15,6 +15,7 @@ using System;
 using System.Collections.Generic;
 using UniLinq;
 using UnityEngine;
+using static BDArmory.Radar.RadarWarningReceiver;
 
 namespace BDArmory.Weapons.Missiles
 {
@@ -635,6 +636,8 @@ namespace BDArmory.Weapons.Missiles
             return false;
         }
 
+        public static readonly int modularGuidanceAntiRadTargetTypes = new[] { RWRThreatTypes.SAM, RWRThreatTypes.Detection }.ToBits();
+
         public override void OnStart(StartState state)
         {
             base.OnStart(state);
@@ -648,7 +651,7 @@ namespace BDArmory.Weapons.Missiles
             part.force_activate();
             RefreshGuidanceMode();
 
-            antiradTargets = (1 << 1 | 1 << 6);
+            antiradTargets = modularGuidanceAntiRadTargetTypes;
 
             UpdateTargetingMode((TargetingModes)Enum.Parse(typeof(TargetingModes), _targetingLabel));
 

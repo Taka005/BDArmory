@@ -1,4 +1,4 @@
-﻿using BDArmory.Competition;
+using BDArmory.Competition;
 using BDArmory.Control;
 using BDArmory.CounterMeasure;
 using BDArmory.Extensions;
@@ -1394,7 +1394,8 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
         {
             if (TargetingMode == TargetingModes.AntiRad && TargetAcquired && v == vessel)
             {
-
+                // These CanDetectRWRThreat function calls can probably be replaced with the actual code,
+                // but I think this is more readable and maintainable for anyone not familiar with bitmasks
                 if (!RadarWarningReceiver.CanDetectRWRThreat(antiradTargets, type)) return;  //Type check, so a different RWRType ping doesn't decoy the ARM. multiple radar sources on the same frequency within boresight will canse missile to pingpong between them, if sufficiently close to each other.
                 //if (targetVessel != null) //filter on a per-vessel basis? Technically speaking, as a passive sensor, ARH would have no way of distinguishing a specific vessel to focus on, and ping filtering would need to be based on distance from previous ping(s)
                 //{

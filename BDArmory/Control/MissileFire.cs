@@ -1922,12 +1922,14 @@ namespace BDArmory.Control
                                         {
                                             Vector3 position;
                                             RWRSignatureData pingData = rwr.pingsData[i];
+                                            // These CanDetectRWRThreat function calls can probably be replaced with the actual code,
+                                            // but I think this is more readable and maintainable for anyone not familiar with bitmasks
                                             if (pingData.exists && RadarWarningReceiver.CanDetectRWRThreat(msl.antiradTargets, pingData.signalType) && Vector3.Dot((position = pingData.position) - missilePos, missileForward) > 0)
                                             {
                                                 missileAimerUI.Add((position, BDArmorySetup.Instance.greenDiamondTexture, 22, 0));
                                             }
                                         }
-                                        if (RadarWarningReceiver.CanDetectRWRThreat(msl.antiradTargets, RadarWarningReceiver.RWRThreatTypes.MissileLock))
+                                        if ((msl.antiradTargets & pointDefenseAntiradThreatType) != 0)
                                         {
                                             rwr.SetRadarMissileIndex();
                                             for (int i = 0; i < rwr._missileLockSize; i++)
@@ -4872,8 +4874,10 @@ namespace BDArmory.Control
                                     case MissileBase.TargetingModes.AntiRad:
                                         {
                                             // Missile is index 4 (+ 1 due to -1 None)
-                                            if ((mb.antiradTargets & (1 << 5)) != 0)
+                                            if ((mb.antiradTargets & pointDefenseAntiradThreatType) != 0)
+                                            {
                                                 pointDefenseMissileHasAntiRad = true;
+                                            }
                                             break;
                                         }
                                 }
@@ -4922,7 +4926,7 @@ namespace BDArmory.Control
                             //FIXME shouldn't this be set as part of currentMissile? Else having multiple ARH with different target types would overwrite this with potentially the wrong set of target types
                             //or otherwise have this array contain the target types for *all* ARH ordnance on the vessel.
                             //antiradTargets.Union(OtherUtils.ParseEnumArray<RadarWarningReceiver.RWRThreatTypes>(ml != null ? ml.antiradTargetTypes : "0,5"));
-                            antiradTargets |= ml != null ? ml.antiradTargets : (1 << 1 | 1 << 6);
+                            antiradTargets |= (ml != null ? ml.antiradTargets : BDModularGuidance.modularGuidanceAntiRadTargetTypes);
                         }
                     }
                 }
@@ -6303,12 +6307,14 @@ namespace BDArmory.Control
                 RWRSignatureData currPing = rwr.pingsData[i];
                 if ((currPing.position - targetVessel.CoM).sqrMagnitude < 20f * 20f) //is current target a hostile radar source?
                 {
-                    RWRThreatTypes |= 1 << ((int)currPing.signalType + 1);
+                    RWRThreatTypes |= currPing.signalType.ToBits();
                     foundTarget = true;
                 }
             }
             return foundTarget;
         }
+
+        static readonly int sonarAntiradThreatType = RadarWarningReceiver.RWRThreatTypes.Sonar.ToBits();
 
         // extension for feature_engagementenvelope: new smartpickweapon method
         bool SmartPickWeapon_EngagementEnvelope(TargetInfo target)
@@ -7140,8 +7146,7 @@ namespace BDArmory.Control
                                             skipRWRCheck = true;
                                         }
 
-                                        // Sonar is index 6 (+ 1 to account for -1 None)
-                                        if ((RWRTypes & (1 << 7)) != 0) candidateYield *= 1.5f; // Prioritize PAH Torps for hostile sonar sources
+                                        if ((RWRTypes & sonarAntiradThreatType) != 0) candidateYield *= 1.5f; // Prioritize PAH Torps for hostile sonar sources
                                     }
 
                                     if (candidateTurning + candidateYield > targetWeaponTDPS)
@@ -8413,6 +8418,8 @@ namespace BDArmory.Control
                     for (int i = 0; i < rwr.pingsData.Length; i++) //using copy of antirad targets due to CanSee running before weapon selection
                     {
                         RWRSignatureData currPing = rwr.pingsData[i];
+                        // These CanDetectRWRThreat function calls can probably be replaced with the actual code,
+                        // but I think this is more readable and maintainable for anyone not familiar with bitmasks
                         if (currPing.exists && RadarWarningReceiver.CanDetectRWRThreat(antiradTargets, currPing.signalType) && (currPing.position - target.position).sqrMagnitude < 20f * 20f)
                         {
                             detectedTargetTimeout = 0;
@@ -8542,6 +8549,8 @@ namespace BDArmory.Control
                 for (int i = 0; i < rwr.pingsData.Length; i++)
                 {
                     RWRSignatureData currPing = rwr.pingsData[i];
+                    // These CanDetectRWRThreat function calls can probably be replaced with the actual code,
+                    // but I think this is more readable and maintainable for anyone not familiar with bitmasks
                     if (currPing.exists && RadarWarningReceiver.CanDetectRWRThreat(ml.antiradTargets, currPing.signalType))
                     {
                         Vector3 position = currPing.position;
@@ -9651,6 +9660,8 @@ namespace BDArmory.Control
                 }
         }
         int MissileID = 0;
+
+        static readonly int pointDefenseAntiradThreatType = RadarWarningReceiver.RWRThreatTypes.MissileLock.ToBits();
         public void PointDefenseTurretFiring()
         {
             if (!IsPrimaryWM) return;
@@ -10174,8 +10185,7 @@ namespace BDArmory.Control
                                     RWRDetected = rwr.IsRadarMissileDetected(targetVessel);
                                 }
 
-                                // MissileLock is index 4 (+ 1 for -1 None)
-                                if (!RWRDetected || ((currMissile.antiradTargets & (1 << 5)) == 0)) continue;
+                                if (!RWRDetected || ((currMissile.antiradTargets & pointDefenseAntiradThreatType) == 0)) continue;
                             }
                             break;
                     }
