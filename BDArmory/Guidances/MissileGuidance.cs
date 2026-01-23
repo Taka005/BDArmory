@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 
 using BDArmory.Extensions;
@@ -293,11 +293,17 @@ namespace BDArmory.Guidances
             float RSqr = Rdir.sqrMagnitude;
             leadTime = -RSqr / Vector3.Dot(targetVelocity - currVel, Rdir);
 
-            if (leadTime <= 0f)
-                leadTime = float.PositiveInfinity;
+            if (leadTime < 0)
+            {
+                timeToImpact = float.PositiveInfinity;
+                leadTime = 8f;
+            }
+            else
+            {
+                timeToImpact = leadTime;
+            }
 
             //leadTime = targetDistance / (targetVelocity - currVel).magnitude;
-            timeToImpact = leadTime;
             leadTime = Mathf.Clamp(leadTime, 0f, 8f);
 
             return targetPosition + (targetVelocity * leadTime);
@@ -1095,12 +1101,14 @@ namespace BDArmory.Guidances
             Vector3 missileVel = missileVessel.Velocity();
             Vector3 relVelocity = targetVelocity - missileVel;
             Vector3 relRange = targetPosition - missileVessel.CoM;
-            timeToGo = -relRange.sqrMagnitude / Vector3.Dot(relRange, relVelocity);
-            if (timeToGo < 0)
+            float dotP = Vector3.Dot(relRange, relVelocity);
+            // If the target is receding or we have zero relative velocity, both of which produce undefined behavior
+            if (dotP >= 0)
             {
                 gLimit = -1f;
                 return GetAirToAirTarget(targetPosition, targetVelocity, Vector3.zero, missileVessel, out timeToGo);
             }
+            timeToGo = -relRange.sqrMagnitude / dotP;
             Vector3 RotVector = Vector3.Cross(relRange, relVelocity) / relRange.sqrMagnitude;
             Vector3 RefVector = missileVel.normalized;
             Vector3 normalAccel = -N * relVelocity.magnitude * Vector3.Cross(RefVector, RotVector);
