@@ -1309,7 +1309,7 @@ namespace BDArmory.Weapons.Missiles
             TargetAcquired = false;
             TimeFired = -1;
             _missileIgnited = false;
-            lockFailTimer = -1;
+            _lockFailTimer = -1;
             guidanceActive = false;
             HasMissed = false;
             HasExploded = false;

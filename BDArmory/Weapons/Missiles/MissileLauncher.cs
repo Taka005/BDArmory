@@ -2483,7 +2483,7 @@ namespace BDArmory.Weapons.Missiles
 
             if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_MISSILES)
             {
-                if (guidanceActive) debugString.AppendLine($"Missile target={debugGuidanceTarget}. seekerTimeout={lockFailTimer}/{seekerTimeout}.");
+                if (guidanceActive) debugString.AppendLine($"Missile target={debugGuidanceTarget}. seekerTimeout={_lockFailTimer}/{seekerTimeout}.");
                 else debugString.AppendLine("Guidance inactive");
 
                 debugString.AppendLine("Source vessel=" + (SourceVessel != null ? SourceVessel.GetName() : "null"));
@@ -2516,7 +2516,9 @@ namespace BDArmory.Weapons.Missiles
             }
 
             if (!TargetAcquired && targetVessel == null)
+            {
                 scanOverride = true; // Allow missiles to go to their terminal guidance when dumbfired
+            }
 
             // check if guidance mode should be changed for terminal phase
             float distanceSqr = (tempTargetPos - vessel.CoM).sqrMagnitude;
@@ -2533,10 +2535,15 @@ namespace BDArmory.Weapons.Missiles
                         // gets ground heat targets and after locking one, disallows the lock to break to another target
 
                         if (activeRadarRange < 0 && torpedo)
+                        {
                             heatTarget = BDATargetManager.GetAcousticTarget(SourceVessel, vessel, new Ray(vessel.CoM, tempTargetPos - vessel.CoM), TargetSignatureData.noTarget, lockedSensorFOV * 0.5f, heatThreshold, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity,
                                 FiredByWM, targetVessel, IFF: hasIFF);
+                        }
                         else
+                        {
                             heatTarget = BDATargetManager.GetHeatTarget(SourceVessel, vessel, new Ray(vessel.CoM, tempTargetPos - vessel.CoM), TargetSignatureData.noTarget, lockedSensorFOV * 0.5f, heatThreshold, frontAspectHeatModifier, uncagedLock, targetCoM, lockedSensorFOVBias, lockedSensorVelocityBias, lockedSensorVelocityMagnitudeBias, lockedSensorMinAngularVelocity, FiredByWM, targetVessel, IFF: hasIFF);
+                        }
+
                         if (heatTarget.exists && CheckTargetEngagementEnvelope(heatTarget.targetInfo))
                         {
                             if (BDArmorySettings.DEBUG_MISSILES)
@@ -2548,11 +2555,9 @@ namespace BDArmory.Weapons.Missiles
                             TargetVelocity = heatTarget.velocity;
                             TargetAcceleration = heatTarget.acceleration;
                             //targetVessel = heatTarget.targetInfo; will mess with AI MissilesAway and potentially result in ripplefired IR missiles against an enemy actively flaring and decoying heaters.
-                            lockFailTimer = -1; // ensures proper entry into UpdateHeatTarget()
+                            //lockFailTimer = -1; // ensures proper entry into UpdateHeatTarget() -> now done below
 
-                            // Disable terminal guidance and switch to regular heat guidance for next update
-                            terminalGuidanceShouldActivate = false;
-                            TargetingMode = TargetingModes.Heat;
+                            // Enable terminal guidance and switch to regular heat guidance for next update
                             terminalGuidanceActive = true;
 
                             // Adjust heat score based on distance missile will travel in the next update
@@ -2568,16 +2573,9 @@ namespace BDArmory.Weapons.Missiles
                         }
                         else
                         {
-                            if (!dumbTerminalGuidance)
-                            {
-                                TargetAcquired = true;
-                                TargetVelocity = Vector3.zero;
-                                TargetAcceleration = Vector3.zero;
-                                //continue towards primary guidance targetPosition until heat lock acquired
-                            }
                             if (BDArmorySettings.DEBUG_MISSILES)
                             {
-                                Debug.Log("[BDArmory.MissileLauncher][Terminal Guidance]: Missile heatseeker could not acquire a target lock, reverting to default guidance.");
+                                Debug.Log($"[BDArmory.MissileLauncher][Terminal Guidance]: Missile heatseeker could not acquire a target lock, {(dumbTerminalGuidance ? "swapping to IR guidance due to dumbTerminalGuidance = true." : "reverting to default guidance.")}");
                             }
                         }
                         break;
@@ -2641,6 +2639,7 @@ namespace BDArmory.Weapons.Missiles
                             TargetVelocity = radarTarget.velocity;
                             TargetAcceleration = radarTarget.acceleration;
                             targetGPSCoords = VectorUtils.WorldPositionToGeoCoords(TargetPosition, vessel.mainBody);
+                            terminalGuidanceActive = true;
 
                             if (weaponClass == WeaponClasses.SLW)
                                 RadarWarningReceiver.PingRWR(new Ray(vessel.CoM, radarTarget.predictedPosition - vessel.CoM), 45, RadarWarningReceiver.RWRThreatTypes.Torpedo, 2f, vessel);
@@ -2648,21 +2647,21 @@ namespace BDArmory.Weapons.Missiles
                                 RadarWarningReceiver.PingRWR(new Ray(vessel.CoM, radarTarget.predictedPosition - vessel.CoM), 45, RadarWarningReceiver.RWRThreatTypes.MissileLaunch, 2f, vessel);
 
                             if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher][Terminal Guidance]: Pitbull! Radar missileBase has gone active.  Radar sig strength: {radarTarget.signalStrength:0.0} - target: {radarTarget.vessel.name}");
-                            terminalGuidanceActive = true;
                         }
                         else
                         {
-                            TargetAcquired = true;
-                            TargetPosition = VectorUtils.GetWorldSurfacePostion(UpdateGPSTarget(), vessel.mainBody); //putting back the GPS target if no radar target found
+                            // Should not set target data, and instead just use the primary mode's data
+                            /*TargetAcquired = true;
+                            TargetPosition = VectorUtils.GetWorldSurfacePostion(targetGPSCoords, vessel.mainBody); //putting back the GPS target if no radar target found
                             TargetVelocity = Vector3.zero;
                             TargetAcceleration = Vector3.zero;
-                            targetGPSCoords = VectorUtils.WorldPositionToGeoCoords(TargetPosition, vessel.mainBody); //tgtPos/tgtGPS should really be not set here, so the last valid postion/coords are used, in case of non-GPS primary guidance
-                            radarTarget = TargetSignatureData.noTarget;
+                            //targetGPSCoords = VectorUtils.WorldPositionToGeoCoords(TargetPosition, vessel.mainBody); //tgtPos/tgtGPS should really be not set here, so the last valid postion/coords are used, in case of non-GPS primary guidance
+                            radarTarget = TargetSignatureData.noTarget;*/
                             if (activeRadarRange > 0f && radarLOAL)
+                            {
                                 radarLOALSearching = true;
-                            if (dumbTerminalGuidance)
-                                terminalGuidanceActive = true;
-                            if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MissileLauncher][Terminal Guidance]: Missile radar could not acquire a target lock - Defaulting to GPS Target");
+                            }
+                            if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher][Terminal Guidance]: Missile radar could not acquire a target lock - {(dumbTerminalGuidance ? $"swapping to radar guidance with radarLOAL: {radarLOAL} due to dumbTerminalGuidance = true." : "reverting to default guidance.")}");
                         }
                         break;
 
@@ -2674,9 +2673,14 @@ namespace BDArmory.Weapons.Missiles
                         // from gps to gps -> no actions need to be done!
                         break;
                     case TargetingModes.Inertial:
-                        // Not sure *why* you'd use this for TerminalGuideance, but ok...
+                        // Not sure *why* you'd use this for TerminalGuidance, but ok...
                         TargetAcquired = true;
-                        if (targetVessel != null) TargetPosition = VectorUtils.GetWorldSurfacePostion(MissileGuidance.GetAirToAirFireSolution(this, targetVessel.Vessel.CoM, TargetVelocity), vessel.mainBody);
+                        if (targetVessel != null)
+                        {
+                            TargetPosition = VectorUtils.GetWorldSurfacePostion(MissileGuidance.GetAirToAirFireSolution(this, TargetPosition, TargetVelocity), vessel.mainBody);
+                            TargetINSCoords = targetGPSCoords;
+                            TimeOfLastINS = Time.time;
+                        }
                         TargetVelocity = Vector3.zero;
                         TargetAcceleration = Vector3.zero;
                         terminalGuidanceActive = true;
@@ -2702,9 +2706,12 @@ namespace BDArmory.Weapons.Missiles
 
                     TargetingMode = TargetingModeTerminal;
                     if (terminalSeekerTimeout >= 0)
+                    {
                         seekerTimeout = terminalSeekerTimeout;
+                    }
                     terminalGuidanceActive = true;
                     terminalGuidanceShouldActivate = false;
+                    _lockFailTimer = -1; // Reset lockFailTimer
                 }
             }
         }
@@ -2878,7 +2885,7 @@ namespace BDArmory.Weapons.Missiles
             if (useSimpleDragTemp)
             {
                 yield return new WaitForSecondsFixed((clearanceLength * 1.2f) / 2);
-                part.dragModel = Part.DragModel.DEFAULT;
+                //part.dragModel = Part.DragModel.DEFAULT; // all missiles use DragModel.NONE
                 useSimpleDragTemp = false;
             }
             var childColliders = part.GetComponentsInChildren<Collider>(includeInactive: false);
@@ -4164,7 +4171,7 @@ namespace BDArmory.Weapons.Missiles
 
         void SimpleDrag()
         {
-            part.dragModel = Part.DragModel.NONE;
+            //part.dragModel = Part.DragModel.NONE; // Not necessary, this is set on-launch
             if (part.rb == null || part.rb.mass == 0) return;
             //float simSpeedSquared = (float)vessel.Velocity.sqrMagnitude;
             float simSpeedSquared = (part.rb.GetPointVelocity(part.transform.TransformPoint(simpleCoD)) + (Vector3)Krakensbane.GetFrameVelocity()).sqrMagnitude;
