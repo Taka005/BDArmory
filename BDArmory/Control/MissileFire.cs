@@ -2978,12 +2978,16 @@ namespace BDArmory.Control
                                             if ((vesselRadarData.lockedTargetData.targetData.predictedPosition - targetVessel.CoM).sqrMagnitude > 40 * 40)
                                             {
                                                 if (!vesselRadarData.SwitchActiveLockedTarget(targetVessel))
+                                                {
                                                     vesselRadarData.TryLockTarget(targetVessel);
+                                                }
                                                 yield return new WaitForSecondsFixed(Mathf.Min(1, (targetScanInterval * tryLockTime)));
                                             }
                                         }
                                         else
+                                        {
                                             vesselRadarData.TryLockTarget(targetVessel);
+                                        }
                                     }
                                     else if (_irstsEnabled)
                                     {
@@ -9196,7 +9200,7 @@ namespace BDArmory.Control
                                 if (engagedTargets > multiMissileTgtNum) launchAuthorized = false; //already fired on max allowed targets
                                 // Check that launch is possible before entering GuardMissileRoutine, or that missile is on a turret
                                 MissileLauncher ml = CurrentMissile as MissileLauncher;
-                                launchAuthorized = launchAuthorized && (GetLaunchAuthorization(guardTarget, this, CurrentMissile) || (ml is not null && (ml.missileTurret || (ml.multiLauncher && ml.multiLauncher.turret))));
+                                launchAuthorized = launchAuthorized && ((ml is not null && (ml.customTurret.Count > 0 || ml.missileTurret || (ml.multiLauncher && ml.multiLauncher.turret))) || GetLaunchAuthorization(guardTarget, this, CurrentMissile));
 
 
                                 if (BDArmorySettings.DEBUG_MISSILES)
