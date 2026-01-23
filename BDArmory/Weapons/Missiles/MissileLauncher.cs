@@ -2275,19 +2275,33 @@ namespace BDArmory.Weapons.Missiles
                         if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_MISSILES)
                         {
                             if (heatTarget.vessel)
+                            {
                                 debugGuidanceTarget = $"{heatTarget.vessel.GetName()} {heatTarget.signalStrength}";
-                            else if (heatTarget.signalStrength > 0)
+                            }
+                            else if (heatTarget.isDecoy)
+                            {
                                 debugGuidanceTarget = $"Flare {heatTarget.signalStrength}";
+                            }
                         }
                         break;
                     case TargetingModes.Radar:
                         UpdateRadarTarget();
                         if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_MISSILES)
                         {
+                            if (!radarTarget.exists)
+                            {
+                                debugGuidanceTarget = "No Target!";
+                                break;
+                            }
+
                             if (radarTarget.vessel)
+                            {
                                 debugGuidanceTarget = $"{radarTarget.vessel.GetName()} {radarTarget.signalStrength}";
+                            }
                             else if (radarTarget.signalStrength > 0)
+                            {
                                 debugGuidanceTarget = $"Chaff {radarTarget.signalStrength}";
+                            }
                         }
                         break;
                     case TargetingModes.Laser:
