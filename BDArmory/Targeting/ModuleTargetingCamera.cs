@@ -1538,28 +1538,20 @@ namespace BDArmory.Targeting
             Vector3 cameraPos;
             Vector3 cameraForward;
             CoMLock = tgtVessel;
-            float tolerance;
-            if (tgtVessel)
-            {
-                tolerance = 0.8f * tgtVessel.GetRadius(); // Use 80% of target radius as threshold for now
-                // If bug reports come in of the TGP never acquiring lock on large targets, consider going
-                // to just the plain radius instead.
-                tolerance *= tolerance;
-            }
-            else
-            {
-                tolerance = 10f * 10f;
-            }
+            float tolerance = tgtVessel ? tgtVessel.GetRadius() : 10f;
             while (!stopPTPR)
             {
+                cameraForward = cameraParentTransform.transform.forward;
+                (float rangeDist, Vector3 normalDist) = (targetPointPosition - position).DotProjectOnPlanePreNormalized(cameraForward);
+
                 // If...
                 if (surfaceDetected && // We've hit something
-                    (targetPointPosition - position).sqrMagnitude <= tolerance) // And we're within tolerance
+                    Mathf.Abs(rangeDist) < tolerance && // And we're within tolerance in range
+                    normalDist.sqrMagnitude < 0.04f * tolerance * tolerance) // And we're within 20% of tolerance in crossrange
                 {
                     break; // Break out of the loop
                 }
 
-                cameraForward = cameraParentTransform.transform.forward;
                 (float distance, Vector3 relativeDir) = ((tgtVessel != null ? tgtVessel.CoM : position) - (cameraPos = cameraParentTransform.transform.position)).MagNorm();
 
                 // If no tgtVessel or the tgtVessel is too far, break if angle < 0.1°

@@ -2134,7 +2134,7 @@ namespace BDArmory.Guidances
                     finalTorque = aeroTorque;
                 }
 
-                if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_MISSILES) ml.debugString.AppendLine($"achieved g: {(ml.vessel.acceleration.ProjectOnPlanePreNormalized(velNorm).magnitude) * (1f / 9.81f):F2}, lift g: {liftForce / ml.part.mass * (1f / 9.81f):F2}, CL: {liftCurve.Evaluate(AoA):F2}\nAoA: {AoA:F2}°, AoALim: {AoALim:F2}°, MaxAoA: {maxAoA:F2}°\nTargetAngle: {targetAngle:F2}°, TurningAngle: {turningAngle:F2}°\nmaxTorque (Aero): {maxTorque:F2} ({maxTorqueAero * dynamicq:F2}), currTorque: {finalTorque.magnitude:F2}\nliftArea: {liftArea}, dragArea: {dragArea}");
+                if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_MISSILES) ml.debugString.AppendLine($"achieved g: {(ml.vessel.acceleration.ProjectOnPlanePreNormalized(velNorm).magnitude) * (1f / 9.81f):F2}, lift g: {liftForce / ml.part.mass * (1f / 9.81f):F2}, CL: {liftCurve.Evaluate(AoA):F2}\nAoA: {AoA:F2}, AoALim: {AoALim:F2}, MaxAoA: {maxAoA:F2}\nTargetAngle: {targetAngle:F2}, TurningAngle: {turningAngle:F2}, forward: {forward}, targetDirection: {targetDirection}\nmaxTorque (Aero): {maxTorque:F2} ({maxTorqueAero * dynamicq:F2}), currTorque: {finalTorque.magnitude:F2}, aeroTorque: {aeroTorque.magnitude:F2}\nliftArea: {liftArea}, dragArea: {dragArea}");
 
                 finalTorque = ml.transform.InverseTransformDirection(finalTorque).ProjectOnPlanePreNormalized(Vector3.forward);
 
