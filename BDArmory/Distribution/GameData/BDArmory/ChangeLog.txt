@@ -4,7 +4,8 @@ IMPROVEMENTS / FIXES
 - AI / WM:
 	- Fix Guard Mode using incorrect heat signature value for IR missile selection.
 	- Add "Attack Uncontrolled Tgt." Weight to the Weapon Manager, setting this to negative makes the AI prioritize targets under control, thus avoiding wasting ammo on vehicles with knocked out crews. NOTE: Be cautious when using this on aircraft, this includes g-loc'd pilots!
-	- Fix AI not accurately locking targets via the targeting pod at high speeds.
+	- Fix AI not accurately locking targets via the targeting pod while moving at speed.
+	- Fix various NREs in GuardMissileRoutine that would potentially lock out a vessel from firing missiles.
 - Weapons:
 	- Explosions:
 		- Re-implemented the shaped charge unfocusing/squeezing mechanic, where as the shaped charge jet penetrates armor, it loses coherence and diameter.
@@ -22,11 +23,14 @@ IMPROVEMENTS / FIXES
 		- Add CLOS missile control deadzone via "beamgDeadzone", the missile will ignore acceleration commands below this value (to simulate things like beam-width and manual missile control).
 		- Fix pronav and augpronav missiles not properly guiding on targets when launched from extreme off-boresight angles.
 		- Add arming delay to missiles with the "fuzeArmingDelay" field specifying the arming delay in seconds and the "impactFuzeArmingDelay" bool field specifying if the impact fuze should also have an arming delay.
-		- Add spinning missiles, missiles can now be given a spin using "spinRate", specifying the spin rate in revolutions per second (clockwise-positive when looking from behind the missile) and "spinAccel", a proportional control constant for missile's spin rate, higher values will mean the missile spins up faster. Note this value should be relatively small, by default it is 0.005.
+		- Add spinning missiles, missiles can now be given a spin using "spinRate", specifying the spin rate in revolutions per second (clockwise-positive when looking from behind the missile) and "spinAccel", a proportional control constant for missile's spin rate, higher values will mean the missile spins up faster. Note this value should be relatively small, by default it is 0.25.
 		- Fix INS and GPS missiles fired from multi-missile launchers being fired towards (0, 0, 0) when dumbfired by the AI.
 		- Fix IR missiles not turning towards a target they lost track of.
+		- Fix terminal targeting checks reducing track accuracy for missiles with a terminal targeting mode.
+		- Fix debug readouts for radar missiles, now when lacking a target they should properly display "No target!", seeker timeout time will also now display correctly.
 		- Custom Turrets:
 			- Add Lofted Aimpoint and Loft Vel. Fac. settings to missiles on custom turrets, giving them function parity with regular missile turrets.
+			- Fix custom turrets with no radar failing the launch authorization check.
 		- Improved debug telemetry output format.
 
 v1.12.1.0
