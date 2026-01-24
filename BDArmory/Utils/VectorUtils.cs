@@ -496,6 +496,33 @@ namespace BDArmory.Utils
             return Mathf.Acos(num2) * Mathf.Rad2Deg;
         }
 
+        public static Vector3 RotateTowards(Vector3 current, Vector3 target, float maxRadiansDelta, float maxMagnitudeDelta)
+        {
+            float currSqrMag = 1f;
+            if (maxMagnitudeDelta >= 0f)
+            {
+                currSqrMag = current.sqrMagnitude;
+            }
+
+            float currAngle = Angle(current, target);
+
+            if (currAngle > (maxRadiansDelta *= Mathf.Rad2Deg)) 
+            {
+                current = Vector3.Slerp(current, target, maxRadiansDelta * Mathf.Rad2Deg / currAngle); 
+            }
+            else
+            {
+                current = target;
+            }
+
+            if (maxMagnitudeDelta >= 0f)
+            {
+                current *= BDAMath.Sqrt(currSqrMag / current.sqrMagnitude);
+            }
+
+            return current;
+        }
+
         /// <summary>
         /// Get AoA and Sideslip of a vector, relative to axes defined by forward and up.
         /// Note that forward and up are expected to be unit vectors, however dir does not have

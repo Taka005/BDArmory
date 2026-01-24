@@ -500,15 +500,27 @@ namespace BDArmory.Targeting
                     }
 
                     Vector3 lookVector = groundTargetPosition - cameraParentTransform.position;
+                    // In theory the below should be used, but in practice the vast majority of locks fail to hold and you get a lot of jitter...
+                    // In practice, it's also *seemingly* unnecessary, at least given the observed track errors
+                    Vector3 currLookDirection = cameraParentTransform.forward;
+                    float trackError = VectorUtils.Angle(currLookDirection, lookVector);
+                    if (trackError > traverseRate * Time.fixedDeltaTime)
+                    {
+                        lookVector = Vector3.Slerp(currLookDirection, lookVector, traverseRate * Time.fixedDeltaTime / trackError);
+                    }
+
+
                     //cameraParentTransform.rotation = Quaternion.LookRotation(lookVector);
                     PointCameraModel(lookVector);
                 }
 
                 Vector3 lookDirection = cameraParentTransform.forward;
                 Vector3 cameraForward = cameraParentTransform.parent.forward;
-                if (VectorUtils.Angle(lookDirection, cameraForward) > gimbalLimit)
+                float gimbalAngle = VectorUtils.Angle(lookDirection, cameraForward);
+                if (gimbalAngle > gimbalLimit)
                 {
-                    lookDirection = Vector3.RotateTowards(cameraForward, lookDirection, gimbalLimit * Mathf.Deg2Rad, 0);
+                    //lookDirection = Vector3.RotateTowards(cameraForward, lookDirection, gimbalLimit * Mathf.Deg2Rad, 0);
+                    lookDirection = Vector3.Slerp(cameraForward, lookDirection, gimbalLimit / gimbalAngle);
                     gimbalLimitReached = true;
                     lockedVessel = null;
                 }
@@ -1599,6 +1611,7 @@ namespace BDArmory.Targeting
 
             while (!stopPTPR)
             {
+                GetHitPoint();
                 cameraForward = cameraParentTransform.transform.forward;
                 (float rangeDist, Vector3 normalDist) = (targetPointPosition - position).DotProjectOnPlanePreNormalized(cameraForward);
 
@@ -1633,7 +1646,13 @@ namespace BDArmory.Targeting
                     lockedVessel = null;
                 }
 
-                Vector3 newForward = Vector3.RotateTowards(cameraForward, position - cameraPos, traverseRate * Mathf.Deg2Rad * Time.fixedDeltaTime, 0);
+                //Vector3 newForward = Vector3.RotateTowards(cameraForward, position - cameraPos, traverseRate * Mathf.Deg2Rad * Time.fixedDeltaTime, 0);
+                Vector3 newForward = position - cameraPos;
+                float angle = VectorUtils.Angle(cameraForward, newForward);
+                if (angle > traverseRate * Time.fixedDeltaTime)
+                {
+                    newForward = Vector3.Slerp(cameraForward, newForward, traverseRate * Time.fixedDeltaTime / angle);
+                }
                 //cameraParentTransform.rotation = Quaternion.LookRotation(newForward, VectorUtils.GetUpDirection(transform.position));
                 PointCameraModel(newForward);
                 yield return wait;

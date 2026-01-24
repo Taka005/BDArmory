@@ -1338,23 +1338,32 @@ namespace BDArmory.Guidances
 
                 float det = missileVelOptSqr * missileVelOptSqr - g * (g * horzDist * horzDist + 2f * vertDist * missileVelOptSqr);
                 if (det > 0f)
+                {
                     // Regular angle based on projectile motion
                     theta = Mathf.Atan((missileVelOptSqr - BDAMath.Sqrt(det)) / (g * horzDist));
+                }
                 else
+                {
                     // Angle to hit the furthest possible target at that elevation
                     theta = Mathf.Atan(missileVelOpt / (BDAMath.Sqrt(missileVelOptSqr - 2f * g * vertDist)));
+                }
                 theta *= Mathf.Rad2Deg;
 
                 float angle = 90f - VectorUtils.Angle(relPos, missile.vessel.upAxis);
                 if (theta > angle)
-                    leadPosition = missile.vessel.CoM + Vector3.RotateTowards(relPos, missile.vessel.upAxis, (theta - angle) * Mathf.Deg2Rad, vertDist);
+                {
+                    //leadPosition = missile.vessel.CoM + Vector3.RotateTowards(relPos, missile.vessel.upAxis, (theta - angle) * Mathf.Deg2Rad, vertDist);
+                    leadPosition = missile.vessel.CoM + Vector3.Slerp(relPos, missile.vessel.upAxis, (theta - angle) / (angle - 90f));
+                }
             }
 
             // Don't lead so much you end up leading behind the vehicle...
             if (Vector3.Dot(targetPosition - missile.vessel.CoM, leadPosition - missile.vessel.CoM) > 0)
+            {
                 return leadPosition;
-            else
-                return targetPosition;
+            }
+                
+            return targetPosition;
         }
 
         public static Vector3 GetCruiseTarget(Vector3 targetPosition, Vessel missileVessel, float radarAlt)
