@@ -54,6 +54,7 @@ namespace BDArmory.WeaponMounts
 
         public Vector3 slavedTargetPosition;
         public bool slaved = false;
+        public bool slavedGuard = false;
         public bool manuallyControlled = false;
         public bool isYawRotor => Servo != null;
         MissileFire WeaponManager
@@ -157,7 +158,7 @@ namespace BDArmory.WeaponMounts
 
             MissileFire wm = WeaponManager;
             MissileBase currMissile;
-            if (wm && (currMissile = wm.CurrentMissile) && currMissile.customTurret.Count > 0 && currMissile.customTurret.Contains(this))
+            if (wm && !(slavedGuard = slavedGuard && wm.guardMode) && (currMissile = wm.CurrentMissile) && currMissile.customTurret.Count > 0 && currMissile.customTurret.Contains(this))
             {
                 if (wm.slavingTurrets)
                 {
@@ -173,7 +174,7 @@ namespace BDArmory.WeaponMounts
                 }
             }
 
-            if (slaved)
+            if (slaved || slavedGuard)
             {
                 AimToTarget(slavedTargetPosition);
             }

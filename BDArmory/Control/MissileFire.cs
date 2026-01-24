@@ -2816,7 +2816,13 @@ namespace BDArmory.Control
                                     float turretStartTime = attemptStartTime;
                                     if (ml.customTurret.Count > 0)
                                     {
-                                        vesselRadarData.SlaveTurrets();
+                                        //vesselRadarData.SlaveTurrets();
+                                        for (int i = 0; i < ml.customTurret.Count; i++)
+                                        {
+                                            if (ml.customTurret[i] == null) continue;
+                                            if (ml.customTurret[i].vessel != vessel) continue;
+                                            ml.customTurret[i].slavedGuard = true;
+                                        }
                                         while (Time.time - turretStartTime < Mathf.Max(targetScanInterval / 2f, 2) && targetVessel && ml && angle > 5)//ml.customTurret[0].fireFOV
                                         {
                                             for (int i = 0; i < ml.customTurret.Count; i++)
@@ -2829,7 +2835,13 @@ namespace BDArmory.Control
                                                 ml.customTurret[i].AimToTarget(ml.customTurret[i].slavedTargetPosition);
                                             }
                                             yield return wait;
-                                            Debug.Log($"[PD Missile Debug - {vessel.GetName()}] bringing radarMsl custom turret to bear, angle {angle:F2}...");
+                                            //Debug.Log($"[PD Missile Debug - {vessel.GetName()}] bringing radarMsl custom turret to bear, angle {angle:F2}...");
+                                        }
+                                        for (int i = 0; i < ml.customTurret.Count; i++)
+                                        {
+                                            if (ml.customTurret[i] == null) continue;
+                                            if (ml.customTurret[i].vessel != vessel) continue;
+                                            ml.customTurret[i].slavedGuard = false;
                                         }
                                     }
                                     else
@@ -2840,7 +2852,7 @@ namespace BDArmory.Control
                                             {
                                                 // Technically this call can be removed, especially since it could interfere with simultaneous multi-turret
                                                 // operations, but it also provides a better track
-                                                vesselRadarData.SlaveTurrets();
+                                                //vesselRadarData.SlaveTurrets();
                                                 mlauncher.missileTurret.slavedGuard = true;
                                                 while (Time.time - turretStartTime < Mathf.Max(targetScanInterval / 2f, 2) && targetVessel && mlauncher && angle > mlauncher.missileTurret.fireFOV)
                                                 {
@@ -2857,7 +2869,7 @@ namespace BDArmory.Control
                                             {
                                                 // Technically this call can be removed, especially since it could interfere with simultaneous multi-turret
                                                 // operations, but it also provides a better track
-                                                vesselRadarData.SlaveTurrets();
+                                                //vesselRadarData.SlaveTurrets();
                                                 mlauncher.multiLauncher.turret.slavedGuard = true;
                                                 while (Time.time - turretStartTime < Mathf.Max(targetScanInterval / 2f, 2) && targetVessel && mlauncher && angle > mlauncher.multiLauncher.turret.fireFOV)
                                                 {
@@ -2871,7 +2883,9 @@ namespace BDArmory.Control
                                                 mlauncher.multiLauncher.turret.slavedGuard = false;
                                             }
                                             if (mlauncher.multiLauncher && !mlauncher.multiLauncher.turret)
+                                            {
                                                 yield return new WaitForSecondsFixed(mlauncher.multiLauncher.deploySpeed);
+                                            }
                                         }
                                     }
                                 }
@@ -2926,12 +2940,20 @@ namespace BDArmory.Control
                             float attemptStartTime = Time.time;
                             float attemptDuration = Mathf.Max(targetScanInterval * 0.75f, 5f);
                             MissileLauncher mlauncher = ml as MissileLauncher;
+
                             // Have to get both due to the potential for the missile to be a cluster missile on a standard missileTurret
                             // Also good to have them so we can ensure slavedGuard gets set to false at the end even if ml/mLauncher is destroyed
                             MissileTurret mLauncherTurret = mlauncher.missileTurret;
                             MissileTurret multiLauncherTurret = mlauncher.multiLauncher ? mlauncher.multiLauncher.turret : null;
                             if (mLauncherTurret) mLauncherTurret.slavedGuard = true;
                             if (multiLauncherTurret) multiLauncherTurret.slavedGuard = true;
+                            for (int i = 0; i < ml.customTurret.Count; i++)
+                            {
+                                if (ml.customTurret[i] == null) continue;
+                                if (ml.customTurret[i].vessel != vessel) continue;
+                                ml.customTurret[i].slavedGuard = true;
+                            }
+
                             while (ml && targetVessel && Time.time - attemptStartTime < attemptDuration && (!heatTarget.exists || (heatTarget.predictedPosition - targetVessel.CoM).sqrMagnitude > 40 * 40))
                             {
                                 if (ml.customTurret.Count > 0)
@@ -2962,6 +2984,12 @@ namespace BDArmory.Control
                             }
                             if (mLauncherTurret) mLauncherTurret.slavedGuard = false;
                             if (multiLauncherTurret) multiLauncherTurret.slavedGuard = false;
+                            for (int i = 0; i < ml.customTurret.Count; i++)
+                            {
+                                if (ml.customTurret[i] == null) continue;
+                                if (ml.customTurret[i].vessel != vessel) continue;
+                                ml.customTurret[i].slavedGuard = false;
+                            }
 
                             if (BDArmorySettings.DEBUG_MISSILES && CurrentMissile) Debug.Log($"[BDArmory.MissileFire]: {vessel.vesselName}'s {CurrentMissile.GetShortName()} has heatTarget: {heatTarget.exists}");
                             
@@ -3017,8 +3045,14 @@ namespace BDArmory.Control
                                 float turretStartTime = attemptStartTime;
                                 if (ml.customTurret.Count > 0 && heatTarget.exists)
                                 {
-                                    vesselRadarData.SlaveTurrets();
-                                    while (Time.time - turretStartTime < Mathf.Max(targetScanInterval / 2f, 2) && targetVessel && ml && angle > 5)//ml.customTurret[0].fireFOV
+                                    //if (vesselRadarData) vesselRadarData.SlaveTurrets();
+                                    for (int i = 0; i < ml.customTurret.Count; i++)
+                                    {
+                                        if (ml.customTurret[i] == null) continue;
+                                        if (ml.customTurret[i].vessel != vessel) continue;
+                                        ml.customTurret[i].slavedGuard = true;
+                                    }
+                                    while (heatTarget.exists && Time.time - turretStartTime < Mathf.Max(targetScanInterval / 2f, 2) && targetVessel && ml && angle > 5)//ml.customTurret[0].fireFOV
                                     {
                                         for (int i = 0; i < ml.customTurret.Count; i++)
                                         {
@@ -3030,7 +3064,13 @@ namespace BDArmory.Control
                                             ml.customTurret[i].AimToTarget(ml.customTurret[i].slavedTargetPosition);
                                         }
                                         yield return wait;
-                                        Debug.Log($"[PD Missile Debug - {vessel.GetName()}] bringing IRMsl custom turret to bear...");
+                                        //Debug.Log($"[PD Missile Debug - {vessel.GetName()}] bringing IRMsl custom turret to bear...");
+                                    }
+                                    for (int i = 0; i < ml.customTurret.Count; i++)
+                                    {
+                                        if (ml.customTurret[i] == null) continue;
+                                        if (ml.customTurret[i].vessel != vessel) continue;
+                                        ml.customTurret[i].slavedGuard = false;
                                     }
                                 }
                                 else
@@ -3226,7 +3266,13 @@ namespace BDArmory.Control
                                 float turretStartTime = attemptStartTime;
                                 if (ml.customTurret.Count > 0)
                                 {
-                                    vesselRadarData.SlaveTurrets();
+                                    //if (vesselRadarData) vesselRadarData.SlaveTurrets();
+                                    for (int i = 0; i < ml.customTurret.Count; i++)
+                                    {
+                                        if (ml.customTurret[i] == null) continue;
+                                        if (ml.customTurret[i].vessel != vessel) continue;
+                                        ml.customTurret[i].slavedGuard = true;
+                                    }
                                     while (Time.time - turretStartTime < Mathf.Max(targetScanInterval / 2f, 2) && targetVessel && ml && angle > 5)//ml.customTurret[0].fireFOV
                                     {
                                         for (int i = 0; i < ml.customTurret.Count; i++)
@@ -3240,6 +3286,12 @@ namespace BDArmory.Control
                                         }
                                         yield return wait;
                                         //Debug.Log($"[PD Missile Debug - {vessel.GetName()}] bringing GPSMsl custom turret to bear...");
+                                    }
+                                    for (int i = 0; i < ml.customTurret.Count; i++)
+                                    {
+                                        if (ml.customTurret[i] == null) continue;
+                                        if (ml.customTurret[i].vessel != vessel) continue;
+                                        ml.customTurret[i].slavedGuard = false;
                                     }
                                 }
                                 else
@@ -3315,6 +3367,13 @@ namespace BDArmory.Control
                             MissileTurret multiLauncherTurret = mlauncher.multiLauncher ? mlauncher.multiLauncher.turret : null;
                             if (mLauncherTurret) mLauncherTurret.slavedGuard = true;
                             if (multiLauncherTurret) multiLauncherTurret.slavedGuard = true;
+                            for (int i = 0; i < ml.customTurret.Count; i++)
+                            {
+                                if (ml.customTurret[i] == null) continue;
+                                if (ml.customTurret[i].vessel != vessel) continue;
+                                ml.customTurret[i].slavedGuard = true;
+                            }
+
                             while (Time.time - attemptStartTime < attemptDuration && (!antiRadTargetAcquired || !AntiRadDistanceCheck()))
                             {
                                 if (ml.customTurret.Count > 0)
@@ -3345,6 +3404,12 @@ namespace BDArmory.Control
                             }
                             if (mLauncherTurret) mLauncherTurret.slavedGuard = false;
                             if (multiLauncherTurret) multiLauncherTurret.slavedGuard = false;
+                            for (int i = 0; i < ml.customTurret.Count; i++)
+                            {
+                                if (ml.customTurret[i] == null) continue;
+                                if (ml.customTurret[i].vessel != vessel) continue;
+                                ml.customTurret[i].slavedGuard = false;
+                            }
 
                             attemptStartTime = Time.time;
                             //MissileLauncher mlauncher = ml as MissileLauncher;
@@ -3354,7 +3419,13 @@ namespace BDArmory.Control
                                 float turretStartTime = attemptStartTime;
                                 if (ml.customTurret.Count > 0)
                                 {
-                                    vesselRadarData.SlaveTurrets();
+                                    for (int i = 0; i < ml.customTurret.Count; i++)
+                                    {
+                                        if (ml.customTurret[i] == null) continue;
+                                        if (ml.customTurret[i].vessel != vessel) continue;
+                                        ml.customTurret[i].slavedGuard = true;
+                                    }
+                                    //if (vesselRadarData) vesselRadarData.SlaveTurrets();
                                     while (antiRadTargetAcquired && Time.time - turretStartTime < Mathf.Max(targetScanInterval / 2f, 2) && targetVessel && ml && angle > 5)//ml.customTurret[0].fireFOV
                                     {
                                         for (int i = 0; i < ml.customTurret.Count; i++)
@@ -3368,6 +3439,12 @@ namespace BDArmory.Control
                                         }
                                         yield return wait;
                                         //Debug.Log($"[PD Missile Debug - {vessel.GetName()}] bringing ARADMsl custom turret to bear...");
+                                    }
+                                    for (int i = 0; i < ml.customTurret.Count; i++)
+                                    {
+                                        if (ml.customTurret[i] == null) continue;
+                                        if (ml.customTurret[i].vessel != vessel) continue;
+                                        ml.customTurret[i].slavedGuard = false;
                                     }
                                 }
                                 else
@@ -3469,6 +3546,13 @@ namespace BDArmory.Control
                             MissileTurret multiLauncherTurret = mlauncher.multiLauncher ? mlauncher.multiLauncher.turret : null;
                             if (mLauncherTurret) mLauncherTurret.slavedGuard = true;
                             if (multiLauncherTurret) multiLauncherTurret.slavedGuard = true;
+                            for (int i = 0; i < ml.customTurret.Count; i++)
+                            {
+                                if (ml.customTurret[i] == null) continue;
+                                if (ml.customTurret[i].vessel != vessel) continue;
+                                ml.customTurret[i].slavedGuard = true;
+                            }
+
                             while (Time.time - attemptStartTime < attemptDuration && targetVessel && (!laserPointDetected || (foundCam && (foundCam.groundTargetPosition - targetVessel.CoM).sqrMagnitude > targetpaintAccuracyThreshold)))
                             {
                                 if (ml.customTurret.Count > 0)
@@ -3499,6 +3583,12 @@ namespace BDArmory.Control
                             }
                             if (mLauncherTurret) mLauncherTurret.slavedGuard = false;
                             if (multiLauncherTurret) multiLauncherTurret.slavedGuard = false;
+                            for (int i = 0; i < ml.customTurret.Count; i++)
+                            {
+                                if (ml.customTurret[i] == null) continue;
+                                if (ml.customTurret[i].vessel != vessel) continue;
+                                ml.customTurret[i].slavedGuard = false;
+                            }
 
                             if (targetVessel && foundCam)
                             {
@@ -3506,6 +3596,12 @@ namespace BDArmory.Control
                                 float turretStartTime = attemptStartTime;
                                 if (ml.customTurret.Count > 0)
                                 {
+                                    for (int i = 0; i < ml.customTurret.Count; i++)
+                                    {
+                                        if (ml.customTurret[i] == null) continue;
+                                        if (ml.customTurret[i].vessel != vessel) continue;
+                                        ml.customTurret[i].slavedGuard = true;
+                                    }
                                     while (Time.time - turretStartTime < Mathf.Max(targetScanInterval / 2f, 2) && targetVessel && ml && angle > 5)//ml.customTurret[0].fireFOV
                                     {
                                         for (int i = 0; i < ml.customTurret.Count; i++)
@@ -3518,6 +3614,12 @@ namespace BDArmory.Control
                                         }
                                         yield return wait;
                                         //Debug.Log($"[PD Missile Debug - {vessel.GetName()}] bringing LSRMsl custom turret to bear...");
+                                    }
+                                    for (int i = 0; i < ml.customTurret.Count; i++)
+                                    {
+                                        if (ml.customTurret[i] == null) continue;
+                                        if (ml.customTurret[i].vessel != vessel) continue;
+                                        ml.customTurret[i].slavedGuard = false;
                                     }
                                 }
                                 else
@@ -3666,7 +3768,13 @@ namespace BDArmory.Control
                                     float turretStartTime = attemptStartTime;
                                     if (ml.customTurret.Count > 0)
                                     {
-                                        vesselRadarData.SlaveTurrets();
+                                        //if (vesselRadarData) vesselRadarData.SlaveTurrets();
+                                        for (int i = 0; i < ml.customTurret.Count; i++)
+                                        {
+                                            if (ml.customTurret[i] == null) continue;
+                                            if (ml.customTurret[i].vessel != vessel) continue;
+                                            ml.customTurret[i].slavedGuard = true;
+                                        }
                                         while (Time.time - turretStartTime < Mathf.Max(targetScanInterval / 2f, 2) && targetVessel && ml && angle > 5)//ml.customTurret[0].fireFOV
                                         {
                                             for (int i = 0; i < ml.customTurret.Count; i++)
@@ -3680,6 +3788,12 @@ namespace BDArmory.Control
                                             }
                                             yield return wait;
                                             //Debug.Log($"[PD Missile Debug - {vessel.GetName()}] bringing LSRMsl custom turret to bear...");
+                                        }
+                                        for (int i = 0; i < ml.customTurret.Count; i++)
+                                        {
+                                            if (ml.customTurret[i] == null) continue;
+                                            if (ml.customTurret[i].vessel != vessel) continue;
+                                            ml.customTurret[i].slavedGuard = false;
                                         }
                                     }
                                     else
@@ -3783,7 +3897,13 @@ namespace BDArmory.Control
                                 float dumbfireFOV = 1f; // Match firing conditions for dumbfired weapons in GetLaunchAuthorization
                                 if (ml.customTurret.Count > 0)
                                 {
-                                    if (vesselRadarData && vesselRadarData.lockedTargetData.vessel == targetVessel) vesselRadarData.SlaveTurrets();
+                                    //if (vesselRadarData && vesselRadarData.lockedTargetData.vessel == targetVessel) vesselRadarData.SlaveTurrets();
+                                    for (int i = 0; i < ml.customTurret.Count; i++)
+                                    {
+                                        if (ml.customTurret[i] == null) continue;
+                                        if (ml.customTurret[i].vessel != vessel) continue;
+                                        ml.customTurret[i].slavedGuard = true;
+                                    }
                                     while (Time.time - turretStartTime < Mathf.Max(targetScanInterval / 2f, 2) && targetVessel && ml && angle > dumbfireFOV)//ml.customTurret[0].fireFOV
                                     {
                                         for (int i = 0; i < ml.customTurret.Count; i++)
@@ -3796,6 +3916,12 @@ namespace BDArmory.Control
                                         }
                                         yield return wait;
                                         //Debug.Log($"[PD Missile Debug - {vessel.GetName()}] bringing LSRMsl custom turret to bear...");
+                                    }
+                                    for (int i = 0; i < ml.customTurret.Count; i++)
+                                    {
+                                        if (ml.customTurret[i] == null) continue;
+                                        if (ml.customTurret[i].vessel != vessel) continue;
+                                        ml.customTurret[i].slavedGuard = false;
                                     }
                                 }
                                 else

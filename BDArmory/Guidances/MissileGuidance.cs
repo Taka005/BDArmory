@@ -1167,8 +1167,7 @@ namespace BDArmory.Guidances
 
         public static Vector3 GetAirToAirFireSolution(MissileBase missile, Vessel targetVessel)
         {
-            float temp;
-            return GetAirToAirFireSolution(missile, targetVessel, out temp);
+            return GetAirToAirFireSolution(missile, targetVessel, out float temp);
         }
 
         /// <summary>
