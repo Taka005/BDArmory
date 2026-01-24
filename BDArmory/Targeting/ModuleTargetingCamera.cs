@@ -1321,79 +1321,79 @@ namespace BDArmory.Targeting
             RaycastHit rayHit;
             Ray ray = new Ray(cameraParentTransform.position, cameraParentTransform.forward);
             bool raycasted = Physics.Raycast(ray, out rayHit, maxRayDistance, (int)(LayerMasks.Parts | LayerMasks.Scenery | LayerMasks.EVA | LayerMasks.Unknown19 | LayerMasks.Unknown23 | LayerMasks.Wheels));
-            if (raycasted)
-            {
-                Part p;
-                if (FlightGlobals.getAltitudeAtPos(rayHit.point) < 0 || ((p = rayHit.collider.GetComponentInParent<Part>()) && p.vessel == vessel))
-                {
-                    raycasted = false;
-                }
-                else
-                {
-                    KerbalEVA hitEVA = rayHit.collider.gameObject.GetComponentUpwards<KerbalEVA>();
-                    if (hitEVA)
-                    {
-                        p = hitEVA.part;
-                    }
 
-                    bool pCheck = false;
+            // If we didn't hit anything and there isn't an ocean
+            if (!raycasted && !vessel.mainBody.ocean) return;
 
-                    if (p && p.vessel)
-                    {
-                        TargetInfo pInfo;
-                        if (p.vessel != lockedVessel && (pInfo = p.vessel.gameObject.GetComponent<TargetInfo>()) != null && pInfo.isMissile && pInfo.MissileBaseModule.FiredByWM == WeaponManager)
-                        {
-                            return;
-                        }
-                        pCheck = true;
-                    }
+            Vector3d newGTP;
 
-                    groundStabilized = true;
-                    groundTargetPosition = rayHit.point;
-
-                    if (CoMLock)
-                    {
-                        if (pCheck && p.vessel.CoM != Vector3.zero)
-                        {
-                            groundTargetPosition = p.vessel.CoM + (p.vessel.Velocity() * Time.fixedDeltaTime);
-                            StartCoroutine(StabilizeNextFrame());
-                            lockedVessel = p.vessel;
-                            //StartCoroutine(PointToPositionRoutine(p.vessel.CoM, p.vessel, false));
-                        }
-                        else
-                        {
-                            lockedVessel = null;
-                        }
-                    }
-                    Vector3d newGTP = VectorUtils.WorldPositionToGeoCoords(groundTargetPosition, vessel.mainBody);
-                    if (newGTP != Vector3d.zero)
-                    {
-                        bodyRelativeGTP = newGTP;
-                    }
-                }
-            }
-
-            if (!raycasted)
+            // If we didn't hit anything and there's an ocean, or we hit something underwater
+            if (!raycasted || (vessel.mainBody.ocean && FlightGlobals.getAltitudeAtPos(rayHit.point) < 0))
             {
                 Vector3 upDir = VectorUtils.GetUpDirection(cameraParentTransform.position);
                 double altitude = vessel.altitude; //MissileGuidance.GetRadarAltitude(vessel);
                 double radius = vessel.mainBody.Radius;
 
                 Vector3d planetCenter = vessel.GetWorldPos3D() - ((vessel.altitude + vessel.mainBody.Radius) * vessel.upAxis);
-                double enter;
-                if (VectorUtils.SphereRayIntersect(ray, planetCenter, radius, out enter))
+                if (VectorUtils.SphereRayIntersect(ray, planetCenter, radius, out double enter))
                 {
                     if (enter > 0)
                     {
                         groundStabilized = true;
                         groundTargetPosition = ray.GetPoint((float)enter);
-                        Vector3d newGTP = VectorUtils.WorldPositionToGeoCoords(groundTargetPosition, vessel.mainBody);
+                        newGTP = VectorUtils.WorldPositionToGeoCoords(groundTargetPosition, vessel.mainBody);
                         if (newGTP != Vector3d.zero)
                         {
                             bodyRelativeGTP = newGTP;
                         }
                     }
                 }
+
+                return;
+            }
+
+            Part p;
+            if ((p = rayHit.collider.GetComponentInParent<Part>()) && p.vessel == vessel) return;
+
+            KerbalEVA hitEVA = rayHit.collider.gameObject.GetComponentUpwards<KerbalEVA>();
+            if (hitEVA)
+            {
+                p = hitEVA.part;
+            }
+
+            bool pCheck = false;
+
+            if (p && p.vessel)
+            {
+                TargetInfo pInfo;
+                if (p.vessel != lockedVessel && (pInfo = p.vessel.gameObject.GetComponent<TargetInfo>()) != null && pInfo.isMissile && pInfo.MissileBaseModule.FiredByWM == WeaponManager)
+                {
+                    return;
+                }
+                pCheck = true;
+            }
+
+            groundStabilized = true;
+            groundTargetPosition = rayHit.point;
+
+            if (CoMLock)
+            {
+                if (pCheck)
+                {
+                    groundTargetPosition = p.vessel.CoM; // + (p.vessel.Velocity() * Time.fixedDeltaTime);
+                                                         //StartCoroutine(StabilizeNextFrame());
+                    lockedVessel = p.vessel;
+                    //StartCoroutine(PointToPositionRoutine(p.vessel.CoM, p.vessel, false));
+                }
+                else
+                {
+                    lockedVessel = null;
+                }
+            }
+            newGTP = VectorUtils.WorldPositionToGeoCoords(groundTargetPosition, vessel.mainBody);
+            if (newGTP != Vector3d.zero)
+            {
+                bodyRelativeGTP = newGTP;
             }
         }
 
