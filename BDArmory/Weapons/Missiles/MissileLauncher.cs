@@ -2541,7 +2541,8 @@ namespace BDArmory.Weapons.Missiles
             {
                 if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileLauncher][Terminal Guidance]: missile {GetPartName()} updating targeting mode: {terminalGuidanceType}");
 
-                TargetAcquired = false;
+                // Let the primary and terminal guidance mode worry about toggling this...
+                //TargetAcquired = false;
 
                 switch (TargetingModeTerminal)
                 {

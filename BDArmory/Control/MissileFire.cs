@@ -3674,7 +3674,6 @@ namespace BDArmory.Control
                     case MissileBase.TargetingModes.Inertial:
                         {
                             TargetSignatureData INSTarget = TargetSignatureData.noTarget;
-                            TargetData targetData = new TargetData();
                             if (vesselRadarData)
                             {
                                 float BayTriggerTime = -1;
@@ -3841,11 +3840,11 @@ namespace BDArmory.Control
                                     {
                                         yield return new WaitForSecondsFixed(2 - (Time.time - BayTriggerTime));
                                     }
-                                    if (!dumbfiring && INSTarget.exists && GetLaunchAuthorization(targetVessel, this, ml))
+                                    if (!dumbfiring && targetVessel && INSTarget.exists && GetLaunchAuthorization(targetVessel, this, ml))
                                     {
-                                        targetData.targetGEOPos = VectorUtils.WorldPositionToGeoCoords(MissileGuidance.GetAirToAirFireSolution(ml, targetVessel, out float INStimetogo), targetVessel.mainBody);
-                                        targetData.INStimetogo = INStimetogo;
-                                        targetData.TimeOfLastINS = Time.time;
+                                        TargetData targetData = new TargetData(VectorUtils.WorldPositionToGeoCoords(MissileGuidance.GetAirToAirFireSolution(ml, targetVessel, out float INStimetogo), targetVessel.mainBody),
+                                            Time.time,
+                                            INStimetogo);
 
                                         FireCurrentMissile(ml, true, targetVessel, targetData);
                                         //StartCoroutine(MissileAwayRoutine(ml));
@@ -9165,7 +9164,7 @@ namespace BDArmory.Control
             if (BDArmorySettings.DEBUG_MISSILES)
             {
                 Debug.Log($"[BDArmory.MissileData]: Sending targetInfo to {(dumbfire ? "dumbfire " : "")}{Enum.GetName(typeof(MissileBase.TargetingModes), ml.TargetingMode)} Missile...");
-                if (ml.targetVessel != null) Debug.Log($"[BDArmory.MissileData]: targetInfo sent for {ml.targetVessel.Vessel.GetName()}");
+                if (ml.targetVessel != null && ml.targetVessel.Vessel != null) Debug.Log($"[BDArmory.MissileData]: targetInfo sent for {ml.targetVessel.Vessel.GetName()}");
             }
             if (BDArmorySettings.DEBUG_MISSILES)
                 Debug.Log($"[BDArmory.MissileData]: firing missile at {(targetVessel != null ? targetVessel.GetName() : "null target")}");
