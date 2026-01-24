@@ -4878,7 +4878,6 @@ namespace BDArmory.Control
                                         break;
                                     case MissileBase.TargetingModes.AntiRad:
                                         {
-                                            // Missile is index 4 (+ 1 due to -1 None)
                                             if ((mb.antiradTargets & pointDefenseAntiradThreatType) != 0)
                                             {
                                                 pointDefenseMissileHasAntiRad = true;
@@ -7875,8 +7874,7 @@ namespace BDArmory.Control
                                             skipRWRCheck = true;
                                         }
 
-                                        // Sonar is index 6 (+ 1 to account for -1 None)
-                                        if ((RWRTypes & (1 << 7)) != 0) candidateYield *= 2; // Prioritize PAH Torps for hostile sonar sources
+                                        if ((RWRTypes & sonarAntiradThreatType) != 0) candidateYield *= 2; // Prioritize PAH Torps for hostile sonar sources
                                     }
 
                                     if (distance < ((EngageableWeapon)item.Current).engageRangeMin || firedMissiles >= maxMissilesOnTarget || ((unguidedWeapon && vessel.Splashed) && distance > ((EngageableWeapon)item.Current).engageRangeMax / 10)) //don't penalize air-dropped unguided torps

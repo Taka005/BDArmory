@@ -1116,7 +1116,7 @@ namespace BDArmory.Guidances
             //timeToGo = missileVessel.TimeToCPA(targetPosition, targetVelocity, Vector3.zero, 120f);
             float leadTime = Mathf.Clamp(timeToGo, 0f, 8f);
             //if (BDArmorySettings.DEBUG_MISSILES) Debug.Log($"[BDArmory.MissileGuidance] PN gLimit: {gLimit}, dot: {Vector3.Dot(relRange, relVelocity)}, ttgo: {timeToGo}"); 
-            return missileVessel.CoM + missileVel * leadTime + normalAccel * leadTime * leadTime;
+            return missileVessel.CoM + leadTime * missileVel + 0.5f * leadTime * leadTime * normalAccel;
         }
 
         private static Vector3 GetPNAccel(Vector3 targetPosition, Vector3 targetVelocity, Vessel missileVessel, float N)
@@ -1153,7 +1153,7 @@ namespace BDArmory.Guidances
             gLimit = normalAccel.magnitude / (float)PhysicsGlobals.GravitationalAcceleration;
             float leadTime = Mathf.Clamp(timeToGo, 0f, 8f);
             //timeToGo = missileVessel.TimeToCPA(targetPosition, targetVelocity, targetAcceleration, 120f);
-            return missileVessel.CoM + missileVel * leadTime + normalAccel * leadTime * leadTime;
+            return missileVessel.CoM + leadTime * missileVel + 0.5f * leadTime * leadTime * normalAccel;
         }
         public static float GetLOSRate(Vector3 targetPosition, Vector3 targetVelocity, Vessel missileVessel)
         {

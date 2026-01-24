@@ -431,14 +431,18 @@ namespace BDArmory.Radar
                 if (missile != null)
                 {
                     if (!missile.updateRadarCS)
+                    {
                         return ti;
+                    }
 
                     if (missile.ActiveRadar || missile.radarLOALSearching)
                     {
                         ti.radarBaseSignature = RCS_MISSILES;
                     }
                     else
+                    {
                         ti.radarBaseSignature = missile.missileRadarCrossSection;
+                    }
 
                     ti.radarBaseSignatureNeedsUpdate = false;
                     ti.radarSignatureMatrixNeedsUpdate = false;
@@ -449,12 +453,16 @@ namespace BDArmory.Radar
                         // Update ECM impact on RCS if base RCS is modified
                         VesselECMJInfo jammer = v.gameObject.GetComponent<VesselECMJInfo>();
                         if (jammer != null)
+                        {
                             jammer.UpdateJammerStrength(ti);
+                        }
                     }
                     else
+                    {
                         // NOTE: This might be called on startup depending on who initializes first, if VesselECMJInfo calls
                         // UpdateJammerStrength before tInfo gets constructed, then this will get triggered.
-                        Debug.LogWarning($"[BDArmory.RadarUtils] DETECTED INFINITE LOOP! Missile: {missile.shortName} on vessel: {(v ? v.vesselName : "null")} caused infinite loop for some reason!");
+                        Debug.Log($"[BDArmory.RadarUtils] DETECTED INFINITE LOOP! Missile: {missile.shortName} on vessel: {(v ? v.vesselName : "null")} caused infinite loop for some reason!");
+                    }
 
                     return ti;
                 }
@@ -499,12 +507,16 @@ namespace BDArmory.Radar
                     // Update ECM impact on RCS if base RCS is modified
                     VesselECMJInfo jammer = v.gameObject.GetComponent<VesselECMJInfo>();
                     if (jammer != null)
+                    {
                         jammer.UpdateJammerStrength(ti);
+                    }
                 }
                 else
+                {
                     // NOTE: This might be called on startup depending on who initializes first, if VesselECMJInfo calls
                     // UpdateJammerStrength before tInfo gets constructed, then this will get triggered.
-                    Debug.LogWarning($"[BDArmory.RadarUtils] DETECTED INFINITE LOOP! Vessel: {(v ? v.vesselName : "null")}, with mass: {ti.radarMassAtUpdate}, ti.radarBaseSignature: {ti.radarBaseSignature}, radarBaseSignatureNeedsUpdate: {ti.radarBaseSignatureNeedsUpdate} and radarSignatureMatrixNeedsUpdate: {ti.radarSignatureMatrixNeedsUpdate} caused infinite loop for some reason!");
+                    Debug.Log($"[BDArmory.RadarUtils] DETECTED INFINITE LOOP! Vessel: {(v ? v.vesselName : "null")}, with mass: {ti.radarMassAtUpdate}, ti.radarBaseSignature: {ti.radarBaseSignature}, radarBaseSignatureNeedsUpdate: {ti.radarBaseSignatureNeedsUpdate} and radarSignatureMatrixNeedsUpdate: {ti.radarSignatureMatrixNeedsUpdate} caused infinite loop for some reason!");
+                }
             }
 
             return ti;
