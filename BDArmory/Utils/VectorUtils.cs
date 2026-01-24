@@ -393,6 +393,66 @@ namespace BDArmory.Utils
         }
 
         /// <summary>
+        /// Vector3d version of VectorUtils.Angle(), to take advantage of that faster execution time,
+        /// given that some of the references to VectorUtils.Angle() have both inputs as Vector3ds
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Angle(Vector3d from, Vector3d to)
+        {
+            double num = from.sqrMagnitude * to.sqrMagnitude;
+            if (num < 1e-30)
+            {
+                return 0f;
+            }
+
+            double num2 = BDAMath.Clamp(Vector3d.Dot(from, to) / Math.Sqrt(num), -1.0, 1.0);
+            return (float)(Math.Acos(num2) * 57.295779513082325);
+        }
+
+        /// <summary>
+        /// Partial Vector3d version of VectorUtils.Angle(), to take advantage of that faster execution time,
+        /// given that some of the references to VectorUtils.Angle() have one of the inputs as a Vector3d.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Angle(Vector3 from, Vector3d to)
+        {
+            double num = ((Vector3d)from).sqrMagnitude * to.sqrMagnitude;
+            if (num < 1e-30)
+            {
+                return 0f;
+            }
+
+            double num2 = BDAMath.Clamp(Vector3d.Dot(from, to) / Math.Sqrt(num), -1.0, 1.0);
+            return (float)(Math.Acos(num2) * 57.295779513082325);
+        }
+
+        /// <summary>
+        /// Partial Vector3d version of VectorUtils.Angle(), to take advantage of that faster execution time,
+        /// given that some of the references to VectorUtils.Angle() have one of the inputs as a Vector3d.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Angle(Vector3d from, Vector3 to)
+        {
+            double num = from.sqrMagnitude * ((Vector3d)to).sqrMagnitude;
+            if (num < 1e-30)
+            {
+                return 0f;
+            }
+
+            double num2 = BDAMath.Clamp(Vector3d.Dot(from, to) / Math.Sqrt(num), -1.0, 1.0);
+            return (float)(Math.Acos(num2) * 57.295779513082325);
+        }
+
+        /// <summary>
         /// Get angle between two pre-normalized vectors.
         /// 
         /// This implementation assumes that the input vectors are already normalized,

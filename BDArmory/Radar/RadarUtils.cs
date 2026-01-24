@@ -2723,7 +2723,7 @@ namespace BDArmory.Radar
                 else
                 {
                     // Quadratic Eq: u = (-b - sqrt(det)) / (2 * a)
-                    u = 0.5f * (-b - Math.Sqrt(det)) / a;
+                    u = 0.5 * (-b - Math.Sqrt(det)) / a;
                 }
 
                 sqrRange = (float)(a * u * u);
@@ -2739,12 +2739,12 @@ namespace BDArmory.Radar
 
                 if (calcAngle)
                 {
-                    Vector3 intcptVec;
-                    intcptVec.x = (float)(u * x + start.x - xB);
-                    intcptVec.y = (float)(u * y + start.y - yB);
-                    intcptVec.z = (float)(u * z + start.z - zB);
+                    Vector3d intcptVec;
+                    intcptVec.x = (u * x + start.x - xB);
+                    intcptVec.y = (u * y + start.y - yB);
+                    intcptVec.z = (u * z + start.z - zB);
 
-                    angle = VectorUtils.Angle(new Vector3(-(float)x, -(float)y, -(float)z), intcptVec);
+                    angle = VectorUtils.Angle(new Vector3d(-x, -y, -z), intcptVec);
                     angle = 90f - angle;
                 }
 
