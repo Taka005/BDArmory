@@ -505,9 +505,10 @@ namespace BDArmory.Targeting
                 }
 
                 Vector3 lookDirection = cameraParentTransform.forward;
-                if (VectorUtils.Angle(lookDirection, cameraParentTransform.parent.forward) > gimbalLimit)
+                Vector3 cameraForward = cameraParentTransform.parent.forward;
+                if (VectorUtils.Angle(lookDirection, cameraForward) > gimbalLimit)
                 {
-                    lookDirection = Vector3.RotateTowards(cameraParentTransform.transform.parent.forward, lookDirection, gimbalLimit * Mathf.Deg2Rad, 0);
+                    lookDirection = Vector3.RotateTowards(cameraForward, lookDirection, gimbalLimit * Mathf.Deg2Rad, 0);
                     gimbalLimitReached = true;
                     lockedVessel = null;
                 }
@@ -1417,6 +1418,9 @@ namespace BDArmory.Targeting
             {
                 targetPointPosition = cameraParentTransform.position + (maxRayDistance * cameraParentTransform.forward);
                 surfaceDetected = false;
+                // If we hit nothing but air, then only stay locked if we're at the gimbal limit
+                // or we're in the process of slewing to the target
+                groundStabilized = groundStabilized && (gimbalLimitReached || slewingToPosition);
                 return;
             }
 
@@ -1430,9 +1434,8 @@ namespace BDArmory.Targeting
             }
 
             targetPointPosition = rayHit.point;
-            if (!surfaceDetected && groundStabilized && !gimbalLimitReached)
+            if (groundStabilized && !gimbalLimitReached)
             {
-                groundStabilized = true;
                 groundTargetPosition = rayHit.point;
 
                 if (CoMLock)
@@ -1457,17 +1460,15 @@ namespace BDArmory.Targeting
                 {
                     bodyRelativeGTP = newGTP;
                 }
+
+                if (CMDropper.smokePool != null && CMSmoke.RaycastSmoke(ray))
+                {
+                    surfaceDetected = false;
+                    return;
+                }
             }
 
             surfaceDetected = true;
-
-            if (groundStabilized && !gimbalLimitReached && CMDropper.smokePool != null)
-            {
-                if (CMSmoke.RaycastSmoke(ray))
-                {
-                    surfaceDetected = false;
-                }
-            }
         }
 
         void ClearTarget()
@@ -1538,7 +1539,64 @@ namespace BDArmory.Targeting
             Vector3 cameraPos;
             Vector3 cameraForward;
             CoMLock = tgtVessel;
-            float tolerance = tgtVessel ? tgtVessel.GetRadius() : 10f;
+            //float tolerance = tgtVessel ? tgtVessel.GetRadius() : 10f;
+            float rangeTolerance;
+            float crossrangeTolerance;
+            Vector3 geoPos = Vector3.zero;
+            if (tgtVessel)
+            {
+                Vector3 tempSize = tgtVessel.vesselSize;
+                // We expect vessel forward/back to be large
+                rangeTolerance = tempSize.z;
+                // And vessel up/down to be small
+                crossrangeTolerance = tempSize.y;
+
+                // If z > y
+                if (rangeTolerance > crossrangeTolerance)
+                {
+                    // If z > x
+                    if (rangeTolerance > tempSize.x)
+                    {
+                        // z is the largest, and we take the smallest of the other two
+                        crossrangeTolerance = Mathf.Min(crossrangeTolerance, tempSize.x);
+                    }
+                    else
+                    {
+                        // x is the largest and y is the smallest
+                        rangeTolerance = tempSize.x;
+                    }
+                }
+                else
+                {
+                    // If z > x
+                    if (rangeTolerance > tempSize.x)
+                    {
+                        // y is the largest
+                        rangeTolerance = crossrangeTolerance;
+                        // and x is the smallest
+                        crossrangeTolerance = tempSize.x;
+                    }
+                    else
+                    {
+                        // Otherwise, z is the smallest
+                        crossrangeTolerance = rangeTolerance;
+                        // And the largest is between the other two
+                        rangeTolerance = Mathf.Max(tempSize.x, tempSize.y);
+                    }
+                }
+
+                // Gotta multiply by 0.5 -> get length / 2
+                rangeTolerance *= 0.5f;
+                // Gotta multiply by (0.5 * 0.25)^2 -> get (0.25 * height / 2)^2
+                crossrangeTolerance *= 0.015625f * crossrangeTolerance;
+            }
+            else
+            {
+                rangeTolerance = 10f;
+                crossrangeTolerance = 100f;
+                geoPos = VectorUtils.WorldPositionToGeoCoords(position, vessel.mainBody);
+            }
+
             while (!stopPTPR)
             {
                 cameraForward = cameraParentTransform.transform.forward;
@@ -1546,13 +1604,13 @@ namespace BDArmory.Targeting
 
                 // If...
                 if (surfaceDetected && // We've hit something
-                    Mathf.Abs(rangeDist) < tolerance && // And we're within tolerance in range
-                    normalDist.sqrMagnitude < 0.04f * tolerance * tolerance) // And we're within 20% of tolerance in crossrange
+                    Mathf.Abs(rangeDist) < rangeTolerance && // And we're within tolerance in range
+                    normalDist.sqrMagnitude < crossrangeTolerance) // And we're within crossrange tolerance
                 {
                     break; // Break out of the loop
                 }
 
-                (float distance, Vector3 relativeDir) = ((tgtVessel != null ? tgtVessel.CoM : position) - (cameraPos = cameraParentTransform.transform.position)).MagNorm();
+                (float distance, Vector3 relativeDir) = (position - (cameraPos = cameraParentTransform.transform.position)).MagNorm();
 
                 // If no tgtVessel or the tgtVessel is too far, break if angle < 0.1°
                 if ((!tgtVessel || distance > maxRayDistance) && VectorUtils.AnglePreNormalized(cameraForward, relativeDir) < 0.1f) break;
@@ -1591,6 +1649,8 @@ namespace BDArmory.Targeting
                     slewingToPosition = false;
                     yield break;
                 }
+                //position -= BDKrakensbane.FrameVelocityV3f * Time.fixedDeltaTime;
+                position = tgtVessel ? tgtVessel.CoM : (VectorUtils.GetWorldSurfacePostion(geoPos, vessel.mainBody));
             }
             if (surfaceDetected && !stopPTPR)
             {

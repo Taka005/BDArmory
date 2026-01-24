@@ -187,9 +187,10 @@ namespace BDArmory.Utils
                 return Vector3d.zero;
             }
 
-            double lat = body.GetLatitude(worldPosition);
-            double longi = body.GetLongitude(worldPosition);
-            double alt = body.GetAltitude(worldPosition);
+            //double lat = body.GetLatitude(worldPosition);
+            //double longi = body.GetLongitude(worldPosition);
+            //double alt = body.GetAltitude(worldPosition);
+            body.GetLatLonAlt(worldPosition, out double lat, out double longi, out double alt);
             return new Vector3d(lat, longi, alt);
         }
 
