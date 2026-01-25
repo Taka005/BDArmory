@@ -698,7 +698,7 @@ namespace BDArmory.FX
                         }
                         else
                         {
-                            nextDist = distance + partArmour;
+                            nextDist = distance + partArmour * 0.001f;
                             prevDens = Armor.Density;
 
                             partArmour *= factor;

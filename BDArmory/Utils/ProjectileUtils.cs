@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -443,7 +443,7 @@ namespace BDArmory.Utils
 
                             volumeToReduce = (((caliber * caliber) * 1.5f) / shrapnelCount * thickness) / 1000; //rough approximation of volume / # of fragments
                             hitPart.ReduceArmor(volumeToReduce);
-                            damage = hitPart.AddBallisticDamage(shrapnelMass, 0.1f, 1, (shrapnelThickness / thickness), 1, 430, explosionSource); //expansion rate of tnt/petn ~7500m/s
+                            damage = hitPart.AddBallisticDamage(shrapnelMass, 0.1f, 1, (shrapnelThickness / thickness), 1, 430, explosionSource, true); //expansion rate of tnt/petn ~7500m/s
                             if (BDArmorySettings.DEBUG_ARMOR)
                             {
                                 Debug.Log("[BDArmory.ProjectileUtils{CalcShrapnel}]: " + hitPart.name + " on " + hitPart.vessel.GetName() + ", detonationDist: " + detonationDist + "; " + shrapnelCount + " shrapnel hits; Armor damage: " + volumeToReduce + "cm3; part damage: " + damage);
@@ -500,7 +500,7 @@ namespace BDArmory.Utils
                             volumeToReduce = ((caliber * thickness * (caliber * 4)) * 2) / 1000; //cm3
                             hitPart.ReduceArmor(volumeToReduce);
 
-                            damage = hitPart.AddBallisticDamage(((projmass / 2) * (1 - HERatio)), 0.1f, 1, (shrapnelThickness / thickness), 1, 430, explosionSource); //within 5 calibers shrapnel still getting pushed/accelerated by blast
+                            damage = hitPart.AddBallisticDamage(((projmass / 2) * (1 - HERatio)), 0.1f, 1, (shrapnelThickness / thickness), 1, 430, explosionSource, true); //within 5 calibers shrapnel still getting pushed/accelerated by blast
                             if (BDArmorySettings.DEBUG_ARMOR)
                             {
                                 Debug.Log("[BDArmory.ProjectileUtils{CalcShrapnel}]: Shrapnel penetration from on-armor detonation, " + hitPart.name + ",  " + hitPart.vessel.GetName() + "; Armor damage: " + volumeToReduce + "; part damage: " + damage);
@@ -524,7 +524,7 @@ namespace BDArmory.Utils
                     }
                     else //internal detonation
                     {
-                        damage = hitPart.AddBallisticDamage((projmass * (1 - HERatio)), 0.1f, 1, 1.9f, 1, 430, explosionSource); //internal det catches entire shrapnel mass
+                        damage = hitPart.AddBallisticDamage((projmass * (1 - HERatio)), 0.1f, 1, 1.9f, 1, 430, explosionSource, true); //internal det catches entire shrapnel mass
                         if (BDArmorySettings.DEBUG_ARMOR)
                         {
                             Debug.Log("[BDArmory.ProjectileUtils{CalcShrapnel}]: Through-armor detonation in " + hitPart.name + ", " + hitPart.vessel.GetName() + "; part damage: " + damage);

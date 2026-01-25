@@ -3505,6 +3505,62 @@ namespace BDArmory.Control
                             {
                                 yield return new WaitForSecondsFixed(2f);
                             }
+
+                            float attemptStartTime = Time.time;
+                            float attemptDuration = targetScanInterval * 0.75f;
+                            MissileLauncher mlauncher = ml as MissileLauncher;
+                            // Have to get both due to the potential for the missile to be a cluster missile on a standard missileTurret
+                            // Also good to have them so we can ensure slavedGuard gets set to false at the end even if ml/mLauncher is destroyed
+                            MissileTurret mLauncherTurret = mlauncher.missileTurret;
+                            MissileTurret multiLauncherTurret = mlauncher.multiLauncher ? mlauncher.multiLauncher.turret : null;
+                            if (mLauncherTurret) mLauncherTurret.slavedGuard = true;
+                            if (multiLauncherTurret) multiLauncherTurret.slavedGuard = true;
+                            for (int i = 0; i < ml.customTurret.Count; i++)
+                            {
+                                if (ml.customTurret[i] == null) continue;
+                                if (ml.customTurret[i].vessel != vessel) continue;
+                                ml.customTurret[i].slavedGuard = true;
+                            }
+
+                            float angle = 999;
+                            while (Time.time - attemptStartTime < attemptDuration && targetVessel && angle > 25f)
+                            {
+                                if (ml.customTurret.Count > 0)
+                                {
+                                    for (int i = 0; i < ml.customTurret.Count; i++)
+                                    {
+                                        if (ml.customTurret[i] == null) continue;
+                                        if (ml.customTurret[i].vessel != vessel) continue;
+                                        ml.customTurret[i].slavedTargetPosition = targetVessel.CoM;
+                                        ml.customTurret[i].AimToTarget(ml.customTurret[i].slavedTargetPosition);
+                                    }
+                                }
+                                else
+                                {
+                                    // We assume that we know where the target is...
+                                    if (mLauncherTurret)
+                                    {
+                                        // Point turret towards it if it exists...
+                                        mLauncherTurret.slavedTargetPosition = targetVessel.CoM;
+                                    }
+                                    if (multiLauncherTurret)
+                                    {
+                                        // Point turret towards it if it exists...
+                                        multiLauncherTurret.slavedTargetPosition = targetVessel.CoM;
+                                    }
+                                }
+                                yield return wait;
+                                angle = VectorUtils.Angle(ml.MissileReferenceTransform.forward, targetVessel.CoM - ml.MissileReferenceTransform.position);
+                            }
+                            if (mLauncherTurret) mLauncherTurret.slavedGuard = false;
+                            if (multiLauncherTurret) multiLauncherTurret.slavedGuard = false;
+                            for (int i = 0; i < ml.customTurret.Count; i++)
+                            {
+                                if (ml.customTurret[i] == null) continue;
+                                if (ml.customTurret[i].vessel != vessel) continue;
+                                ml.customTurret[i].slavedGuard = false;
+                            }
+
                             float targetpaintAccuracyThreshold = Mathf.Max(100f, 0.013f * (float)targetVessel.srfSpeed * (float)targetVessel.srfSpeed);
                             if (targetingPods.Count > 0) //if targeting pods are available, slew them onto target and lock.
                             {
@@ -3537,13 +3593,7 @@ namespace BDArmory.Control
                                 }
                             }
                             //search for a laser point that corresponds with target vessel
-                            float attemptStartTime = Time.time;
-                            float attemptDuration = targetScanInterval * 0.75f;
-                            MissileLauncher mlauncher = ml as MissileLauncher;
-                            // Have to get both due to the potential for the missile to be a cluster missile on a standard missileTurret
-                            // Also good to have them so we can ensure slavedGuard gets set to false at the end even if ml/mLauncher is destroyed
-                            MissileTurret mLauncherTurret = mlauncher.missileTurret;
-                            MissileTurret multiLauncherTurret = mlauncher.multiLauncher ? mlauncher.multiLauncher.turret : null;
+                            attemptStartTime = Time.time;
                             if (mLauncherTurret) mLauncherTurret.slavedGuard = true;
                             if (multiLauncherTurret) multiLauncherTurret.slavedGuard = true;
                             for (int i = 0; i < ml.customTurret.Count; i++)
@@ -3592,7 +3642,7 @@ namespace BDArmory.Control
 
                             if (targetVessel && foundCam)
                             {
-                                float angle = 999;
+                                angle = 999;
                                 float turretStartTime = attemptStartTime;
                                 if (ml.customTurret.Count > 0)
                                 {

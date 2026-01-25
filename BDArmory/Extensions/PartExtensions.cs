@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 using BDArmory.Damage;
@@ -147,6 +147,7 @@ namespace BDArmory.Extensions
             });
         }
 
+        //bullet/rocket kinetic damage
         public static float AddBallisticDamage(this Part p,
                                                float mass,
                                                float caliber,
@@ -155,7 +156,7 @@ namespace BDArmory.Extensions
                                                float bulletDmgMult,
                                                float impactVelocity,
                                                ExplosionSourceType sourceType,
-                                               bool explosiveDamage = false) //bullet/rocket kinetic damage
+                                               bool explosionProjectile = false) // "explosionProjectile" specifically is intended for fragments and projectiles that come from explosions
         {
             if (BDArmorySettings.PAINTBALL_MODE)
             {
@@ -179,7 +180,7 @@ namespace BDArmory.Extensions
             //1e-4 constant for adjusting MegaJoules for gameplay
 
             float damage_;
-            if (!explosiveDamage)
+            if (!explosionFragment)
             {
                 switch (sourceType)
                 {
