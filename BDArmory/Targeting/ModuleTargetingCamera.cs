@@ -500,15 +500,12 @@ namespace BDArmory.Targeting
                     }
 
                     Vector3 lookVector = groundTargetPosition - cameraParentTransform.position;
-                    // In theory the below should be used, but in practice the vast majority of locks fail to hold and you get a lot of jitter...
-                    // In practice, it's also *seemingly* unnecessary, at least given the observed track errors
                     Vector3 currLookDirection = cameraParentTransform.forward;
                     float trackError = VectorUtils.Angle(currLookDirection, lookVector);
                     if (trackError > traverseRate * Time.fixedDeltaTime)
                     {
                         lookVector = Vector3.Slerp(currLookDirection, lookVector, traverseRate * Time.fixedDeltaTime / trackError);
                     }
-
 
                     //cameraParentTransform.rotation = Quaternion.LookRotation(lookVector);
                     PointCameraModel(lookVector);

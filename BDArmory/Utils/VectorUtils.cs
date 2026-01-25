@@ -496,10 +496,10 @@ namespace BDArmory.Utils
             return Mathf.Acos(num2) * Mathf.Rad2Deg;
         }
 
-        public static Vector3 RotateTowards(Vector3 current, Vector3 target, float maxRadiansDelta, float maxMagnitudeDelta)
+        public static Vector3 RotateTowards(Vector3 current, Vector3 target, float maxRadiansDelta, bool constantMag = false)
         {
             float currSqrMag = 1f;
-            if (maxMagnitudeDelta >= 0f)
+            if (constantMag)
             {
                 currSqrMag = current.sqrMagnitude;
             }
@@ -515,7 +515,7 @@ namespace BDArmory.Utils
                 current = target;
             }
 
-            if (maxMagnitudeDelta >= 0f)
+            if (constantMag)
             {
                 current *= BDAMath.Sqrt(currSqrMag / current.sqrMagnitude);
             }
