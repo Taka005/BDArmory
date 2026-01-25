@@ -496,6 +496,8 @@ namespace BDArmory.Utils
             return Mathf.Acos(num2) * Mathf.Rad2Deg;
         }
 
+        // No accuracy or efficiency gain (aside from the case where maxRadiansDelta > angle between the vectors
+        /*[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector3 RotateTowards(Vector3 current, Vector3 target, float maxRadiansDelta, bool constantMag = false)
         {
             float currSqrMag = 1f;
@@ -506,14 +508,16 @@ namespace BDArmory.Utils
 
             float currAngle = Angle(current, target);
 
-            if (currAngle > (maxRadiansDelta *= Mathf.Rad2Deg)) 
+            if (currAngle < (maxRadiansDelta *= Mathf.Rad2Deg)) 
             {
-                current = Vector3.Slerp(current, target, maxRadiansDelta * Mathf.Rad2Deg / currAngle); 
+                if (constantMag)
+                {
+                    target *= BDAMath.Sqrt(currSqrMag / target.sqrMagnitude);
+                }
+                return target;
             }
-            else
-            {
-                current = target;
-            }
+
+            current = Vector3.Slerp(current, target, maxRadiansDelta / currAngle);
 
             if (constantMag)
             {
@@ -521,7 +525,7 @@ namespace BDArmory.Utils
             }
 
             return current;
-        }
+        }*/
 
         /// <summary>
         /// Get AoA and Sideslip of a vector, relative to axes defined by forward and up.

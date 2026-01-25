@@ -1352,8 +1352,8 @@ namespace BDArmory.Guidances
                 float angle = 90f - VectorUtils.Angle(relPos, missile.vessel.upAxis);
                 if (theta > angle)
                 {
-                    //leadPosition = missile.vessel.CoM + Vector3.RotateTowards(relPos, missile.vessel.upAxis, (theta - angle) * Mathf.Deg2Rad, vertDist);
-                    leadPosition = missile.vessel.CoM + Vector3.Slerp(relPos, missile.vessel.upAxis, (theta - angle) / (angle - 90f));
+                    leadPosition = missile.vessel.CoM + Vector3.RotateTowards(relPos, missile.vessel.upAxis, (theta - angle) * Mathf.Deg2Rad, vertDist);
+                    //leadPosition = missile.vessel.CoM + Vector3.Slerp(relPos, missile.vessel.upAxis, (theta - angle) / (angle - 90f));
                 }
             }
 
