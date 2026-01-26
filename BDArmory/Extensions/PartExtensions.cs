@@ -180,7 +180,7 @@ namespace BDArmory.Extensions
             //1e-4 constant for adjusting MegaJoules for gameplay
 
             float damage_;
-            if (!explosionFragment)
+            if (!explosionProjectile)
             {
                 switch (sourceType)
                 {
