@@ -1454,6 +1454,13 @@ namespace BDArmory.Weapons.Missiles
             FindTurretInParents(p.parent);
         }
 
+        public override void SetSlavedGuard(bool slavedGuard)
+        {
+            base.SetSlavedGuard(slavedGuard);
+            if (missileTurret) missileTurret.slavedGuard = slavedGuard;
+            if (multiLauncher && multiLauncher.turret) multiLauncher.turret.slavedGuard = slavedGuard;
+        }
+
         public override float GetBlastRadius()
         {
             if (blastRadius >= 0) { return blastRadius; }

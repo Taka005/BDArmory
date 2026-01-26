@@ -2067,5 +2067,15 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
             }
             this.part.RefreshAssociatedWindows();
         }
+
+        public virtual void SetSlavedGuard(bool slavedGuard)
+        {
+            for (int i = 0; i < customTurret.Count; i++)
+            {
+                if (customTurret[i] == null) continue;
+                if (customTurret[i].vessel != vessel) continue;
+                customTurret[i].slavedGuard = slavedGuard;
+            }
+        }
     }
 }
