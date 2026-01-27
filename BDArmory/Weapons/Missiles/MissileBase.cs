@@ -2077,5 +2077,27 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                 customTurret[i].slavedGuard = slavedGuard;
             }
         }
+
+        public virtual void AimTurrets(Vector3 targetPos)
+        {
+            for (int i = 0; i < customTurret.Count; i++)
+            {
+                if (customTurret[i] == null) continue;
+                if (customTurret[i].vessel != vessel) continue;
+                customTurret[i].slavedTargetPosition = targetPos;
+            }
+        }
+
+        public virtual Vector3 TurretAimPosition()
+        {
+            for (int i = 0; i < customTurret.Count; i++)
+            {
+                if (customTurret[i] == null) continue;
+                if (customTurret[i].vessel != vessel) continue;
+                return customTurret[i].slavedTargetPosition;
+            }
+
+            return Vector3.zero;
+        }
     }
 }

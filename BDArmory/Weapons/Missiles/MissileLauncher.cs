@@ -1461,6 +1461,20 @@ namespace BDArmory.Weapons.Missiles
             if (multiLauncher && multiLauncher.turret) multiLauncher.turret.slavedGuard = slavedGuard;
         }
 
+        public override void AimTurrets(Vector3 targetPos)
+        {
+            base.AimTurrets(targetPos);
+            if (missileTurret)
+            {
+                missileTurret.slavedTargetPosition = targetPos;
+                return;
+            }
+            if (multiLauncher && multiLauncher.turret)
+            {
+                multiLauncher.turret.slavedTargetPosition = targetPos;
+            }
+        }
+
         public override float GetBlastRadius()
         {
             if (blastRadius >= 0) { return blastRadius; }
