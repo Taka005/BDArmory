@@ -18,6 +18,9 @@ namespace BDArmory.WeaponMounts
         [KSPField] public string yawTransformName = "yawTransform";
         public Transform yawTransform;
 
+        [KSPField] public string baseTransformName = "";
+        public Transform baseTransform;
+
         public Transform referenceTransform { get; }
         Transform _referenceTransform; //set this to gun's fireTransform
 
@@ -69,23 +72,46 @@ namespace BDArmory.WeaponMounts
 
             pitchTransform = part.FindModelTransform(pitchTransformName);
             yawTransform = part.FindModelTransform(yawTransformName);
+            if (!string.IsNullOrEmpty(baseTransformName))
+            {
+                baseTransform = part.FindModelTransform(baseTransformName);
+            }
 
             if (!pitchTransform)
             {
-                Debug.LogWarning("[BDArmory.ModuleTurret]: " + part.partInfo.title + " has no pitchTransform");
+                Debug.LogWarning($"[BDArmory.ModuleTurret]: {part.partInfo.title} has no pitchTransform");
             }
 
             if (!yawTransform)
             {
-                Debug.LogWarning("[BDArmory.ModuleTurret]: " + part.partInfo.title + " has no yawTransform");
+                Debug.LogWarning($"[BDArmory.ModuleTurret]: {part.partInfo.title} has no yawTransform");
+            }
+
+            if (!baseTransform)
+            {
+                Debug.Log($"[BDArmory.ModuleTurret]: {part.partInfo.title} has no baseTransform");
+                if (yawTransform)
+                {
+                    Debug.Log($"[BDArmory.ModuleTurret]: {part.partInfo.title} defaulting baseTransform to yawTransform.parent");
+                    baseTransform = yawTransform.parent;
+                }
+                else
+                {
+                    Debug.Log($"[BDArmory.ModuleTurret]: {part.partInfo.title} defaulting baseTransform to part.transform as there was no yawTransform!");
+                    baseTransform = part.transform;
+                }
             }
 
             if (!_referenceTransform)
             {
                 if (pitchTransform)
+                {
                     SetReferenceTransform(pitchTransform);
+                }
                 else
+                {
                     SetReferenceTransform(yawTransform);
+                }
             }
 
             SetupTweakables();
@@ -261,17 +287,14 @@ namespace BDArmory.WeaponMounts
 
         public bool ReturnTurret(bool pitch = true, bool yaw = true)
         {
-            if (!yawTransform)
-            {
-                return false;
-            }
+            if (!yawTransform) return true;
 
-            if (!(pitch || yaw))
-                return true;
+            if (!(pitch || yaw)) return true;
 
             float deltaTime = Time.fixedDeltaTime;
 
             float yawOffset = Quaternion.Angle(yawTransform.localRotation, standbyLocalRotation);
+
             float pitchOffset;
             
             if (pitchTransform)
@@ -282,6 +305,7 @@ namespace BDArmory.WeaponMounts
             {
                 pitchOffset = 0;
                 pitch = false;
+                if (!yaw) return true;
             }
 
             float yawSpeed;

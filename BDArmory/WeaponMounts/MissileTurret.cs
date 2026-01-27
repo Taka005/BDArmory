@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UniLinq;
 using UnityEngine;
@@ -372,7 +372,7 @@ namespace BDArmory.WeaponMounts
             }
             else
             {
-                if (Quaternion.FromToRotation(finalTransform.forward, turret.yawTransform.parent.parent.forward) != 
+                if (Quaternion.FromToRotation(finalTransform.forward, turret.baseTransform.forward) != 
                     Quaternion.identity)
                 {
                     UpdateMissilePositions();
