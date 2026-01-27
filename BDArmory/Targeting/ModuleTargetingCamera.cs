@@ -1429,7 +1429,7 @@ namespace BDArmory.Targeting
                 surfaceDetected = false;
                 // If we hit nothing but air, then only stay locked if we're at the gimbal limit
                 // or we're in the process of slewing to the target
-                groundStabilized = groundStabilized && (gimbalLimitReached || slewingToPosition);
+                groundStabilized &= (gimbalLimitReached || slewingToPosition);
                 return;
             }
 

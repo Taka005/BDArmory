@@ -380,17 +380,7 @@ namespace BDArmory.Utils
         /// <param name="to"></param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float Angle(Vector3 from, Vector3 to)
-        {
-            double num = ((Vector3d)from).sqrMagnitude * ((Vector3d)to).sqrMagnitude;
-            if (num < 1e-30)
-            {
-                return 0f;
-            }
-
-            double num2 = BDAMath.Clamp(Vector3d.Dot(from, to) / Math.Sqrt(num), -1.0, 1.0);
-            return (float)(Math.Acos(num2) * 57.295779513082325);
-        }
+        public static float Angle(Vector3 from, Vector3 to) => Angle((Vector3d)from, (Vector3d)to);
 
         /// <summary>
         /// Vector3d version of VectorUtils.Angle(), to take advantage of that faster execution time,
@@ -420,17 +410,7 @@ namespace BDArmory.Utils
         /// <param name="to"></param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float Angle(Vector3 from, Vector3d to)
-        {
-            double num = ((Vector3d)from).sqrMagnitude * to.sqrMagnitude;
-            if (num < 1e-30)
-            {
-                return 0f;
-            }
-
-            double num2 = BDAMath.Clamp(Vector3d.Dot(from, to) / Math.Sqrt(num), -1.0, 1.0);
-            return (float)(Math.Acos(num2) * 57.295779513082325);
-        }
+        public static float Angle(Vector3 from, Vector3d to) => Angle((Vector3d)from, to);
 
         /// <summary>
         /// Partial Vector3d version of VectorUtils.Angle(), to take advantage of that faster execution time,
@@ -440,15 +420,25 @@ namespace BDArmory.Utils
         /// <param name="to"></param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float Angle(Vector3d from, Vector3 to)
-        {
-            double num = from.sqrMagnitude * ((Vector3d)to).sqrMagnitude;
-            if (num < 1e-30)
-            {
-                return 0f;
-            }
+        public static float Angle(Vector3d from, Vector3 to) => Angle(from, (Vector3d)to);
 
-            double num2 = BDAMath.Clamp(Vector3d.Dot(from, to) / Math.Sqrt(num), -1.0, 1.0);
+        /// <summary>
+        /// Get angle between two pre-normalized vectors.
+        /// 
+        /// This implementation assumes that the input vectors are already normalized,
+        /// skipping such checks and normalization that Vector3.Angle does.
+        /// IMPORTANT NOTE: Unlike Vector3.Angle(), this returns 90° if one or both
+        /// vectors are zero vectors! Vector3.Angle() returns 0° instead.
+        /// If this behavior is undesireable, the "AnglePreNormalized" function which takes
+        /// in the two original vectors and their magnitudes should be used instead.
+        /// </summary>
+        /// <param name="from">First vector.</param>
+        /// <param name="to">Second vector.</param>
+        /// <returns>The angle between the two vectors.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float AnglePreNormalized(Vector3d from, Vector3d to)
+        {
+            double num2 = BDAMath.Clamp(Vector3d.Dot(from, to), -1d, 1d);
             return (float)(Math.Acos(num2) * 57.295779513082325);
         }
 
@@ -466,11 +456,39 @@ namespace BDArmory.Utils
         /// <param name="to">Second vector.</param>
         /// <returns>The angle between the two vectors.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float AnglePreNormalized(Vector3 from, Vector3 to)
-        {
-            double num2 = BDAMath.Clamp(Vector3d.Dot(from, to), -1d, 1d);
-            return (float)(Math.Acos(num2) * 57.295779513082325);
-        }
+        public static float AnglePreNormalized(Vector3 from, Vector3 to) => AnglePreNormalized((Vector3d)from, (Vector3d)to);
+
+        /// <summary>
+        /// Get angle between two pre-normalized vectors.
+        /// 
+        /// This implementation assumes that the input vectors are already normalized,
+        /// skipping such checks and normalization that Vector3.Angle does.
+        /// IMPORTANT NOTE: Unlike Vector3.Angle(), this returns 90° if one or both
+        /// vectors are zero vectors! Vector3.Angle() returns 0° instead.
+        /// If this behavior is undesireable, the "AnglePreNormalized" function which takes
+        /// in the two original vectors and their magnitudes should be used instead.
+        /// </summary>
+        /// <param name="from">First vector.</param>
+        /// <param name="to">Second vector.</param>
+        /// <returns>The angle between the two vectors.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float AnglePreNormalized(Vector3 from, Vector3d to) => AnglePreNormalized((Vector3d)from, to);
+
+        /// <summary>
+        /// Get angle between two pre-normalized vectors.
+        /// 
+        /// This implementation assumes that the input vectors are already normalized,
+        /// skipping such checks and normalization that Vector3.Angle does.
+        /// IMPORTANT NOTE: Unlike Vector3.Angle(), this returns 90° if one or both
+        /// vectors are zero vectors! Vector3.Angle() returns 0° instead.
+        /// If this behavior is undesireable, the "AnglePreNormalized" function which takes
+        /// in the two original vectors and their magnitudes should be used instead.
+        /// </summary>
+        /// <param name="from">First vector.</param>
+        /// <param name="to">Second vector.</param>
+        /// <returns>The angle between the two vectors.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float AnglePreNormalized(Vector3d from, Vector3 to) => AnglePreNormalized(from, (Vector3d)to);
 
         /// <summary>
         /// Get angle between two vectors, with known magnitudes.
@@ -486,14 +504,15 @@ namespace BDArmory.Utils
         /// <param name="toMag">Second vector magnitude.</param>
         /// <returns>The angle between the two vectors.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float AnglePreNormalized(Vector3 from, Vector3 to, float fromMag, float toMag)
+        public static float AnglePreNormalized(Vector3d from, Vector3d to, float fromMag, float toMag)
         {
-            float num = fromMag * toMag;
+            // Using (double) here should help with precision when the magnitudes get very small or very big
+            double num = (double)fromMag * (double)toMag;
             if (num < 1E-15f)
                 return 0f;
 
-            float num2 = Mathf.Clamp(Vector3.Dot(from, to) / (fromMag * toMag), -1f, 1f);
-            return Mathf.Acos(num2) * Mathf.Rad2Deg;
+            double num2 = BDAMath.Clamp(Vector3d.Dot(from, to) / num, -1d, 1d);
+            return (float)(Math.Acos(num2) * 57.295779513082325);
         }
 
         // No accuracy or efficiency gain (aside from the case where maxRadiansDelta > angle between the vectors
@@ -540,19 +559,19 @@ namespace BDArmory.Utils
         /// <param name="sideslip">Sideslip output.</param>
         /// <returns>The AoA and Sideslip angle, in degrees, of "dir" relative to the axes defined by forward and up.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void GetAoASideslip(Vector3 dir, Vector3 forward, Vector3 up, out float AoA, out float sideslip)
+        public static void GetAoASideslip(Vector3d dir, Vector3d forward, Vector3d up, out float AoA, out float sideslip)
         {
             // Get the left vector to fully define the coordinate system
-            Vector3 left = Vector3.Cross(up, forward);
+            Vector3d left = Vector3d.Cross(up, forward);
 
             // Get the projections
-            float x = Vector3.Dot(dir, forward);
-            float y = Vector3.Dot(dir, left);
-            float z = Vector3.Dot(dir, up);
+            double x = Vector3d.Dot(dir, forward);
+            double y = Vector3d.Dot(dir, left);
+            double z = Vector3d.Dot(dir, up);
 
             // Return the AoA/sideslip
-            AoA = -Mathf.Rad2Deg * Mathf.Atan2(z, x);
-            sideslip = -Mathf.Rad2Deg * Mathf.Atan2(y, x);
+            AoA = (float)(-57.295779513082325 * Math.Atan2(z, x));
+            sideslip = (float)(-57.295779513082325 * Math.Atan2(y, x));
         }
 
         /// <summary>
@@ -567,7 +586,7 @@ namespace BDArmory.Utils
         /// <param name="left">Left vector.</param>
         /// <returns>The angle of "dir" relative to "forward", in degrees, projected onto a plane defined by "forward" and "left".</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float GetAngleOnPlane(Vector3 dir, Vector3 forward, Vector3 left)
+        public static float GetAngleOnPlane(Vector3d dir, Vector3d forward, Vector3d left)
         {
             // Get the projections
             double x = Vector3d.Dot(dir, forward);
@@ -605,7 +624,7 @@ namespace BDArmory.Utils
         /// <param name="up">Up vector.</param>
         /// <returns>The angle of "dir" relative to "up", in degrees, as an elevation angle, with range -90° to 90°.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float GetElevationPreNorm(Vector3 dir, Vector3 up)
+        public static float GetElevationPreNorm(Vector3d dir, Vector3d up)
         {
             return 90f - AnglePreNormalized(up, dir);
         }
@@ -624,7 +643,7 @@ namespace BDArmory.Utils
         /// <param name="up">Up vector.</param>
         /// <returns>The angle of "dir" relative to "up", in degrees, as an elevation angle, with range -90° to 90°.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float GetElevation(Vector3 dir, Vector3 up)
+        public static float GetElevation(Vector3d dir, Vector3d up)
         {
             double dirMag = Vector3d.Magnitude(dir);
             if (dirMag < 1E-15)
