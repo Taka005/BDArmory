@@ -1,4 +1,4 @@
-IMPROVEMENTS / FIXES
+﻿IMPROVEMENTS / FIXES
 - General:
 	- Fix GetBodyByName("Kerbin") issues for mods that replace Kerbin.
 - AI / WM:
@@ -2604,9 +2604,6 @@ IMPROVEMENTS
 	- Use missile velocity vector for evasion instead of missile relative position to prevent turning into missiles when they are at close range. 
 	- Use soonest time to closest approach instead of closest distance to select highest threat missile. 
 	- Change closest approach point to ignore missile threats to 3 Blast Radius from 1.5 Blast Radius.
-
-Message #tea
-
 - Weapons:
 	- Adds Chaingun functionality; chainguns have user configurable RoF in the SPH/VAB.
 	- Adds Weapon Spool up time functionality (for Gatling guns, etc).
