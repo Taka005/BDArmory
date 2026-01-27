@@ -1281,7 +1281,7 @@ namespace BDArmory.Targeting
             var weaponManager = WeaponManager;
             if (weaponManager && weaponManager.designatedGPSCoords != Vector3d.zero)
             {
-                StartCoroutine(PointToPositionRoutine(VectorUtils.GetWorldSurfacePostion(weaponManager.designatedGPSCoords, vessel.mainBody)));
+                StartCoroutine(PointToPositionRoutine(VectorUtils.GetWorldSurfacePostion(weaponManager.designatedGPSCoords, vessel.mainBody), -1));
             }
         }
 
@@ -1531,7 +1531,7 @@ namespace BDArmory.Targeting
         bool stopPTPR;
         bool slewingToPosition;
 
-        public IEnumerator PointToPositionRoutine(Vector3 position, Vessel tgtVessel = null, bool clearTgt = true)
+        public IEnumerator PointToPositionRoutine(Vector3 position, float attemptDuration, Vessel tgtVessel = null, bool clearTgt = true)
         {
             yield return StopPTPRRoutine();
             stopPTPR = false;
@@ -1552,6 +1552,7 @@ namespace BDArmory.Targeting
             float rangeTolerance;
             float crossrangeTolerance;
             Vector3 geoPos = Vector3.zero;
+            float endTime = attemptDuration > 0 ? Time.time + attemptDuration : float.MaxValue;
             if (tgtVessel)
             {
                 Vector3 tempSize = tgtVessel.vesselSize;
@@ -1596,8 +1597,8 @@ namespace BDArmory.Targeting
 
                 // Gotta multiply by 0.5 -> get length / 2
                 rangeTolerance *= 0.5f;
-                // Gotta multiply by (0.5 * 0.25)^2 -> get (0.25 * height / 2)^2
-                crossrangeTolerance *= 0.015625f * crossrangeTolerance;
+                // Gotta multiply by 0.5^2 -> get (height / 2)^2
+                crossrangeTolerance *= 0.25f * crossrangeTolerance;
             }
             else
             {
@@ -1606,7 +1607,7 @@ namespace BDArmory.Targeting
                 geoPos = VectorUtils.WorldPositionToGeoCoords(position, vessel.mainBody);
             }
 
-            while (!stopPTPR)
+            while (!stopPTPR && Time.time < endTime)
             {
                 GetHitPoint();
                 cameraForward = cameraParentTransform.transform.forward;
