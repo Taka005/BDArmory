@@ -7,13 +7,16 @@
 	- Fix AI not accurately locking targets via the targeting pod while moving at speed.
 	- Fix various NREs in GuardMissileRoutine that would potentially lock out a vessel from firing missiles.
 - Weapons:
+	- Turrets:
+		- Added "baseTransformName" field to turrets, while this was previously unclear, the parent transform of yawTransform was previously being used to determine the turret's center of rotation and the orientation of its axes. This has now been made into an explicit field to allow modders to better control this behavior. Unless specified, the transform will be set to the parent of the yawTransform.
+		- Made turret code more failure tolerant, and capable of dealing with cases where yawTransform and/or pitchTransform are missing. IMPORTANT NOTE: A turret lacking a yawTransform and/or pitchTransform will NOT function properly, it will try to work around it, but the modder should fix this issue ASAP!
 	- Explosions:
 		- Re-implemented the shaped charge unfocusing/squeezing mechanic, where as the shaped charge jet penetrates armor, it loses coherence and diameter.
 		- Add spall to shaped charge damage calculations, shaped charge now carries along a % of the spall it produces as it penetrates causing additional damage.
 			- Spaced armor and materials with high ductility can be used as spall liners, which will reduce some of this spall, up to a configurable percentage. This is set by default to 50% in the settings.cfg file, using the "HEAT_SPALL_MAX_RED" setting, higher means more spall can be reduced with spall liners.
 			- Add "HEAT Spall Dmg. Multiplier" setting that affects shaped charge kinetic damage.
 		- Fix shaped charges applying kinetic damage without actually penetrating the part they hit.
-		- Apply missing explosion source multiplier for shaped charge kinetic damage.
+		- Apply missing explosion source multiplier for shaped charge kinetic damage and shrapnel.
 		- Rename incorrectly named "Implosive Damage Multiplier" setting to "Exp. Impulse Multiplier". This setting modifies the force with which explosions push vessels (the ones that aren't blown up at least...).
 	- Warheads:
 		- Add "bulletDmgMult" field to BDCustomWarhead modules, allowing their damage to be tuned.

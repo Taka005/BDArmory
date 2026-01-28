@@ -8783,8 +8783,8 @@ namespace BDArmory.Control
             MissileLauncher launcher = ml as MissileLauncher;
             if (launcher != null)
             {
-                foundCam = BDATargetManager.GetLaserTarget(launcher,
-                    launcher.GuidanceMode == MissileBase.GuidanceModes.BeamRiding, Team);
+                bool parentOnly = launcher.GuidanceMode == GuidanceModes.BeamRiding || launcher.GuidanceMode == GuidanceModes.CLOS || launcher.GuidanceMode == GuidanceModes.CLOSThreePoint || launcher.GuidanceMode == GuidanceModes.CLOSLead;
+                foundCam = BDATargetManager.GetLaserTarget(launcher, parentOnly, Team);
             }
             else
             {
@@ -10768,7 +10768,7 @@ namespace BDArmory.Control
             }
             if (gTarget == default) gTarget = guardTarget.CoM;
             if (weapon != null && (gTarget - weapon.fireTransforms[0].transform.position).sqrMagnitude > (weapon.engageRangeMax * 1.25f) * (weapon.engageRangeMax * 1.25f)) return false; //target too far away
-            Transform turretTransform = turret.yawTransform.parent;
+            Transform turretTransform = turret.baseTransform;
             Vector3 direction = gTarget - turretTransform.position;
             if (weapon != null && weapon.bulletDrop) // Account for bullet drop (rough approximation not accounting for target movement).
             {
