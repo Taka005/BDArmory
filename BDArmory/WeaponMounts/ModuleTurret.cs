@@ -108,9 +108,13 @@ namespace BDArmory.WeaponMounts
                 {
                     SetReferenceTransform(pitchTransform);
                 }
-                else
+                else if (yawTransform)
                 {
                     SetReferenceTransform(yawTransform);
+                }
+                else
+                {
+                    SetReferenceTransform(baseTransform);
                 }
             }
 
