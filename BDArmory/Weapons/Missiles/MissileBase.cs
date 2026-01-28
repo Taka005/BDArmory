@@ -586,7 +586,6 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
 
         private int snapshotTicker;
         private int locksCount = 0;
-        private float _radarFailTimer = 0;
 
         [KSPField] public float radarTimeout = -1;
         [KSPField] public float seekerTimeout = 5;
