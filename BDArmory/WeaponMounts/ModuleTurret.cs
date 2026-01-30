@@ -98,7 +98,7 @@ namespace BDArmory.WeaponMounts
                 else if (pitchTransform)
                 {
                     Debug.Log($"[BDArmory.ModuleTurret]: {part.partInfo.title} defaulting baseTransform to pitchTransform.parent as there was no yawTransform!");
-                    baseTransform = part.transform;
+                    baseTransform = pitchTransform.parent;
                 }
                 else
                 {

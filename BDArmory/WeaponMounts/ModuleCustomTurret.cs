@@ -54,7 +54,6 @@ namespace BDArmory.WeaponMounts
 
         public Vector3 slavedTargetPosition;
         public bool slaved = false;
-        public bool slavedGuard = false;
         public bool manuallyControlled = false;
         public bool isYawRotor => Servo != null;
         MissileFire WeaponManager
@@ -150,6 +149,34 @@ namespace BDArmory.WeaponMounts
             */
         }
 
+        public bool slavedGuard
+        {
+            get
+            {
+                if (!_slavedGuard) return false;
+
+                if (!_slavedGuardMissile || _slavedGuardMissile.vessel != vessel)
+                {
+                    _slavedGuard = false;
+                    return false;
+                }
+
+                return _slavedGuard;
+            }
+        }
+
+        bool _slavedGuard = false;
+        MissileBase _slavedGuardMissile = null;
+
+        public void SetSlavedGuard(bool slavedGuard, MissileBase ml)
+        {
+            _slavedGuard = slavedGuard;
+            if (slavedGuard)
+            {
+                _slavedGuardMissile = ml;
+            }
+        }
+
         void FixedUpdate()
         {
             if (!HighLogic.LoadedSceneIsFlight || turretID == 0) return;
@@ -158,7 +185,7 @@ namespace BDArmory.WeaponMounts
 
             MissileFire wm = WeaponManager;
             MissileBase currMissile;
-            if (wm && !(slavedGuard = slavedGuard && wm.guardMode) && (currMissile = wm.CurrentMissile) && currMissile.customTurret.Count > 0 && currMissile.customTurret.Contains(this))
+            if (wm && !(_slavedGuard = wm.guardMode && slavedGuard) && (currMissile = wm.CurrentMissile) && currMissile.customTurret.Count > 0 && currMissile.customTurret.Contains(this))
             {
                 if (wm.slavingTurrets)
                 {
@@ -174,7 +201,7 @@ namespace BDArmory.WeaponMounts
                 }
             }
 
-            if (slaved || slavedGuard)
+            if (slaved || _slavedGuard)
             {
                 AimToTarget(slavedTargetPosition);
             }

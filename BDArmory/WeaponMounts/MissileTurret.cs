@@ -59,7 +59,22 @@ namespace BDArmory.WeaponMounts
         Dictionary<string, Vector3> comOffsets;
 
         public bool slaved;
-        public bool slavedGuard = false;
+        public bool slavedGuard
+        {
+            get
+            {
+                if (!_slavedGuard) return false;
+
+                if (!_slavedGuardMissile || _slavedGuardMissile.vessel != vessel)
+                {
+                    _slavedGuard = false;
+                    return false;
+                }
+
+                return true;
+            }
+        }
+
         public bool manuallyControlled = false;
 
         public Vector3 slavedTargetPosition;
@@ -418,11 +433,11 @@ namespace BDArmory.WeaponMounts
                 if (wm.guardMode)
                 {
                     slaved = slavedGuard;
-                    if (slavedGuard) return; // Guard Mode provides the target
+                    if (slaved) return; // Guard Mode provides the target
                 }
                 else
                 {
-                    slavedGuard = false;
+                    _slavedGuard = false;
                 }
 
                 if (wm.slavingTurrets)
@@ -439,6 +454,18 @@ namespace BDArmory.WeaponMounts
                     slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(activeMissile, wm.mainTGP.targetPointPosition, wm.mainTGP.lockedVessel ? wm.mainTGP.lockedVessel.Velocity() : Vector3.zero, turretLoft, turretLoftFac);
                     return;
                 }
+            }
+        }
+
+        bool _slavedGuard = false;
+        MissileBase _slavedGuardMissile = null;
+
+        public void SetSlavedGuard(bool slavedGuard, MissileBase ml)
+        {
+            _slavedGuard = slavedGuard;
+            if (slavedGuard)
+            {
+                _slavedGuardMissile = ml;
             }
         }
 
