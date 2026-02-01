@@ -839,6 +839,7 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
             {
                 lockFailTimer = 0;
                 predictedHeatTarget = heatTarget;
+                TargetPosition = heatTarget.position;
             }
             if (lockFailTimer >= 0)
             {
@@ -889,6 +890,7 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                 else
                 {
                     lockFailTimer += Time.fixedDeltaTime;
+                    predictedHeatTarget = TargetSignatureData.noTarget;
                 }
 
                 // Update predicted values based on target information
@@ -1310,15 +1312,15 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                 {
                     radarTarget = TargetSignatureData.noTarget;
                     TargetAcquired = true;
-                    TargetPosition = transform.position + (startDirection * 5000);
-                    TargetVelocity = vessel.Velocity(); // Set the relative target velocity to 0.
-                    TargetAcceleration = Vector3.zero;
                     if (!radarLOALSearching)
                     {
                         radarLOALSearching = true;
                         updateRadarCS = true;
                         startDirection = GetForwardTransform();
                     }
+                    TargetPosition = transform.position + (startDirection * 5000);
+                    TargetVelocity = vessel.Velocity(); // Set the relative target velocity to 0.
+                    TargetAcceleration = Vector3.zero;
                     _radarFailTimer += Time.fixedDeltaTime;
                     if (_radarFailTimer > seekerTimeout)
                     {
