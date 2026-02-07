@@ -1407,6 +1407,7 @@ namespace BDArmory.Weapons.Missiles
             {
                 Destroy(vesselReferenceTransform.gameObject);
             }
+            if (lockedCamera != null) lockedCamera.guidingOrdnance = false;
         }
         void OnEditorPartPlaced(Part p)
         {
@@ -3885,6 +3886,7 @@ namespace BDArmory.Weapons.Missiles
                     if (light.Current == null) continue;
                     light.Current.intensity = 0;
                 }
+            if (lockedCamera) lockedCamera.guidingOrdnance = false;
         }
 
         public void DestroyMissile()
