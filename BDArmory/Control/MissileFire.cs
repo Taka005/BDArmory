@@ -6717,7 +6717,7 @@ namespace BDArmory.Control
                                     //if shooting larger targets - bombers/zeppelins/Ace Combat Wunderwaffen - prioritize biggest caliber
                                     ModuleWeapon Gun = item.Current as ModuleWeapon;
                                     float candidateRPM = Gun.roundsPerMinute;
-                                    bool candidateGimbal = Gun.maxPitch > Gun.minPitch && Gun.maxPitch > 20; //not going to hit air with low elevation, unless they're flying very low
+                                    bool candidateGimbal = Gun.customTurretID > 0 || Gun.maxPitch > Gun.minPitch && Gun.maxPitch > 20; //not going to hit air with low elevation, unless they're flying very low
                                     float candidateTraverse = Gun.yawRange;
                                     bool candidatePFuzed = Gun.eFuzeType == PooledBullet.BulletFuzeTypes.Proximity || Gun.eFuzeType == PooledBullet.BulletFuzeTypes.Flak;
                                     bool candidateVTFuzed = Gun.eFuzeType == PooledBullet.BulletFuzeTypes.Timed || Gun.eFuzeType == PooledBullet.BulletFuzeTypes.Flak;
@@ -6822,7 +6822,7 @@ namespace BDArmory.Control
                                     // For AA, favour higher power/turreted
                                     ModuleWeapon Laser = item.Current as ModuleWeapon;
                                     float candidateRPM = Laser.roundsPerMinute;
-                                    bool candidateGimbal = Laser.maxPitch > Laser.minPitch && Laser.maxPitch > 20;
+                                    bool candidateGimbal = Laser.customTurretID > 0 || Laser.maxPitch > Laser.minPitch && Laser.maxPitch > 20;
                                     float candidateTraverse = Laser.yawRange;
                                     float candidateMinrange = Laser.engageRangeMin;
                                     float candidateMaxRange = Laser.engageRangeMax;
@@ -7217,7 +7217,7 @@ namespace BDArmory.Control
                                     // For STS, favour higher power/turreted
                                     ModuleWeapon Laser = item.Current as ModuleWeapon;
                                     float candidateRPM = Laser.roundsPerMinute;
-                                    bool candidateGimbal = Laser.maxPitch > Laser.minPitch && Laser.maxPitch > 20;
+                                    bool candidateGimbal = Laser.customTurretID > 0 || Laser.maxPitch > Laser.minPitch && Laser.maxPitch > 20;
                                     float candidateTraverse = Laser.yawRange;
                                     float candidateMinrange = Laser.engageRangeMin;
                                     float candidateMaxrange = Laser.engageRangeMax;
@@ -7309,7 +7309,7 @@ namespace BDArmory.Control
                                     // For Atg, favour higher power/turreted
                                     ModuleWeapon Laser = item.Current as ModuleWeapon;
                                     float candidateRPM = Laser.roundsPerMinute;
-                                    bool candidateGimbal = Laser.maxPitch > Laser.minPitch;
+                                    bool candidateGimbal = Laser.customTurretID > 0 || Laser.maxPitch > Laser.minPitch;
                                     float candidateTraverse = Laser.yawRange;
                                     float candidateMinrange = Laser.engageRangeMin;
                                     float candidateMaxRange = Laser.engageRangeMax;
@@ -7386,7 +7386,7 @@ namespace BDArmory.Control
                                     float candidateRPM = Gun.roundsPerMinute;
                                     float candidateImpact = Gun.bulletMass * Gun.bulletVelocity;
                                     int candidatePriority = Mathf.RoundToInt(Gun.priority);
-                                    bool candidateGimbal = Gun.maxPitch > Gun.minPitch;
+                                    bool candidateGimbal = Gun.customTurretID > 0 || Gun.maxPitch > Gun.minPitch;
                                     float candidateMinrange = Gun.engageRangeMin;
                                     float candidateMaxRange = Gun.engageRangeMax;
                                     float candidateTraverse = Gun.yawRange * (Gun.maxPitch - Gun.minPitch);
