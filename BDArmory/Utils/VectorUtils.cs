@@ -10,6 +10,8 @@ namespace BDArmory.Utils
     {
         private static System.Random RandomGen = new System.Random();
 
+        private static readonly double RadToDeg = 180.0 / Math.PI;
+
         /// <summary>
         /// A slightly more efficient `Vector3.Sign` function, still requires a sqrt so it is best replaced with
         /// `VectorUtils.GetAngleOnPlane`, however that requires orthogonality from `fromDirection`. This function
@@ -399,7 +401,7 @@ namespace BDArmory.Utils
             }
 
             double num2 = BDAMath.Clamp(Vector3d.Dot(from, to) / Math.Sqrt(num), -1.0, 1.0);
-            return (float)(Math.Acos(num2) * 57.295779513082325);
+            return (float)(Math.Acos(num2) * RadToDeg);
         }
 
         /// <summary>
@@ -439,7 +441,7 @@ namespace BDArmory.Utils
         public static float AnglePreNormalized(Vector3d from, Vector3d to)
         {
             double num2 = BDAMath.Clamp(Vector3d.Dot(from, to), -1d, 1d);
-            return (float)(Math.Acos(num2) * 57.295779513082325);
+            return (float)(Math.Acos(num2) * RadToDeg);
         }
 
         /// <summary>
@@ -512,7 +514,7 @@ namespace BDArmory.Utils
                 return 0f;
 
             double num2 = BDAMath.Clamp(Vector3d.Dot(from, to) / num, -1d, 1d);
-            return (float)(Math.Acos(num2) * 57.295779513082325);
+            return (float)(Math.Acos(num2) * RadToDeg);
         }
 
         // No accuracy or efficiency gain (aside from the case where maxRadiansDelta > angle between the vectors
@@ -570,8 +572,8 @@ namespace BDArmory.Utils
             double z = Vector3d.Dot(dir, up);
 
             // Return the AoA/sideslip
-            AoA = (float)(-57.295779513082325 * Math.Atan2(z, x));
-            sideslip = (float)(-57.295779513082325 * Math.Atan2(y, x));
+            AoA = (float)(-RadToDeg * Math.Atan2(z, x));
+            sideslip = (float)(-RadToDeg * Math.Atan2(y, x));
         }
 
         /// <summary>
@@ -597,7 +599,7 @@ namespace BDArmory.Utils
                 return 0f;
 
             // Return the azimuth/elevation
-            return (float) (57.295779513082325 * Math.Atan2(y, x));
+            return (float) (RadToDeg * Math.Atan2(y, x));
         }
 
         /// <summary>
@@ -652,7 +654,7 @@ namespace BDArmory.Utils
             }
 
             double num2 = BDAMath.Clamp(Vector3d.Dot(up, dir) / dirMag, -1d, 1d);
-            return 90f - (float)(Math.Acos(num2) * 57.295779513082325);
+            return 90f - (float)(Math.Acos(num2) * RadToDeg);
         }
 
         /// <summary>
