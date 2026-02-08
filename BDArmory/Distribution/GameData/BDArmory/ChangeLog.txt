@@ -60,7 +60,7 @@ IMPROVEMENTS / FIXES
 		- When radar notching is enabled, chaff gets additional bonuses from a target beaming (moving at 90° to the radar) or notching (beaming at low altitudes).
 		- The first value in radarChaffNotchClutterFactor determines the additional chaff effectiveness when the target is moving at 90° to the target, independent of the other modifiers.
 		- The second value in radarChaffNotchClutterFactor determines the additional chaff effectiveness when the target is actively notching, independent of the other modifiers.
-		- E.G. if radarChaffClutterFactor, and both radarChaffNotchClutterFactor values are set to 1.0, the target's position is offset by chaff by up to 3 times the original offset.
+		- E.g., if radarChaffClutterFactor, and both radarChaffNotchClutterFactor values are set to 1.0, the target's position is offset by chaff by up to 3 times the original offset.
 - Weapons:
 	- Fixed NRE for turrets without a pitchTransform. While not recommended, nor formally supported, such turrets should no longer spam NREs.
 	- Explosions:
