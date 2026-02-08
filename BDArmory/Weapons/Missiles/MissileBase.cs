@@ -2073,7 +2073,7 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
             {
                 if (customTurret[i] == null) continue;
                 if (customTurret[i].vessel != vessel) continue;
-                customTurret[i].slavedGuard = slavedGuard;
+                customTurret[i].SetSlavedGuard(slavedGuard, this);
             }
         }
 

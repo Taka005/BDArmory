@@ -1457,8 +1457,8 @@ namespace BDArmory.Weapons.Missiles
         public override void SetSlavedGuard(bool slavedGuard)
         {
             base.SetSlavedGuard(slavedGuard);
-            if (missileTurret) missileTurret.slavedGuard = slavedGuard;
-            if (multiLauncher && multiLauncher.turret) multiLauncher.turret.slavedGuard = slavedGuard;
+            if (missileTurret) missileTurret.SetSlavedGuard(slavedGuard, this);
+            if (multiLauncher && multiLauncher.turret) multiLauncher.turret.SetSlavedGuard(slavedGuard, this);
         }
 
         public override void AimTurrets(Vector3 targetPos)
