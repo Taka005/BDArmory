@@ -599,7 +599,7 @@ namespace BDArmory.Control
         public bool hasAntiRadiationOrdnance;
         public int antiradTargets;
         public bool antiRadTargetAcquired;
-        Vector3[] antiRadiationTarget;
+        Vector3 antiRadiationTarget;
         public bool laserPointDetected;
 
         ModuleTargetingCamera foundCam;
@@ -1939,11 +1939,7 @@ namespace BDArmory.Control
 
                                     if (antiRadTargetAcquired)
                                     {
-                                        //missileAimerUI.Add((antiRadiationTarget, BDArmorySetup.Instance.openGreenSquare, 22, 0));
-                                        foreach (var coord in antiRadiationTarget)
-                                        {
-                                            missileAimerUI.Add((coord, BDArmorySetup.Instance.openGreenSquare, 22, 0));
-                                        }
+                                        missileAimerUI.Add((antiRadiationTarget, BDArmorySetup.Instance.openGreenSquare, 22, 0));
                                     }
                                     break;
                                 }
@@ -3358,7 +3354,6 @@ namespace BDArmory.Control
                             MissileTurret multiLauncherTurret = mlauncher.multiLauncher ? mlauncher.multiLauncher.turret : null;
                             if (mLauncherTurret) mLauncherTurret.slavedGuard = true;
                             if (multiLauncherTurret) multiLauncherTurret.slavedGuard = true;
-                            if (antiRadiationTarget.Length > 0 && targetNum >= antiRadiationTarget.Length) targetNum -= antiRadiationTarget.Length * (int)Mathf.Floor((targetNum / antiRadiationTarget.Length));
                             while (Time.time - attemptStartTime < attemptDuration && (!antiRadTargetAcquired || !AntiRadDistanceCheck()))
                             {
                                 if (ml.customTurret.Count > 0)
@@ -3406,7 +3401,7 @@ namespace BDArmory.Control
                                             if (ml.customTurret[i] == null) continue;
                                             if (ml.customTurret[i].vessel != vessel) continue;
                                             angle = VectorUtils.Angle(ml.MissileReferenceTransform.forward, ml.customTurret[i].slavedTargetPosition - ml.MissileReferenceTransform.position);
-                                            ml.customTurret[i].slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(ml, antiRadiationTarget[targetNum], targetVessel.Velocity(),
+                                            ml.customTurret[i].slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(ml, antiRadiationTarget, targetVessel.Velocity(),
                                                 (ml.GuidanceMode == GuidanceModes.AAMLoft || ml.GuidanceMode == GuidanceModes.Kappa));
                                             ml.customTurret[i].AimToTarget(ml.customTurret[i].slavedTargetPosition);
                                         }
@@ -3425,7 +3420,7 @@ namespace BDArmory.Control
                                             {
                                                 angle = VectorUtils.Angle(mlauncher.missileTurret.finalTransform.forward, mlauncher.missileTurret.slavedTargetPosition - mlauncher.missileTurret.finalTransform.position);
                                                 //mlauncher.missileTurret.slaved = true;
-                                                mlauncher.missileTurret.slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(mlauncher, antiRadiationTarget[targetNum], targetVessel.Velocity(), mlauncher.missileTurret.turretLoft, mlauncher.missileTurret.turretLoftFac);
+                                                mlauncher.missileTurret.slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(mlauncher, antiRadiationTarget, targetVessel.Velocity(), mlauncher.missileTurret.turretLoft, mlauncher.missileTurret.turretLoftFac);
                                                 //mlauncher.missileTurret.SlavedAim();
                                                 yield return wait;
                                             }
@@ -3438,7 +3433,7 @@ namespace BDArmory.Control
                                             {
                                                 angle = VectorUtils.Angle(mlauncher.multiLauncher.turret.finalTransform.forward, mlauncher.multiLauncher.turret.slavedTargetPosition - mlauncher.multiLauncher.turret.finalTransform.position);
                                                 //mlauncher.multiLauncher.turret.slaved = true;
-                                                mlauncher.multiLauncher.turret.slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(mlauncher, antiRadiationTarget[targetNum], targetVessel.Velocity(), mlauncher.multiLauncher.turret.turretLoft, mlauncher.multiLauncher.turret.turretLoftFac);
+                                                mlauncher.multiLauncher.turret.slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(mlauncher, antiRadiationTarget, targetVessel.Velocity(), mlauncher.multiLauncher.turret.turretLoft, mlauncher.multiLauncher.turret.turretLoftFac);
                                                 //mlauncher.multiLauncher.turret.SlavedAim();
                                                 yield return wait;
                                             }
@@ -3461,7 +3456,7 @@ namespace BDArmory.Control
                                 //StartCoroutine(MissileAwayRoutine(ml));
                                 if (BDArmorySettings.DEBUG_MISSILES)
                                 {
-                                    Debug.Log($"[BDArmory.MissileFire]: {vessel.vesselName} firing antiRad missile at {antiRadiationTarget[targetNum]}");
+                                    Debug.Log($"[BDArmory.MissileFire]: {vessel.vesselName} firing antiRad missile at {antiRadiationTarget}");
                                 }
                             }
                             break;
@@ -5839,7 +5834,7 @@ namespace BDArmory.Control
                             }
                         }
                         heatTarget = TargetSignatureData.noTarget; //clear holdover targets when switching targets
-                        antiRadiationTarget = new Vector3[(int)multiMissileTgtNum];
+                        antiRadiationTarget = Vector3.zero;
                     }
                 }
                 using (List<TargetInfo>.Enumerator target = BDATargetManager.TargetList(Team).GetEnumerator())
@@ -8570,7 +8565,7 @@ namespace BDArmory.Control
         void SearchForRadarSource()
         {
             antiRadTargetAcquired = false;
-            antiRadiationTarget = new Vector3[(int)multiMissileTgtNum];
+            antiRadiationTarget = Vector3.zero;
             if (rwr && rwr.rwrEnabled)
             {
                 float closestAngle = 360;
@@ -8587,13 +8582,11 @@ namespace BDArmory.Control
                 Vector3 missileForward = missile.GetForwardTransform();
                 //Debug.Log($"antiradTgt count: {(ml.antiradTargets != null ? ml.antiradTargets.Length : "null")}");
                 //if (ml.antiradTargets == null) ml.ParseAntiRadTargetTypes();
-                Dictionary<Vector3, float> tempTargets = new Dictionary<Vector3, float>();
                 for (int i = 0; i < rwr.pingsData.Length; i++)
                 {
                     RWRSignatureData currPing = rwr.pingsData[i];
                     if (currPing.exists && RadarWarningReceiver.CanDetectRWRThreat(ml.antiradTargets, currPing.signalType))
                     {
-                        /*
                         Vector3 position = currPing.position;
                         float angle = VectorUtils.Angle(position - missilePos, missileForward);
 
@@ -8604,17 +8597,8 @@ namespace BDArmory.Control
                             antiRadTargetAcquired = true;
                             //Debug.Log($"antiradTgt count: antiRad target found: {rwr.pingsData[i].vessel.vesselName}");
                         }
-                        */
-                        float angle = Vector3.Angle(currPing.position - missilePos, missileForward);
-                        if (angle < maxOffBoresight) tempTargets.Add(currPing.position, angle);
-                        antiRadTargetAcquired = true;
                     }
                 }
-                tempTargets.OrderBy(kvp => kvp.Value).ToList();
-                tempTargets.Reverse();
-                antiRadiationTarget = tempTargets.Keys.ToArray();
-
-                //Debug.Log($"antiradTgt count: antiRad target found: {rwr.pingsData[i].vessel.vesselName}")
             }
         }
 
@@ -8957,11 +8941,10 @@ namespace BDArmory.Control
                     }
                 case MissileBase.TargetingModes.AntiRad:
                     {
-                        if (targetNum >= antiRadiationTarget.Length && antiRadiationTarget.Length > 0) targetNum -= antiRadiationTarget.Length * (int)Mathf.Floor((targetNum / antiRadiationTarget.Length));
-                        if (antiRadTargetAcquired && antiRadiationTarget[targetNum] != Vector3.zero)
+                        if (antiRadTargetAcquired && antiRadiationTarget != Vector3.zero)
                         {
                             ml.TargetAcquired = true;
-                            ml.targetGPSCoords = VectorUtils.WorldPositionToGeoCoords(antiRadiationTarget[targetNum], vessel.mainBody);
+                            ml.targetGPSCoords = VectorUtils.WorldPositionToGeoCoords(antiRadiationTarget, vessel.mainBody);
                             ml.lastPingTime = Time.time;
                             if (AntiRadDistanceCheck()) validTarget = true;
                         }
@@ -11085,10 +11068,7 @@ namespace BDArmory.Control
         bool AntiRadDistanceCheck()
         {
             if (!guardTarget) return false;
-            //return (VectorUtils.WorldPositionToGeoCoords(antiRadiationTarget, vessel.mainBody) - VectorUtils.WorldPositionToGeoCoords(guardTarget.CoM, vessel.mainBody)).sqrMagnitude < Mathf.Max(400, 0.013f * (float)guardTarget.srfSpeed * (float)guardTarget.srfSpeed);
-            int targetNum = firedMissiles;
-            if (targetNum >= antiRadiationTarget.Length && antiRadiationTarget.Length > 0) targetNum -= antiRadiationTarget.Length * (int)Mathf.Floor((targetNum / antiRadiationTarget.Length));
-            return (VectorUtils.WorldPositionToGeoCoords(antiRadiationTarget[targetNum], vessel.mainBody) - VectorUtils.WorldPositionToGeoCoords(guardTarget.CoM, vessel.mainBody)).sqrMagnitude < Mathf.Max(400, 0.013f * (float)guardTarget.srfSpeed * (float)guardTarget.srfSpeed);
+            return (VectorUtils.WorldPositionToGeoCoords(antiRadiationTarget, vessel.mainBody) - VectorUtils.WorldPositionToGeoCoords(guardTarget.CoM, vessel.mainBody)).sqrMagnitude < Mathf.Max(400, 0.013f * (float)guardTarget.srfSpeed * (float)guardTarget.srfSpeed);          
         }
 
         bool AltitudeTrigger()

@@ -1041,6 +1041,7 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                             TargetAcceleration = radarTarget.acceleration;
                             targetVessel = t.targetInfo; //reset targetvessel in case of canRelock getting a new target
                             _radarFailTimer = 0;
+                            startDirection = vectorToTarget;
                             return;
                         }
                         else
@@ -1135,7 +1136,7 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                                         //    TargetPosition = radarTarget.predictedPosition + (radarTarget.velocity * Time.fixedDeltaTime);
                                         //else
                                         TargetPosition = radarTarget.predictedPositionWithChaffFactor(chaffEffectivity, chaffNotchVFac, chaffNotchRFac);
-
+                                        startDirection = TargetPosition - transform.position;
                                         TargetVelocity = radarTarget.velocity;
                                         TargetAcceleration = radarTarget.acceleration;
                                         _radarFailTimer = 0;
@@ -1179,7 +1180,7 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                             {
                                 radarLOALSearching = true;
                                 updateRadarCS = true;
-                                startDirection = GetForwardTransform();
+                                startDirection = vectorToTarget;
                             }
                             TargetAcquired = true;
 
@@ -1201,6 +1202,7 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                             TargetAcquired = false;
                             ActiveRadar = false;
                             updateRadarCS = true;
+                            startDirection = GetForwardTransform();
                         }
                     }
                 }
@@ -1297,7 +1299,7 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                     TargetPosition = radarTarget.predictedPositionWithChaffFactor(chaffEffectivity, chaffNotchVFac, chaffNotchRFac);
                     TargetVelocity = radarTarget.velocity;
                     TargetAcceleration = radarTarget.acceleration;
-
+                    startDirection = TargetPosition - transform.position;
                     if (!ActiveRadar && Time.time - TimeFired > 1)
                     {
                         if (weaponClass == WeaponClasses.SLW)
@@ -1318,7 +1320,6 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                     {
                         radarLOALSearching = true;
                         updateRadarCS = true;
-                        startDirection = GetForwardTransform();
                     }
                     TargetPosition = transform.position + (startDirection * 5000);
                     TargetVelocity = vessel.Velocity(); // Set the relative target velocity to 0.
@@ -1349,7 +1350,6 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                             radarLOALSearching = true;
                             updateRadarCS = true;
                             TargetAcquired = true;
-                            startDirection = GetForwardTransform();
                         }
                     }
                     else

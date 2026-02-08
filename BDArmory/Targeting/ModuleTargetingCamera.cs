@@ -650,8 +650,9 @@ namespace BDArmory.Targeting
 
         void SetActiveCam(bool nextCam)
         {
-            camIndex += nextCam ? 1 : -1;
+            camIndex += nextCam ? -1 : 1;
             int totalCams = VesselModuleRegistry.GetModules<ModuleTargetingCamera>(vessel).Count;
+            if (camIndex < 0 && totalCams > 0) camIndex = totalCams - 1;
             if (camIndex >= totalCams && totalCams > 0) camIndex -= totalCams * (int)Mathf.Floor((camIndex / totalCams));
             activeCam = VesselModuleRegistry.GetModules<ModuleTargetingCamera>(vessel)[camIndex];
         }
@@ -759,6 +760,7 @@ namespace BDArmory.Targeting
                 if (BDArmorySettings.DEBUG_RADAR)
                 {
                     GUI.Label(new Rect(600, 1000, 200, 30), $"Slew rate: {finalSlewSpeed:G3}");
+                    GUI.Label(new Rect(600, 975, 200, 30), $"Locked part: {(lockedPart != null ? lockedPart.partInfo.title : "null")}");
                     GUI.Label(new Rect(600, 950, 200, 30), $"ComLock: {(CoMLock ? lockedVessel != null ? lockedVessel.GetName() : "null" : "false")}");
                 }
 
@@ -1602,7 +1604,7 @@ namespace BDArmory.Targeting
                 if (tgtVessel != null)
                 {
                     position = tgtPart != null ? tgtPart.transform.position : tgtVessel.CoM + tgtVessel.Velocity() * Time.fixedDeltaTime;
-                    if ((tgtVessel.CoM - cameraPos).sqrMagnitude < maxRayDistance * maxRayDistance)
+                    if ((tgtPart != null ? tgtPart.transform.position : tgtVessel.CoM - cameraPos).sqrMagnitude < maxRayDistance * maxRayDistance)
                     {
                         lockedVessel = tgtVessel;
                         lockedPart = tgtPart;

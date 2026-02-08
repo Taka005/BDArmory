@@ -1,4 +1,12 @@
-﻿v1.12.1.0
+﻿-Fix typo in Min Gain Rate AI setting description.
+-Fix custom turrets incorporating guns with turrets (M102 howitzer, ect) not targeting aircraft.
+-Fix active sonar torpedoes diving to the seafloor if they lose lock immediately on launch.
+-Improvements to target camera target switching behavior, should no longer switch to a new target while current laser ordnance is still in the air.
+-Multiple target cam support, craft with multiple cams can now simultaneously engage multiple targets with laser ordnance, one per camera.
+	- Under manual control the active camera can be cycled via the new < #n > buttons below the FOV controls.
+-Target Cameras now respects subsystem targeting options and will paint specific parts of a target craft.
+
+v1.12.1.0
 IMPROVEMENTS / FIXES
 - Part Changes:
 	- AIM-9 Sidewinder now has "uncagedLock = true" to reflect changes in "uncagedlock" behavior.
