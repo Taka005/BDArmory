@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 using BDArmory.Damage;
@@ -147,6 +147,7 @@ namespace BDArmory.Extensions
             });
         }
 
+        //bullet/rocket kinetic damage
         public static float AddBallisticDamage(this Part p,
                                                float mass,
                                                float caliber,
@@ -154,7 +155,8 @@ namespace BDArmory.Extensions
                                                float penetrationfactor,
                                                float bulletDmgMult,
                                                float impactVelocity,
-                                               ExplosionSourceType sourceType) //bullet/rocket kinetic damage
+                                               ExplosionSourceType sourceType,
+                                               bool explosionProjectile = false) // "explosionProjectile" specifically is intended for fragments and projectiles that come from explosions
         {
             if (BDArmorySettings.PAINTBALL_MODE)
             {
@@ -178,28 +180,37 @@ namespace BDArmory.Extensions
             //1e-4 constant for adjusting MegaJoules for gameplay
 
             float damage_;
-            switch (sourceType)
+            if (!explosionProjectile)
             {
-                case ExplosionSourceType.Rocket:
-                    damage_ = (0.5f * (mass * impactVelocity * impactVelocity))
-                            * (BDArmorySettings.DMG_MULTIPLIER / 100) * bulletDmgMult * multiplier
-                            * 1e-4f * BDArmorySettings.BALLISTIC_DMG_FACTOR;
-                    break;
-                case ExplosionSourceType.BattleDamage:
-                    damage_ = (0.5f * (mass * impactVelocity * impactVelocity))
-                            * (BDArmorySettings.DMG_MULTIPLIER / 100) * bulletDmgMult * multiplier
-                            * 1e-4f * BDArmorySettings.EXP_DMG_MOD_BATTLE_DAMAGE;
-                    break;
-                case ExplosionSourceType.Bullet:
-                    damage_ = (0.5f * (mass * impactVelocity * impactVelocity))
-                            * (BDArmorySettings.DMG_MULTIPLIER / 100) * bulletDmgMult * multiplier
-                            * 1e-4f * BDArmorySettings.BALLISTIC_DMG_FACTOR;
-                    break;
-                default: // Other?    
-                    damage_ = (0.5f * (mass * impactVelocity * impactVelocity))
-                            * (BDArmorySettings.DMG_MULTIPLIER / 100) * bulletDmgMult * multiplier
-                            * 1e-4f * BDArmorySettings.BALLISTIC_DMG_FACTOR;
-                    break;
+                switch (sourceType)
+                {
+                    case ExplosionSourceType.Rocket:
+                        damage_ = (0.5f * (mass * impactVelocity * impactVelocity))
+                                * (BDArmorySettings.DMG_MULTIPLIER / 100) * bulletDmgMult * multiplier
+                                * 1e-4f * BDArmorySettings.BALLISTIC_DMG_FACTOR;
+                        break;
+                    case ExplosionSourceType.BattleDamage:
+                        damage_ = (0.5f * (mass * impactVelocity * impactVelocity))
+                                * (BDArmorySettings.DMG_MULTIPLIER / 100) * bulletDmgMult * multiplier
+                                * 1e-4f * BDArmorySettings.EXP_DMG_MOD_BATTLE_DAMAGE;
+                        break;
+                    case ExplosionSourceType.Bullet:
+                        damage_ = (0.5f * (mass * impactVelocity * impactVelocity))
+                                * (BDArmorySettings.DMG_MULTIPLIER / 100) * bulletDmgMult * multiplier
+                                * 1e-4f * BDArmorySettings.BALLISTIC_DMG_FACTOR;
+                        break;
+                    default: // Other?    
+                        damage_ = (0.5f * (mass * impactVelocity * impactVelocity))
+                                * (BDArmorySettings.DMG_MULTIPLIER / 100) * bulletDmgMult * multiplier
+                                * 1e-4f * BDArmorySettings.BALLISTIC_DMG_FACTOR;
+                        break;
+                }
+            }
+            else
+            {
+                damage_ = (0.5f * (mass * impactVelocity * impactVelocity))
+                        * ExplosiveDamageModifier(sourceType, bulletDmgMult * multiplier)
+                        * 1e-4f;
             }
 
             //////////////////////////////////////////////////////////
@@ -490,24 +501,53 @@ namespace BDArmory.Extensions
         }
 
         private static bool tweakScaleChecked = false;
-        private static bool tweakScaleInstalled = false;
+        private static bool tweakScaleInstalled
+        {
+            get
+            {
+                if (!tweakScaleChecked) CheckTweakScaleInstalled();
+                return field;
+            }
+            set;
+        }
+        private static void CheckTweakScaleInstalled()
+        {
+            foreach (var assy in AssemblyLoader.loadedAssemblies)
+                if (assy.assembly.FullName.Contains("TweakScale"))
+                    tweakScaleInstalled = true;
+            tweakScaleChecked = true;
+        }
         public static float GetTweakScaleMultiplier(this Part part)
         {
             float scaleMultiplier = 1f;
-            if (!tweakScaleChecked)
-            {
-                foreach (var assy in AssemblyLoader.loadedAssemblies)
-                    if (assy.assembly.FullName.Contains("TweakScale"))
-                        tweakScaleInstalled = true;
-                tweakScaleChecked = true;
-            }
             if (tweakScaleInstalled && part.Modules.Contains("TweakScale"))
             {
                 var tweakScaleModule = part.Modules["TweakScale"];
-                scaleMultiplier = tweakScaleModule.Fields["currentScale"].GetValue<float>(tweakScaleModule) /
-                                  tweakScaleModule.Fields["defaultScale"].GetValue<float>(tweakScaleModule);
+                var currentScale = tweakScaleModule.Fields["currentScale"].GetValue<float>(tweakScaleModule);
+                var defaultScale = tweakScaleModule.Fields["defaultScale"].GetValue<float>(tweakScaleModule);
+                scaleMultiplier = currentScale / defaultScale;
             }
             return scaleMultiplier;
+        }
+        public static float GetTweakScaleMassMultiplier(this Part part)
+        {
+            float massMultiplier = 1f;
+            if (tweakScaleInstalled && part.Modules.Contains("TweakScale"))
+            {
+                var tweakScaleModule = part.Modules["TweakScale"];
+                massMultiplier = tweakScaleModule.Fields["MassScale"].GetValue<float>(tweakScaleModule);
+            }
+            return massMultiplier;
+        }
+        public static float GetTweakScaleDryCost(this Part part)
+        {
+            float dryCost = 0;
+            if (tweakScaleInstalled && part.Modules.Contains("TweakScale"))
+            {
+                var tweakScaleModule = part.Modules["TweakScale"];
+                dryCost = tweakScaleModule.Fields["DryCost"].GetValue<float>(tweakScaleModule);
+            }
+            return dryCost;
         }
 
         public static bool IsAero(this Part part)

@@ -1,10 +1,51 @@
-﻿-Fix typo in Min Gain Rate AI setting description.
--Fix custom turrets incorporating guns with turrets (M102 howitzer, ect) not targeting aircraft.
--Fix active sonar torpedoes diving to the seafloor if they lose lock immediately on launch.
--Improvements to target camera target switching behavior, should no longer switch to a new target while current laser ordnance is still in the air.
--Multiple target cam support, craft with multiple cams can now simultaneously engage multiple targets with laser ordnance, one per camera.
-	- Under manual control the active camera can be cycled via the new < #n > buttons below the FOV controls.
--Target Cameras now respects subsystem targeting options and will paint specific parts of a target craft.
+﻿IMPROVEMENTS / FIXES
+- General:
+	- Fix GetBodyByName("Kerbin") issues for mods that replace Kerbin.
+	- Fix HP and cost scaling of parts when TweakScale is installed.
+- UI:
+	- Updated German localisation from EzBro.
+	- Fix infolink explanation of Extend Abort Time / Extend Min Gain Rate.
+- AI / WM:
+	- Fix Guard Mode using incorrect heat signature value for IR missile selection.
+	- Add "Attack Uncontrolled Tgt." Weight to the Weapon Manager, setting this to negative makes the AI prioritize targets under control, thus avoiding wasting ammo on vehicles with knocked out crews. NOTE: Be cautious when using this on aircraft, this includes g-loc'd pilots!
+	- Fix AI not accurately locking targets via the targeting pod while moving at speed.
+	- Fix various NREs in GuardMissileRoutine that would potentially lock out a vessel from firing missiles.
+- Sensors:
+  - Improvements to target camera target switching behavior, should no longer switch to a new target while current laser ordnance is still in the air.
+  - Multiple target cam support, craft with multiple cams can now simultaneously engage multiple targets with laser ordnance, one per camera.
+	  - Under manual control the active camera can be cycled via the new < #n > buttons below the FOV controls.
+  -Target Cameras now respects subsystem targeting options and will paint specific part(s) of a target craft if non-CoM targeting enabled.
+- Weapons:
+	- Turrets:
+		- Added "baseTransformName" field to turrets, while this was previously unclear, the parent transform of yawTransform was previously being used to determine the turret's center of rotation and the orientation of its axes. This has now been made into an explicit field to allow modders to better control this behavior. Unless specified, the transform will be set to the parent of the yawTransform.
+		- Made turret code more failure tolerant, and capable of dealing with cases where yawTransform and/or pitchTransform are missing. IMPORTANT NOTE: A turret lacking a yawTransform and/or pitchTransform will NOT function properly, it will try to work around it, but the modder should fix this issue ASAP!
+	- Explosions:
+		- Re-implemented the shaped charge unfocusing/squeezing mechanic, where as the shaped charge jet penetrates armor, it loses coherence and diameter.
+		- Add spall to shaped charge damage calculations, shaped charge now carries along a % of the spall it produces as it penetrates causing additional damage.
+			- Spaced armor and materials with high ductility can be used as spall liners, which will reduce some of this spall, up to a configurable percentage. This is set by default to 50% in the settings.cfg file, using the "HEAT_SPALL_MAX_RED" setting, higher means more spall can be reduced with spall liners.
+			- Add "HEAT Spall Dmg. Multiplier" setting that affects shaped charge kinetic damage.
+		- Fix shaped charges applying kinetic damage without actually penetrating the part they hit.
+		- Apply missing explosion source multiplier for shaped charge kinetic damage and shrapnel.
+		- Rename incorrectly named "Implosive Damage Multiplier" setting to "Exp. Impulse Multiplier". This setting modifies the force with which explosions push vessels (the ones that aren't blown up at least...).
+	- Warheads:
+		- Add "bulletDmgMult" field to BDCustomWarhead modules, allowing their damage to be tuned.
+	- Missiles:
+		- Fix graphical glitch where Helmet Mounted Display/Sight appearing in WM modules despite there not being a cockpit with a HMD.
+		- Fix NREs that would occur when a CLOS missile has its guiding targeting pod destroyed.
+		- Add CLOS missile control deadzone via "beamgDeadzone", the missile will ignore acceleration commands below this value (to simulate things like beam-width and manual missile control).
+		- Fix pronav and augpronav missiles not properly guiding on targets when launched from extreme off-boresight angles.
+		- Add arming delay to missiles with the "fuzeArmingDelay" field specifying the arming delay in seconds and the "impactFuzeArmingDelay" bool field specifying if the impact fuze should also have an arming delay.
+		- Add spinning missiles, missiles can now be given a spin using "spinRate", specifying the spin rate in revolutions per second (clockwise-positive when looking from behind the missile) and "spinAccel", a proportional control constant for missile's spin rate, higher values will mean the missile spins up faster. Note this value should be relatively small, by default it is 0.25.
+		- Fix INS and GPS missiles fired from multi-missile launchers being fired towards (0, 0, 0) when dumbfired by the AI.
+		- Fix IR missiles not turning towards a target they lost track of.
+		- Fix terminal targeting checks reducing track accuracy for missiles with a terminal targeting mode.
+		- Fix debug readouts for radar missiles, now when lacking a target they should properly display "No target!", seeker timeout time will also now display correctly.
+    - Fix active sonar torpedoes diving to the seafloor if they lose lock immediately on launch.
+		- Custom Turrets:
+			- Add Lofted Aimpoint and Loft Vel. Fac. settings to missiles on custom turrets, giving them function parity with regular missile turrets.
+			- Fix custom turrets with no radar failing the launch authorization check.
+      - Fix custom turrets incorporating guns with turrets (M102 howitzer, ect) not targeting aircraft.
+		- Improved debug telemetry output format.
 
 v1.12.1.0
 IMPROVEMENTS / FIXES
@@ -28,7 +69,7 @@ IMPROVEMENTS / FIXES
 		- When radar notching is enabled, chaff gets additional bonuses from a target beaming (moving at 90° to the radar) or notching (beaming at low altitudes).
 		- The first value in radarChaffNotchClutterFactor determines the additional chaff effectiveness when the target is moving at 90° to the target, independent of the other modifiers.
 		- The second value in radarChaffNotchClutterFactor determines the additional chaff effectiveness when the target is actively notching, independent of the other modifiers.
-		- E.G. if radarChaffClutterFactor, and both radarChaffNotchClutterFactor values are set to 1.0, the target's position is offset by chaff by up to 3 times the original offset.
+		- E.g., if radarChaffClutterFactor, and both radarChaffNotchClutterFactor values are set to 1.0, the target's position is offset by chaff by up to 3 times the original offset.
 - Weapons:
 	- Fixed NRE for turrets without a pitchTransform. While not recommended, nor formally supported, such turrets should no longer spam NREs.
 	- Explosions:
@@ -2577,9 +2618,6 @@ IMPROVEMENTS
 	- Use missile velocity vector for evasion instead of missile relative position to prevent turning into missiles when they are at close range. 
 	- Use soonest time to closest approach instead of closest distance to select highest threat missile. 
 	- Change closest approach point to ignore missile threats to 3 Blast Radius from 1.5 Blast Radius.
-
-Message #tea
-
 - Weapons:
 	- Adds Chaingun functionality; chainguns have user configurable RoF in the SPH/VAB.
 	- Adds Weapon Spool up time functionality (for Gatling guns, etc).

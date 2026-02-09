@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UniLinq;
 using UnityEngine;
@@ -59,7 +59,22 @@ namespace BDArmory.WeaponMounts
         Dictionary<string, Vector3> comOffsets;
 
         public bool slaved;
-        public bool slavedGuard = false;
+        public bool slavedGuard
+        {
+            get
+            {
+                if (!_slavedGuard) return false;
+
+                if (!_slavedGuardMissile || _slavedGuardMissile.vessel != vessel)
+                {
+                    _slavedGuard = false;
+                    return false;
+                }
+
+                return true;
+            }
+        }
+
         public bool manuallyControlled = false;
 
         public Vector3 slavedTargetPosition;
@@ -376,7 +391,7 @@ namespace BDArmory.WeaponMounts
             }
             else
             {
-                if (Quaternion.FromToRotation(finalTransform.forward, turret.yawTransform.parent.parent.forward) != 
+                if (Quaternion.FromToRotation(finalTransform.forward, turret.baseTransform.forward) != 
                     Quaternion.identity)
                 {
                     UpdateMissilePositions();
@@ -419,6 +434,16 @@ namespace BDArmory.WeaponMounts
             var wm = WeaponManager;
             if (wm && wm.CurrentMissile)
             {
+                if (wm.guardMode)
+                {
+                    slaved = slavedGuard;
+                    if (slaved) return; // Guard Mode provides the target
+                }
+                else
+                {
+                    _slavedGuard = false;
+                }
+
                 if (wm.slavingTurrets)
                 {
                     slaved = true;
@@ -433,10 +458,18 @@ namespace BDArmory.WeaponMounts
                     slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(activeMissile, wm.mainTGP.targetPointPosition, wm.mainTGP.lockedVessel ? wm.mainTGP.lockedVessel.Velocity() : Vector3.zero, turretLoft, turretLoftFac);
                     return;
                 }
-                if (wm.guardMode)
-                    slaved = slavedGuard;
-                else
-                    slavedGuard = false;
+            }
+        }
+
+        bool _slavedGuard = false;
+        MissileBase _slavedGuardMissile = null;
+
+        public void SetSlavedGuard(bool slavedGuard, MissileBase ml)
+        {
+            _slavedGuard = slavedGuard;
+            if (slavedGuard)
+            {
+                _slavedGuardMissile = ml;
             }
         }
 
@@ -653,7 +686,7 @@ namespace BDArmory.WeaponMounts
             var wait = new WaitForFixedUpdate();
             yield return wait;
             Ray ray = new Ray(ml.transform.position, ml.MissileReferenceTransform.forward);
-            Transform turretTransform = turret.referenceTransform;
+            Transform turretTransform = turret.pitchTransform ? turret.pitchTransform : turret.yawTransform;
             Vector3 localOrigin = turretTransform.InverseTransformPoint(ray.origin);
             Vector3 localDirection = turretTransform.InverseTransformDirection(ray.direction);
             float forwardSpeed = ml.decoupleSpeed;

@@ -501,6 +501,8 @@ namespace BDArmory.Targeting
                             groundTargetPosition = lockedPart.transform.position;
                         else
                             groundTargetPosition = lockedVessel.CoM;
+
+                        groundTargetPosition = lockedVessel.CoM;
                     }
                     else
                     {
@@ -509,14 +511,24 @@ namespace BDArmory.Targeting
                         lockedPart = null;
                     }
                     Vector3 lookVector = groundTargetPosition - cameraParentTransform.position;
+                    Vector3 currLookDirection = cameraParentTransform.forward;
+                    float trackError = VectorUtils.Angle(currLookDirection, lookVector);
+                    if (trackError > traverseRate * Time.fixedDeltaTime)
+                    {
+                        lookVector = Vector3.Slerp(currLookDirection, lookVector, traverseRate * Time.fixedDeltaTime / trackError);
+                    }
+
                     //cameraParentTransform.rotation = Quaternion.LookRotation(lookVector);
                     PointCameraModel(lookVector);
                 }
 
                 Vector3 lookDirection = cameraParentTransform.forward;
-                if (VectorUtils.Angle(lookDirection, cameraParentTransform.parent.forward) > gimbalLimit)
+                Vector3 cameraForward = cameraParentTransform.parent.forward;
+                float gimbalAngle = VectorUtils.Angle(lookDirection, cameraForward);
+                if (gimbalAngle > gimbalLimit)
                 {
-                    lookDirection = Vector3.RotateTowards(cameraParentTransform.transform.parent.forward, lookDirection, gimbalLimit * Mathf.Deg2Rad, 0);
+                    //lookDirection = Vector3.RotateTowards(cameraForward, lookDirection, gimbalLimit * Mathf.Deg2Rad, 0);
+                    lookDirection = Vector3.Slerp(cameraForward, lookDirection, gimbalLimit / gimbalAngle);
                     gimbalLimitReached = true;
                     lockedVessel = null;
                     lockedPart = null;
@@ -1330,7 +1342,7 @@ namespace BDArmory.Targeting
             var weaponManager = WeaponManager;
             if (weaponManager && weaponManager.designatedGPSCoords != Vector3d.zero)
             {
-                StartCoroutine(PointToPositionRoutine(VectorUtils.GetWorldSurfacePostion(weaponManager.designatedGPSCoords, vessel.mainBody)));
+                StartCoroutine(PointToPositionRoutine(VectorUtils.GetWorldSurfacePostion(weaponManager.designatedGPSCoords, vessel.mainBody), -1));
             }
         }
 
@@ -1379,84 +1391,85 @@ namespace BDArmory.Targeting
             RaycastHit rayHit;
             Ray ray = new Ray(cameraParentTransform.position, cameraParentTransform.forward);
             bool raycasted = Physics.Raycast(ray, out rayHit, maxRayDistance, (int)(LayerMasks.Parts | LayerMasks.Scenery | LayerMasks.EVA | LayerMasks.Unknown19 | LayerMasks.Unknown23 | LayerMasks.Wheels));
-            if (raycasted)
-            {
-                Part p;
-                if (FlightGlobals.getAltitudeAtPos(rayHit.point) < 0 || ((p = rayHit.collider.GetComponentInParent<Part>()) && p.vessel == vessel))
-                {
-                    raycasted = false;
-                }
-                else
-                {
-                    KerbalEVA hitEVA = rayHit.collider.gameObject.GetComponentUpwards<KerbalEVA>();
-                    if (hitEVA)
-                        p = hitEVA.part;
 
-                    bool pCheck = false;
+            // If we didn't hit anything and there isn't an ocean
+            if (!raycasted && !vessel.mainBody.ocean) return;
+            Vector3d newGTP;
 
-                    if (p && p.vessel)
-                    {
-                        TargetInfo pInfo;
-                        if (p.vessel != lockedVessel && (pInfo = p.vessel.gameObject.GetComponent<TargetInfo>()) != null && pInfo.isMissile && pInfo.MissileBaseModule.FiredByWM == WeaponManager)
-                        {
-                            return;
-                        }
-                        pCheck = true;
-                    }
-
-                    groundStabilized = true;
-                    groundTargetPosition = rayHit.point;
-
-                    if (CoMLock)
-                    {
-                        if (pCheck && p.vessel.CoM != Vector3.zero)
-                        {
-                            if (lockedPart != null && lockedPart.vessel == p.vessel)
-                            {
-                                groundTargetPosition = lockedPart.transform.position + (p.vessel.Velocity() * Time.fixedDeltaTime);
-                            }
-                            else
-                            {
-                                groundTargetPosition = p.vessel.CoM + (p.vessel.Velocity() * Time.fixedDeltaTime);
-                            }
-                            StartCoroutine(StabilizeNextFrame());
-                            lockedVessel = p.vessel;
-                            //StartCoroutine(PointToPositionRoutine(p.vessel.CoM, p.vessel, false));
-                        }
-                        else
-                        {
-                            lockedVessel = null;
-                        }
-                    }
-                    Vector3d newGTP = VectorUtils.WorldPositionToGeoCoords(groundTargetPosition, vessel.mainBody);
-                    if (newGTP != Vector3d.zero)
-                    {
-                        bodyRelativeGTP = newGTP;
-                    }
-                }
-            }
-
-            if (!raycasted)
+            // If we didn't hit anything and there's an ocean, or we hit something underwater
+            if (!raycasted || (vessel.mainBody.ocean && FlightGlobals.getAltitudeAtPos(rayHit.point) < 0))
             {
                 Vector3 upDir = VectorUtils.GetUpDirection(cameraParentTransform.position);
                 double altitude = vessel.altitude; //MissileGuidance.GetRadarAltitude(vessel);
                 double radius = vessel.mainBody.Radius;
 
                 Vector3d planetCenter = vessel.GetWorldPos3D() - ((vessel.altitude + vessel.mainBody.Radius) * vessel.upAxis);
-                double enter;
-                if (VectorUtils.SphereRayIntersect(ray, planetCenter, radius, out enter))
+                if (VectorUtils.SphereRayIntersect(ray, planetCenter, radius, out double enter))
                 {
                     if (enter > 0)
                     {
                         groundStabilized = true;
                         groundTargetPosition = ray.GetPoint((float)enter);
-                        Vector3d newGTP = VectorUtils.WorldPositionToGeoCoords(groundTargetPosition, vessel.mainBody);
+                        newGTP = VectorUtils.WorldPositionToGeoCoords(groundTargetPosition, vessel.mainBody);
                         if (newGTP != Vector3d.zero)
                         {
                             bodyRelativeGTP = newGTP;
                         }
                     }
                 }
+
+                return;
+            }
+
+            Part p;
+            if ((p = rayHit.collider.GetComponentInParent<Part>()) && p.vessel == vessel) return;
+
+            KerbalEVA hitEVA = rayHit.collider.gameObject.GetComponentUpwards<KerbalEVA>();
+            if (hitEVA)
+            {
+                p = hitEVA.part;
+            }
+
+            bool pCheck = false;
+
+            if (p && p.vessel)
+            {
+                TargetInfo pInfo;
+                if (p.vessel != lockedVessel && (pInfo = p.vessel.gameObject.GetComponent<TargetInfo>()) != null && pInfo.isMissile && pInfo.MissileBaseModule.FiredByWM == WeaponManager)
+                {
+                    return;
+                }
+                pCheck = true;
+            }
+
+            groundStabilized = true;
+            groundTargetPosition = rayHit.point;
+
+            if (CoMLock)
+            {
+                if (pCheck)
+                {
+                    if (lockedPart != null && lockedPart.vessel == p.vessel)
+                    {
+                        groundTargetPosition = lockedPart.transform.position; // + (p.vessel.Velocity() * Time.fixedDeltaTime);
+                    }
+                    else
+                    {
+                        groundTargetPosition = p.vessel.CoM; // + (p.vessel.Velocity() * Time.fixedDeltaTime);
+                    }
+                    //StartCoroutine(StabilizeNextFrame());
+                    lockedVessel = p.vessel;
+                    //StartCoroutine(PointToPositionRoutine(p.vessel.CoM, p.vessel, false));
+                }
+                else
+                {
+                    lockedVessel = null;
+                }
+            }
+            newGTP = VectorUtils.WorldPositionToGeoCoords(groundTargetPosition, vessel.mainBody);
+            if (newGTP != Vector3d.zero)
+            {
+                bodyRelativeGTP = newGTP;
             }
         }
 
@@ -1481,6 +1494,9 @@ namespace BDArmory.Targeting
             {
                 targetPointPosition = cameraParentTransform.position + (maxRayDistance * cameraParentTransform.forward);
                 surfaceDetected = false;
+                // If we hit nothing but air, then only stay locked if we're at the gimbal limit
+                // or we're in the process of slewing to the target
+                groundStabilized &= (gimbalLimitReached || slewingToPosition);
                 return;
             }
 
@@ -1494,16 +1510,17 @@ namespace BDArmory.Targeting
             }
 
             targetPointPosition = rayHit.point;
-            if (!surfaceDetected && groundStabilized && !gimbalLimitReached)
+            if (groundStabilized && !gimbalLimitReached)
             {
-                groundStabilized = true;
                 groundTargetPosition = rayHit.point;
 
                 if (CoMLock)
                 {
                     KerbalEVA hitEVA = rayHit.collider.gameObject.GetComponentUpwards<KerbalEVA>();
                     if (hitEVA)
+                    {
                         p = hitEVA.part;
+                    }
                     if (p && p.vessel)
                     {
                         if (lockedPart && lockedPart.vessel == p.vessel) groundTargetPosition = lockedPart.transform.position;
@@ -1520,22 +1537,23 @@ namespace BDArmory.Targeting
                 {
                     bodyRelativeGTP = newGTP;
                 }
+
+                if (CMDropper.smokePool != null && CMSmoke.RaycastSmoke(ray))
+                {
+                    surfaceDetected = false;
+                    return;
+                }
             }
 
             surfaceDetected = true;
-
-            if (groundStabilized && !gimbalLimitReached && CMDropper.smokePool != null)
-            {
-                if (CMSmoke.RaycastSmoke(ray))
-                {
-                    surfaceDetected = false;
-                }
-            }
         }
 
         void ClearTarget()
         {
             groundStabilized = false;
+            lockedVessel = null;
+            lockedPart = null;
+            guidingOrdnance = false;
         }
 
         Coroutine resetCamera;
@@ -1583,7 +1601,7 @@ namespace BDArmory.Targeting
         bool stopPTPR;
         bool slewingToPosition;
 
-        public IEnumerator PointToPositionRoutine(Vector3 position, Vessel tgtVessel = null, bool clearTgt = true, Part tgtPart = null)
+        public IEnumerator PointToPositionRoutine(Vector3 position, float attemptDuration, Vessel tgtVessel = null, bool clearTgt = true, Part tgtPart = null)
         {
             yield return StopPTPRRoutine();
             stopPTPR = false;
@@ -1599,25 +1617,112 @@ namespace BDArmory.Targeting
             var wait = new WaitForFixedUpdate();
             Vector3 cameraPos;
             Vector3 cameraForward;
-            while (!stopPTPR && VectorUtils.Angle((cameraForward = cameraParentTransform.transform.forward), (tgtVessel != null ? tgtPart != null ? tgtPart.transform.position : tgtVessel.CoM : position) - (cameraPos = cameraParentTransform.transform.position)) > 0.1f)
+            CoMLock = tgtVessel;
+            //float tolerance = tgtVessel ? tgtVessel.GetRadius() : 10f;
+            float rangeTolerance;
+            float crossrangeTolerance;
+            Vector3 geoPos = Vector3.zero;
+            float endTime = attemptDuration > 0 ? Time.time + attemptDuration : float.MaxValue;
+            if (tgtVessel)
             {
-                if (tgtVessel != null)
+                Vector3 tempSize = tgtVessel.vesselSize;
+                // We expect vessel forward/back to be large
+                rangeTolerance = tempSize.z;
+                // And vessel up/down to be small
+                crossrangeTolerance = tempSize.y;
+
+                // If z > y
+                if (rangeTolerance > crossrangeTolerance)
                 {
-                    position = tgtPart != null ? tgtPart.transform.position : tgtVessel.CoM + tgtVessel.Velocity() * Time.fixedDeltaTime;
-                    if ((tgtPart != null ? tgtPart.transform.position : tgtVessel.CoM - cameraPos).sqrMagnitude < maxRayDistance * maxRayDistance)
+                    // If z > x
+                    if (rangeTolerance > tempSize.x)
                     {
-                        lockedVessel = tgtVessel;
-                        lockedPart = tgtPart;
+                        // z is the largest, and we take the smallest of the other two
+                        crossrangeTolerance = Mathf.Min(crossrangeTolerance, tempSize.x);
                     }
                     else
                     {
-                        lockedVessel = null;
-                        lockedPart = null;
-                        guidingOrdnance = false;
+                        // x is the largest and y is the smallest
+                        rangeTolerance = tempSize.x;
                     }
-                }                
-                else lockedVessel = null;
-                Vector3 newForward = Vector3.RotateTowards(cameraForward, position - cameraPos, traverseRate * Mathf.Deg2Rad * Time.fixedDeltaTime, 0);
+                }
+                else
+                {
+                    // If z > x
+                    if (rangeTolerance > tempSize.x)
+                    {
+                        // y is the largest
+                        rangeTolerance = crossrangeTolerance;
+                        // and x is the smallest
+                        crossrangeTolerance = tempSize.x;
+                    }
+                    else
+                    {
+                        // Otherwise, z is the smallest
+                        crossrangeTolerance = rangeTolerance;
+                        // And the largest is between the other two
+                        rangeTolerance = Mathf.Max(tempSize.x, tempSize.y);
+                    }
+                }
+
+                // Gotta multiply by 0.5 -> get length / 2
+                rangeTolerance *= 0.5f;
+                // Gotta multiply by 0.5^2 -> get (height / 2)^2
+                crossrangeTolerance *= 0.25f * crossrangeTolerance;
+            }
+            else
+            {
+                rangeTolerance = 10f;
+                crossrangeTolerance = 100f;
+                geoPos = VectorUtils.WorldPositionToGeoCoords(position, vessel.mainBody);
+            }
+
+            while (!stopPTPR && Time.time < endTime)
+            {
+                GetHitPoint();
+                cameraForward = cameraParentTransform.transform.forward;
+                (float rangeDist, Vector3 normalDist) = (targetPointPosition - position).DotProjectOnPlanePreNormalized(cameraForward);
+
+                // If...
+                if (surfaceDetected && // We've hit something
+                    Mathf.Abs(rangeDist) < rangeTolerance && // And we're within tolerance in range
+                    normalDist.sqrMagnitude < crossrangeTolerance) // And we're within crossrange tolerance
+                {
+                    break; // Break out of the loop
+                }
+
+                (float distance, Vector3 relativeDir) = (position - (cameraPos = cameraParentTransform.transform.position)).MagNorm();
+
+                // If no tgtVessel or the tgtVessel is too far, break if angle < 0.1°
+                if ((!tgtVessel || distance > maxRayDistance) && VectorUtils.AnglePreNormalized(cameraForward, relativeDir) < 0.1f) break;
+
+                if (tgtVessel != null)
+                {
+                    position = tgtPart != null ? tgtPart.transform.position : tgtVessel.CoM + tgtVessel.Velocity() * Time.fixedDeltaTime;
+                    lockedPart = tgtPart;
+                    //if ((tgtVessel.CoM - cameraPos).sqrMagnitude < maxRayDistance * maxRayDistance)
+                    //{
+                    //    lockedVessel = tgtVessel;
+                    //}
+                    //else
+                    //{
+                    //    lockedVessel = null;
+                    //}
+                }
+                else
+                {
+                    // Clear any potential vessel targets if we're not looking for a vessel
+                    lockedVessel = null;
+                    lockedPart = null;
+                    guidingOrdnance = false;
+                }
+                //Vector3 newForward = Vector3.RotateTowards(cameraForward, position - cameraPos, traverseRate * Mathf.Deg2Rad * Time.fixedDeltaTime, 0);
+                Vector3 newForward = position - cameraPos;
+                float angle = VectorUtils.Angle(cameraForward, newForward);
+                if (angle > traverseRate * Time.fixedDeltaTime)
+                {
+                    newForward = Vector3.Slerp(cameraForward, newForward, traverseRate * Time.fixedDeltaTime / angle);
+                }
                 //cameraParentTransform.rotation = Quaternion.LookRotation(newForward, VectorUtils.GetUpDirection(transform.position));
                 PointCameraModel(newForward);
                 yield return wait;
@@ -1633,6 +1738,8 @@ namespace BDArmory.Targeting
                     slewingToPosition = false;
                     yield break;
                 }
+                //position -= BDKrakensbane.FrameVelocityV3f * Time.fixedDeltaTime;
+                position = tgtVessel ? tgtVessel.CoM : (VectorUtils.GetWorldSurfacePostion(geoPos, vessel.mainBody));
             }
             if (surfaceDetected && !stopPTPR)
             {

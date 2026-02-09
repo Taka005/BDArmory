@@ -18,6 +18,9 @@ namespace BDArmory.WeaponMounts
         [KSPField] public string yawTransformName = "yawTransform";
         public Transform yawTransform;
 
+        [KSPField] public string baseTransformName = "";
+        public Transform baseTransform;
+
         public Transform referenceTransform { get; }
         Transform _referenceTransform; //set this to gun's fireTransform
 
@@ -69,23 +72,55 @@ namespace BDArmory.WeaponMounts
 
             pitchTransform = part.FindModelTransform(pitchTransformName);
             yawTransform = part.FindModelTransform(yawTransformName);
+            if (!string.IsNullOrEmpty(baseTransformName))
+            {
+                baseTransform = part.FindModelTransform(baseTransformName);
+            }
 
             if (!pitchTransform)
             {
-                Debug.LogWarning("[BDArmory.ModuleTurret]: " + part.partInfo.title + " has no pitchTransform");
+                Debug.LogWarning($"[BDArmory.ModuleTurret]: {part.partInfo.title} has no pitchTransform");
             }
 
             if (!yawTransform)
             {
-                Debug.LogWarning("[BDArmory.ModuleTurret]: " + part.partInfo.title + " has no yawTransform");
+                Debug.LogWarning($"[BDArmory.ModuleTurret]: {part.partInfo.title} has no yawTransform");
+            }
+
+            if (!baseTransform)
+            {
+                Debug.Log($"[BDArmory.ModuleTurret]: {part.partInfo.title} has no baseTransform");
+                if (yawTransform)
+                {
+                    Debug.Log($"[BDArmory.ModuleTurret]: {part.partInfo.title} defaulting baseTransform to yawTransform.parent");
+                    baseTransform = yawTransform.parent;
+                }
+                else if (pitchTransform)
+                {
+                    Debug.Log($"[BDArmory.ModuleTurret]: {part.partInfo.title} defaulting baseTransform to pitchTransform.parent as there was no yawTransform!");
+                    baseTransform = pitchTransform.parent;
+                }
+                else
+                {
+                    Debug.LogWarning($"[BDArmory.ModuleTurret]: {part.partInfo.title} defaulting baseTransform to part.transform as there was no yawTransform or pitchTransform! Turret unlikely to function properly!");
+                    baseTransform = part.transform;
+                }
             }
 
             if (!_referenceTransform)
             {
                 if (pitchTransform)
+                {
                     SetReferenceTransform(pitchTransform);
-                else
+                }
+                else if (yawTransform)
+                {
                     SetReferenceTransform(yawTransform);
+                }
+                else
+                {
+                    SetReferenceTransform(baseTransform);
+                }
             }
 
             SetupTweakables();
@@ -106,7 +141,10 @@ namespace BDArmory.WeaponMounts
                 audioSource.priority = 9999;
                 audioSource.spatialBlend = 1;
 
-                lastTurretDirection = yawTransform.parent.InverseTransformDirection(pitchTransform.forward);
+                if (pitchTransform || yawTransform)
+                {
+                    lastTurretDirection = baseTransform.InverseTransformDirection(pitchTransform ? pitchTransform.forward : yawTransform.forward);
+                }
 
                 maxAudioRotRate = Mathf.Min(yawSpeedDPS, pitchSpeedDPS);
 
@@ -135,12 +173,15 @@ namespace BDArmory.WeaponMounts
                         audioSource.pitch = Mathf.Clamp(audioRotationRate, minAudioPitch, maxAudioPitch);
                     }
 
-                    Vector3 tDir = yawTransform.parent.InverseTransformDirection(pitchTransform.forward);
-                    float angle = VectorUtils.Angle(tDir, lastTurretDirection);
-                    float rate = Mathf.Clamp01((angle / Time.fixedDeltaTime) / maxAudioRotRate);
-                    lastTurretDirection = tDir;
+                    if (yawTransform || pitchTransform)
+                    {
+                        Vector3 tDir = baseTransform.InverseTransformDirection(pitchTransform ? pitchTransform.forward : yawTransform.forward);
+                        float angle = VectorUtils.Angle(tDir, lastTurretDirection);
+                        float rate = Mathf.Clamp01((angle / Time.fixedDeltaTime) / maxAudioRotRate);
+                        lastTurretDirection = tDir;
 
-                    targetAudioRotationRate = rate;
+                        targetAudioRotationRate = rate;
+                    }
                 }
             }
         }
@@ -178,33 +219,53 @@ namespace BDArmory.WeaponMounts
 
         public void AimInDirection(Vector3 targetDirection, bool pitch = true, bool yaw = true)
         {
-            if (!yawTransform)
-            {
-                return;
-            }
-
-            if (!(pitch || yaw))
-                return;
+            if (!(pitch || yaw)) return;
 
             float deltaTime = Time.fixedDeltaTime;
 
-            Vector3 yawNormal = yawTransform.up;
-            Vector3 yawComponent = targetDirection.ProjectOnPlanePreNormalized(yawNormal);
-            Vector3 pitchComponent = targetDirection.ProjectOnPlane(Vector3.Cross(yawComponent, yawNormal));
+            Vector3 yawNormal;
+            float yawOffset;
+            float targetYawAngle;
+            Vector3 yawComponent;
+            Vector3 pitchComponent;
 
-            float currentYaw = yawTransform.localEulerAngles.y.ToAngle();
-            float yawError = VectorUtils.SignedAngleDP(
-                _referenceTransform.forward.ProjectOnPlanePreNormalized(yawNormal),
-                yawComponent,
-                Vector3.Cross(yawNormal, _referenceTransform.forward));
-            float yawOffset = Mathf.Abs(yawError);
-            float targetYawAngle = (currentYaw + yawError).ToAngle();
-            // clamp target yaw in a non-wobbly way
-            if (Mathf.Abs(targetYawAngle) > yawRange / 2)
+            if (yawTransform)
             {
-                var nonWobblyWay = Vector3.Dot(yawTransform.parent.right, targetDirection + _referenceTransform.position - yawTransform.position);
-                //if (float.IsNaN(nonWobblyWay)) return;
-                targetYawAngle = yawRange / 2 * Math.Sign(nonWobblyWay);
+                yawNormal = yawTransform.up;
+                yawComponent = targetDirection.ProjectOnPlanePreNormalized(yawNormal);
+                pitchComponent = targetDirection.ProjectOnPlane(Vector3.Cross(yawComponent, yawNormal));
+
+                float currentYaw = yawTransform.localEulerAngles.y.ToAngle();
+                float yawError = VectorUtils.SignedAngleDP(
+                    _referenceTransform.forward.ProjectOnPlanePreNormalized(yawNormal),
+                    yawComponent,
+                    Vector3.Cross(yawNormal, _referenceTransform.forward));
+                yawOffset = Mathf.Abs(yawError);
+                targetYawAngle = (currentYaw + yawError).ToAngle();
+
+                // clamp target yaw in a non-wobbly way
+                if (Mathf.Abs(targetYawAngle) > yawRange / 2)
+                {
+                    var nonWobblyWay = Vector3.Dot(baseTransform.right, targetDirection + _referenceTransform.position - yawTransform.position);
+                    //if (float.IsNaN(nonWobblyWay)) return;
+                    targetYawAngle = yawRange / 2 * Math.Sign(nonWobblyWay);
+                }
+
+                if (yawRange < 360 && Mathf.Abs(currentYaw - targetYawAngle) >= 180)
+                {
+                    //if (float.IsNaN(currentYaw)) return;
+                    targetYawAngle = currentYaw - (Math.Sign(currentYaw) * 179);
+                }
+            }
+            else
+            {
+                yawOffset = 0;
+                targetYawAngle = 0;
+                yaw = false;
+
+                yawNormal = baseTransform.up;
+                yawComponent = targetDirection.ProjectOnPlanePreNormalized(yawNormal);
+                pitchComponent = targetDirection.ProjectOnPlane(Vector3.Cross(yawComponent, yawNormal));
             }
 
             float pitchOffset;
@@ -224,6 +285,8 @@ namespace BDArmory.WeaponMounts
                 pitch = false;
             }
 
+            if (!(pitch || yaw)) return;
+
             float yawSpeed;
             float pitchSpeed;
             if (smoothRotation)
@@ -235,12 +298,6 @@ namespace BDArmory.WeaponMounts
             {
                 yawSpeed = yawSpeedDPS * deltaTime;
                 pitchSpeed = pitchSpeedDPS * deltaTime;
-            }
-
-            if (yawRange < 360 && Mathf.Abs(currentYaw - targetYawAngle) >= 180)
-            {
-                //if (float.IsNaN(currentYaw)) return;
-                targetYawAngle = currentYaw - (Math.Sign(currentYaw) * 179);
             }
 
 
@@ -261,28 +318,35 @@ namespace BDArmory.WeaponMounts
 
         public bool ReturnTurret(bool pitch = true, bool yaw = true)
         {
-            if (!yawTransform)
-            {
-                return false;
-            }
-
-            if (!(pitch || yaw))
-                return true;
+            if (!(pitch || yaw)) return true;
 
             float deltaTime = Time.fixedDeltaTime;
 
-            float yawOffset = Quaternion.Angle(yawTransform.localRotation, standbyLocalRotation);
+            float yawOffset;
+            
+            if (yawTransform)
+            {
+                yawOffset = Quaternion.Angle(yawTransform.localRotation, standbyLocalRotation);
+            }
+            else
+            {
+                yawOffset = 0;
+                yaw = false;
+            }
+
             float pitchOffset;
             
             if (pitchTransform)
             {
-                pitchOffset = VectorUtils.Angle(pitchTransform.forward, yawTransform.forward);
+                pitchOffset = VectorUtils.Angle(pitchTransform.forward, yawTransform ? yawTransform.forward : baseTransform.forward);
             }
             else
             {
                 pitchOffset = 0;
                 pitch = false;
             }
+
+            if (!(pitch || yaw)) return true;
 
             float yawSpeed;
             float pitchSpeed;

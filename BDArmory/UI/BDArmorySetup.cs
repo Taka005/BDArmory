@@ -876,6 +876,7 @@ namespace BDArmory.UI
                 { "targetWeightProtectTeammate", gameObject.AddComponent<NumericInputField>().Initialise(0, weaponManager.targetWeightProtectTeammate, -10, 10) },
                 { "targetWeightProtectVIP", gameObject.AddComponent<NumericInputField>().Initialise(0, weaponManager.targetWeightProtectVIP, -10, 10) },
                 { "targetWeightAttackVIP", gameObject.AddComponent<NumericInputField>().Initialise(0, weaponManager.targetWeightAttackVIP, -10, 10) },
+                { "targetWeightUncontrolled", gameObject.AddComponent<NumericInputField>().Initialise(0, weaponManager.targetWeightUncontrolled, -10, 10) },
             };
         }
 
@@ -1901,6 +1902,19 @@ namespace BDArmory.UI
                         OnGUIWM.targetWeightAttackVIP = (float)field.currentValue;
                     }
 
+                    GUI.Label(LabelRect(++priorityLines, priorityLabelWidth), StringUtils.Localize("#LOC_BDArmory_WMWindow_targetUncontrolled"), leftLabel); //target controllable
+                    if (!NumFieldsEnabled)
+                    {
+                        OnGUIWM.targetWeightUncontrolled = BDAMath.RoundToUnit(GUI.HorizontalSlider(SliderRect(priorityLines, priorityLabelWidth), OnGUIWM.targetWeightUncontrolled, -10, 10), 0.1f);
+                        GUI.Label(RightLabelRect(priorityLines), OnGUIWM.targetWeightUncontrolled.ToString(), leftLabel);
+                    }
+                    else
+                    {
+                        var field = textNumFields["targetWeightUncontrolled"];
+                        field.tryParseValue(GUI.TextField(InputFieldRect(priorityLines, priorityLabelWidth), field.possibleValue, 4, field.style));
+                        OnGUIWM.targetWeightUncontrolled = (float)field.currentValue;
+                    }
+
                     priorityLines += 1.1f;
                     GUI.EndGroup();
                 }
@@ -1929,7 +1943,7 @@ namespace BDArmory.UI
                         moduleLines += 1.1f;
                     }
 
-                    if (OnGUIWM.hasHMD)
+                    if (OnGUIWM.HMD && OnGUIWM.hasHMD)
                     {
                         numberOfModules++;
                         bool isEnabled = OnGUIWM.isHMDEnabled;
@@ -3217,7 +3231,10 @@ namespace BDArmory.UI
                         GUI.Label(SLeftSliderRect(++line), $"{StringUtils.Localize("#LOC_BDArmory_Settings_MissileExplosiveDamageMultiplier")}:  ({BDArmorySettings.EXP_DMG_MOD_MISSILE})", leftLabel);
                         BDArmorySettings.EXP_DMG_MOD_MISSILE = BDAMath.RoundToUnit(GUI.HorizontalSlider(SRightSliderRect(line), BDArmorySettings.EXP_DMG_MOD_MISSILE, 0f, 10f), 0.25f);
 
-                        GUI.Label(SLeftSliderRect(++line), $"{StringUtils.Localize("#LOC_BDArmory_Settings_ImplosiveDamageMultiplier")}:  ({BDArmorySettings.EXP_IMP_MOD})", leftLabel);
+                        GUI.Label(SLeftSliderRect(++line), $"{StringUtils.Localize("#LOC_BDArmory_Settings_HEATExplosiveDamageMultiplier")}:  ({BDArmorySettings.EXP_DMG_MOD_HEAT})", leftLabel);
+                        BDArmorySettings.EXP_DMG_MOD_HEAT = BDAMath.RoundToUnit(GUI.HorizontalSlider(SRightSliderRect(line), BDArmorySettings.EXP_DMG_MOD_HEAT, 0f, 10f), 0.25f);
+
+                        GUI.Label(SLeftSliderRect(++line), $"{StringUtils.Localize("#LOC_BDArmory_Settings_ExplosionImpulseMultiplier")}:  ({BDArmorySettings.EXP_IMP_MOD})", leftLabel);
                         BDArmorySettings.EXP_IMP_MOD = BDAMath.RoundToUnit(GUI.HorizontalSlider(SRightSliderRect(line), BDArmorySettings.EXP_IMP_MOD, 0f, 1f), 0.05f);
 
 

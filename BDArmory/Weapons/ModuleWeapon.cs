@@ -295,7 +295,7 @@ namespace BDArmory.Weapons
             {
                 if (turret)
                 {
-                    return turret.yawTransform.parent;
+                    return turret.baseTransform;
                 }
                 else
                 {

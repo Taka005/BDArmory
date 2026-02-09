@@ -292,7 +292,7 @@ namespace BDArmory.Radar
                 // This is why we flip these in the function. It's also why `elAngle` has to be multiplied by a negative 1!
                 //VectorUtils.GetAzimuthElevation(directionOfRadar, ti.Vessel.ReferenceTransform.up, ti.Vessel.ReferenceTransform.forward, out float azAngle, out float elAngle);
                 float azAngle = VectorUtils.GetAngleOnPlane(directionOfRadar, ti.Vessel.ReferenceTransform.up, ti.Vessel.ReferenceTransform.right);
-                float elAngle = VectorUtils.GetElevation(directionOfRadar, ti.Vessel.ReferenceTransform.forward, distance, 1.0f);
+                float elAngle = VectorUtils.GetElevation(directionOfRadar, ti.Vessel.ReferenceTransform.forward, distance);
 
                 // Note that we would've also had to negate azAngle (due to the flipped z axis) but since we assume craft are left/right symmetric
                 // we just use an Abs here.
@@ -431,14 +431,18 @@ namespace BDArmory.Radar
                 if (missile != null)
                 {
                     if (!missile.updateRadarCS)
+                    {
                         return ti;
+                    }
 
                     if (missile.ActiveRadar || missile.radarLOALSearching)
                     {
                         ti.radarBaseSignature = RCS_MISSILES;
                     }
                     else
+                    {
                         ti.radarBaseSignature = missile.missileRadarCrossSection;
+                    }
 
                     ti.radarBaseSignatureNeedsUpdate = false;
                     ti.radarSignatureMatrixNeedsUpdate = false;
@@ -449,12 +453,16 @@ namespace BDArmory.Radar
                         // Update ECM impact on RCS if base RCS is modified
                         VesselECMJInfo jammer = v.gameObject.GetComponent<VesselECMJInfo>();
                         if (jammer != null)
+                        {
                             jammer.UpdateJammerStrength(ti);
+                        }
                     }
                     else
+                    {
                         // NOTE: This might be called on startup depending on who initializes first, if VesselECMJInfo calls
                         // UpdateJammerStrength before tInfo gets constructed, then this will get triggered.
-                        Debug.LogWarning($"[BDArmory.RadarUtils] DETECTED INFINITE LOOP! Missile: {missile.shortName} on vessel: {(v ? v.vesselName : "null")} caused infinite loop for some reason!");
+                        Debug.Log($"[BDArmory.RadarUtils] DETECTED INFINITE LOOP! Missile: {missile.shortName} on vessel: {(v ? v.vesselName : "null")} caused infinite loop for some reason!");
+                    }
 
                     return ti;
                 }
@@ -499,12 +507,16 @@ namespace BDArmory.Radar
                     // Update ECM impact on RCS if base RCS is modified
                     VesselECMJInfo jammer = v.gameObject.GetComponent<VesselECMJInfo>();
                     if (jammer != null)
+                    {
                         jammer.UpdateJammerStrength(ti);
+                    }
                 }
                 else
+                {
                     // NOTE: This might be called on startup depending on who initializes first, if VesselECMJInfo calls
                     // UpdateJammerStrength before tInfo gets constructed, then this will get triggered.
-                    Debug.LogWarning($"[BDArmory.RadarUtils] DETECTED INFINITE LOOP! Vessel: {(v ? v.vesselName : "null")}, with mass: {ti.radarMassAtUpdate}, ti.radarBaseSignature: {ti.radarBaseSignature}, radarBaseSignatureNeedsUpdate: {ti.radarBaseSignatureNeedsUpdate} and radarSignatureMatrixNeedsUpdate: {ti.radarSignatureMatrixNeedsUpdate} caused infinite loop for some reason!");
+                    Debug.Log($"[BDArmory.RadarUtils] DETECTED INFINITE LOOP! Vessel: {(v ? v.vesselName : "null")}, with mass: {ti.radarMassAtUpdate}, ti.radarBaseSignature: {ti.radarBaseSignature}, radarBaseSignatureNeedsUpdate: {ti.radarBaseSignatureNeedsUpdate} and radarSignatureMatrixNeedsUpdate: {ti.radarSignatureMatrixNeedsUpdate} caused infinite loop for some reason!");
+                }
             }
 
             return ti;
@@ -1861,7 +1873,7 @@ namespace BDArmory.Radar
                     // Get azimuth and elevation relative to the target
                     //VectorUtils.GetAzimuthElevation(vectorToTarget, forwardVector, upVector, out float targetAz, out float targetEl);
                     float targetAz = VectorUtils.GetAngleOnPlane(vectorToTarget, forwardVector, rightVector);
-                    float targetEl = VectorUtils.GetElevation(vectorToTarget, upVector, distance, 1.0f);
+                    float targetEl = VectorUtils.GetElevation(vectorToTarget, upVector, distance);
 
                     // Correct for omnidirectional radars
                     if (directionAngle > 180f)
@@ -2711,7 +2723,7 @@ namespace BDArmory.Radar
                 else
                 {
                     // Quadratic Eq: u = (-b - sqrt(det)) / (2 * a)
-                    u = 0.5f * (-b - Math.Sqrt(det)) / a;
+                    u = 0.5 * (-b - Math.Sqrt(det)) / a;
                 }
 
                 sqrRange = (float)(a * u * u);
@@ -2727,12 +2739,12 @@ namespace BDArmory.Radar
 
                 if (calcAngle)
                 {
-                    Vector3 intcptVec;
-                    intcptVec.x = (float)(u * x + start.x - xB);
-                    intcptVec.y = (float)(u * y + start.y - yB);
-                    intcptVec.z = (float)(u * z + start.z - zB);
+                    Vector3d intcptVec;
+                    intcptVec.x = (u * x + start.x - xB);
+                    intcptVec.y = (u * y + start.y - yB);
+                    intcptVec.z = (u * z + start.z - zB);
 
-                    angle = VectorUtils.Angle(new Vector3(-(float)x, -(float)y, -(float)z), intcptVec);
+                    angle = VectorUtils.Angle(new Vector3d(-x, -y, -z), intcptVec);
                     angle = 90f - angle;
                 }
 

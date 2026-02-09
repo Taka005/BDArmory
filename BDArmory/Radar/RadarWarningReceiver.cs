@@ -1,5 +1,7 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 using BDArmory.Control;
@@ -44,6 +46,7 @@ namespace BDArmory.Radar
             MWS = 10,
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool CanDetectRWRThreat(int detectedTypes, RWRThreatTypes threat)
         {
             // Technically it would be good to check for the None case
@@ -51,8 +54,7 @@ namespace BDArmory.Radar
             // In any case the below will still work with None input
             // if (threat == RWRThreatTypes.None) return false;
 
-            // Have to shift 1 more because SAM is 0 instead of 1
-            return (detectedTypes & 1 << ((int)threat + 1)) != 0;
+            return (detectedTypes & threat.ToBits()) != 0;
         }
 
         string[] iconLabels = new string[] { "S", "F", "A", "M", "M", "D", "So", "T", "T", "J" };
@@ -851,5 +853,11 @@ namespace BDArmory.Radar
                 tsdArray[i] = nullTarget;
             }
         }
+    }
+
+    public static class RWRExtension
+    {
+        public static int ToBits(this RadarWarningReceiver.RWRThreatTypes[] rwrThreatTypes) => rwrThreatTypes.Aggregate(0, (val, rwr) => val |= rwr.ToBits());
+        public static int ToBits(this RadarWarningReceiver.RWRThreatTypes rwr) => rwr != RadarWarningReceiver.RWRThreatTypes.None ? 1 << (int)rwr : 0; // None=-1 is the special case that equates to 0 (i.e., 1>>1).
     }
 }
