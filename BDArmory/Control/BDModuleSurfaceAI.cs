@@ -887,26 +887,6 @@ namespace BDArmory.Control
                         else
                             SetStatus($"Waypoint {activeWaypointIndex} ({waypointRange:F0}m)");
                     }
-                    if (command == PilotCommands.Waypoints)
-                    {
-                        //modify velocity based on needed turnRadius to make the next gate
-                        float angleToGate = Vector3.Angle(vessel.vesselTransform.up, targetDirection);
-                        double vDot = Vector3d.Angle(vessel.vesselTransform.up, vessel.srf_velocity.normalized) * Mathf.Deg2Rad;
-                        // rate of turn = 1091 * tan(AOA) / speed(knots)
-                        double turnDPS = (1091 * Math.Tan(vDot)) / (vessel.speed / 2);
-                        //I'm going to need to spend some time looking at trig examples, since this clearly isn't working
-                        if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) DebugLine($"Turn DPS: {turnDPS}:F2; AoA: {Vector3.Angle(vessel.vesselTransform.up,vessel.srf_velocity.normalized):F2}; gate Angle: {angleToGate}:F2");
-                        if (angleToGate > Mathf.Max((float)turnDPS, 10) && Vector3.Distance(assignedPositionWorld, vesselTransform.position) / vessel.speed < angleToGate / turnDPS)
-                        {
-                            float AngleFraction = 360 / angleToGate;
-                            float circum = (angleToGate / (float)turnDPS) * (float)vessel.srf_velocity.magnitude * AngleFraction;
-                            float turnRadius = circum / (2 * Mathf.PI);
-                            float gateDist = (assignedPositionWorld - vesselTransform.position).ProjectOnPlanePreNormalized(vesselTransform.up).magnitude;
-                            if (turnRadius > gateDist)
-                                targetVelocity = Mathf.Clamp(gateDist * (2 * Mathf.PI) / AngleFraction / (angleToGate / (float)turnDPS), 0, MaxSpeed);
-                            if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) DebugLine($"turn Radius: {turnRadius}; gate Dist: {gateDist}; ETA to gate: {(Vector3.Distance(assignedPositionWorld, vesselTransform.position) / vessel.speed):F2}s");
-                        }
-                    }
                     return;
                 }
 
@@ -1034,7 +1014,8 @@ namespace BDArmory.Control
             speedController.targetSpeed = motorControl.targetSpeed = targetSpeed;
             motorControl.signedSrfSpeed = velocitySignedSrfSpeed;
             //speedController.useBrakes = motorControl.preventNegativeZeroPoint = speedController.debugThrust > 0;
-            speedController.useBrakes = targetSpeed < velocitySignedSrfSpeed * 0.9f; // targetSpeed * velocitySignedSrfSpeed < -5;
+            speedController.useBrakes = targetSpeed * velocitySignedSrfSpeed < 0 || Mathf.Abs(targetSpeed) < Mathf.Abs(velocitySignedSrfSpeed) * 0.9f;
+            motorControl.useBrakes = speedController.useBrakes;
         }
 
         Vector3 directionIntegral;

@@ -2838,8 +2838,7 @@ namespace BDArmory.Control
                                 }
                             }
                         }
-                        targetParts = targetParts.OrderBy(w => w.mass).ToList(); //weight target part priority by part mass, also serves as a default 'target heaviest part' in case other options not selected
-                        targetParts.Reverse(); //Order by mass is lightest to heaviest. We want H>L
+                        targetParts = targetParts.OrderByDescending(w => w.mass).ToList(); //weight target part priority by part mass, also serves as a default 'target heaviest part' in case other options not selected
                     }
                     else targetParts.Add(targetVessel.rootPart);
                 }
@@ -3063,7 +3062,7 @@ namespace BDArmory.Control
                             //have GPS missiles require a targeting cam for coords? GPS bombs require one.
                             float attemptStartTime;
                             bool foundTargetInDatabase = false;
-                            if (!targetCoM && targetNum >= targetParts.Count) targetNum -= targetParts.Count * (int)Mathf.Floor((targetNum / targetParts.Count));
+                            if (!targetCoM && targetNum >= targetParts.Count) targetNum -= targetParts.Count * Mathf.FloorToInt((targetNum / targetParts.Count));
                             using (List<GPSTargetInfo>.Enumerator gps = BDATargetManager.GPSTargetList(Team).GetEnumerator())
                                 while (gps.MoveNext())
                                 {
@@ -3112,7 +3111,7 @@ namespace BDArmory.Control
                                     //if (foundCam && (foundCam.groundTargetPosition - targetVessel.CoM).sqrMagnitude > Mathf.Max(400, 0.013f * (float)guardTarget.srfSpeed * (float)guardTarget.srfSpeed))
                                     //if (foundCam && (foundCam.groundTargetPosition - targetVessel.CoM).sqrMagnitude < targetAccuracyThreshold)
                                     if (foundCam && (foundCam.groundTargetPosition - (targetCoM ? targetVessel.CoM : targetParts[targetNum].transform.position)).sqrMagnitude < targetAccuracyThreshold)
-
+                                    {
                                         designatedGPSInfo = new GPSTargetInfo(VectorUtils.WorldPositionToGeoCoords(foundCam.groundTargetPosition, vessel.mainBody), targetVessel.vesselName.Substring(0, Mathf.Min(12, targetVessel.vesselName.Length)));
                                     }
                                     else //cam gimbal locked/target behind a hill or something
@@ -3304,7 +3303,7 @@ namespace BDArmory.Control
                             {
                                 yield return new WaitForSecondsFixed(2f);
                             }
-                            if (!targetCoM && targetNum >= targetParts.Count) targetNum -= targetParts.Count * (int)Mathf.Floor((targetNum / targetParts.Count));
+                            if (!targetCoM && targetNum >= targetParts.Count) targetNum -= targetParts.Count * Mathf.FloorToInt((targetNum / targetParts.Count));
                             float attemptStartTime = Time.time;
                             float laserLockAttemptEndTime = attemptStartTime + targetScanInterval * 0.75f;
                             MissileLauncher mlauncher = ml as MissileLauncher;
@@ -8555,7 +8554,7 @@ namespace BDArmory.Control
                             ml.lockedCamera = foundCam;
                             ml.TargetAcquired = true;
                             
-                            if (!targetCoM && targetNum >= targetParts.Count) targetNum -= targetParts.Count * (int)Mathf.Floor((targetNum / targetParts.Count));
+                            if (!targetCoM && targetNum >= targetParts.Count) targetNum -= targetParts.Count * Mathf.FloorToInt((targetNum / targetParts.Count));
                             if (guardMode && guardTarget != null && (foundCam.groundTargetPosition - (targetCoM ? targetVessel.CoM : targetParts[targetNum].transform.position)).sqrMagnitude < 10 * 10) validTarget = true; //*highly* unlikely laser-guided missiles used for missile interception, so leaving these guardTarget
                         }
                         else
@@ -8569,7 +8568,7 @@ namespace BDArmory.Control
                     {
                         if (getTarget && targetVessel)
                         {
-                            if (!targetCoM && targetNum >= targetParts.Count) targetNum -= targetParts.Count * (int)Mathf.Floor((targetNum / targetParts.Count));
+                            if (!targetCoM && targetNum >= targetParts.Count) targetNum -= targetParts.Count * Mathf.FloorToInt((targetNum / targetParts.Count));
                             if ((designatedGPSInfo.worldPos - (targetCoM ? targetVessel.CoM : targetParts[targetNum].transform.position)).sqrMagnitude > 100)
                             {
                                 ml.targetGPSCoords = designatedGPSCoords;

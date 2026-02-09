@@ -665,7 +665,7 @@ namespace BDArmory.Targeting
             camIndex += nextCam ? -1 : 1;
             int totalCams = VesselModuleRegistry.GetModules<ModuleTargetingCamera>(vessel).Count;
             if (camIndex < 0 && totalCams > 0) camIndex = totalCams - 1;
-            if (camIndex >= totalCams && totalCams > 0) camIndex -= totalCams * (int)Mathf.Floor((camIndex / totalCams));
+            if (camIndex >= totalCams && totalCams > 0) camIndex -= totalCams * Mathf.FloorToInt((camIndex / totalCams));
             activeCam = VesselModuleRegistry.GetModules<ModuleTargetingCamera>(vessel)[camIndex];
         }
 

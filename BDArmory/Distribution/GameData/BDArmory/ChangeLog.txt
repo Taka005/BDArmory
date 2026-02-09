@@ -44,7 +44,7 @@
 		- Custom Turrets:
 			- Add Lofted Aimpoint and Loft Vel. Fac. settings to missiles on custom turrets, giving them function parity with regular missile turrets.
 			- Fix custom turrets with no radar failing the launch authorization check.
-      - Fix custom turrets incorporating guns with turrets (M102 howitzer, ect) not targeting aircraft.
+      - Fix custom turrets incorporating guns with turrets (M102 howitzer, etc.) not targeting aircraft.
 		- Improved debug telemetry output format.
 
 v1.12.1.0

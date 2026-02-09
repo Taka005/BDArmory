@@ -1085,7 +1085,7 @@ namespace BDArmory.Weapons.Missiles
                                         if (targetsAssigned.Count == 1 && FiredByWM.multiMissileTgtNum > 1 && salvoSize > 1 && !FiredByWM.targetCoM)
                                         {
                                             int targetNum = launchesThisSalvo - 1;
-                                            if (targetNum >= FiredByWM.targetParts.Count) targetNum -= FiredByWM.targetParts.Count * (int)Mathf.Floor((targetNum / FiredByWM.targetParts.Count));
+                                            if (targetNum >= FiredByWM.targetParts.Count) targetNum -= FiredByWM.targetParts.Count * Mathf.FloorToInt((targetNum / FiredByWM.targetParts.Count));
                                             ml.targetGPSCoords = VectorUtils.WorldPositionToGeoCoords(FiredByWM.targetParts[targetNum].transform.position, vessel.mainBody);
                                         }
                                         else ml.targetGPSCoords = VectorUtils.WorldPositionToGeoCoords(targetsAssigned[TargetID].Vessel.CoM, vessel.mainBody);
@@ -1129,7 +1129,7 @@ namespace BDArmory.Weapons.Missiles
                                                 if (targetsAssigned.Count == 1 && FiredByWM.multiMissileTgtNum > 1 && salvoSize > 1 && !FiredByWM.targetCoM)
                                                 {
                                                     int targetNum = launchesThisSalvo - 1;
-                                                    if (targetNum >= FiredByWM.targetParts.Count) targetNum -= FiredByWM.targetParts.Count * (int)Mathf.Floor((targetNum / FiredByWM.targetParts.Count));
+                                                    if (targetNum >= FiredByWM.targetParts.Count) targetNum -= FiredByWM.targetParts.Count * Mathf.FloorToInt((targetNum / FiredByWM.targetParts.Count));
                                                     ml.targetGPSCoords = VectorUtils.WorldPositionToGeoCoords(FiredByWM.targetParts[targetNum].transform.position, vessel.mainBody);
                                                 }
                                                 else ml.targetGPSCoords = VectorUtils.WorldPositionToGeoCoords(targetsAssigned[t].Vessel.CoM, vessel.mainBody);
@@ -1178,7 +1178,7 @@ namespace BDArmory.Weapons.Missiles
                                                         if (targetsAssigned.Count == 1 && FiredByWM.multiMissileTgtNum > 1 && salvoSize > 1 && !FiredByWM.targetCoM)
                                                         {
                                                             int targetNum = launchesThisSalvo - 1;
-                                                            if (targetNum >= FiredByWM.targetParts.Count) targetNum -= FiredByWM.targetParts.Count * (int)Mathf.Floor((targetNum / FiredByWM.targetParts.Count));
+                                                            if (targetNum >= FiredByWM.targetParts.Count) targetNum -= FiredByWM.targetParts.Count * Mathf.FloorToInt((targetNum / FiredByWM.targetParts.Count));
                                                             ml.targetGPSCoords = VectorUtils.WorldPositionToGeoCoords(FiredByWM.targetParts[targetNum].transform.position, vessel.mainBody);
                                                         }
                                                         else ml.targetGPSCoords = VectorUtils.WorldPositionToGeoCoords(item.Current.Vessel.CoM, vessel.mainBody);
