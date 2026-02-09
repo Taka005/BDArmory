@@ -846,7 +846,6 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
             {
                 _lockFailTimer = 0;
                 predictedHeatTarget = heatTarget;
-                TargetPosition = heatTarget.position;
             }
             if (_lockFailTimer >= 0)
             {
@@ -1055,7 +1054,7 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                             TargetVelocity = radarTarget.velocity;
                             TargetAcceleration = radarTarget.acceleration;
                             targetVessel = t.targetInfo; //reset targetvessel in case of canRelock getting a new target
-                            _radarFailTimer = 0;
+                            _lockFailTimer = 0;
                             startDirection = vectorToTarget; //have radar missile head in direction of last known radar contact if radarTarget goes off scope
                             return;
                         }
@@ -1348,8 +1347,8 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
                         radarLOALSearching = true;
                         updateRadarCS = true;
                     }
-                    _radarFailTimer += Time.fixedDeltaTime;
-                    if (_radarFailTimer > seekerTimeout)
+                    _lockFailTimer += Time.fixedDeltaTime;
+                    if (_lockFailTimer > seekerTimeout)
                     {
                         if (BDArmorySettings.DEBUG_MISSILES) Debug.Log("[BDArmory.MissileBase]: Active Radar guidance failed. LOAL could not lock a target.");
                         radarLOAL = false;
