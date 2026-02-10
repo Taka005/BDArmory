@@ -2296,8 +2296,10 @@ namespace BDArmory.Control
         bool PredictCollisionWithVessel(Vessel v, float maxTime, out Vector3 badDirection)
         {
             var weaponManager = WeaponManager;
+            float relativeVelocity = (float)(vessel.srf_velocity - v.srf_velocity).magnitude;
             if (vessel == null || v == null || v == (weaponManager != null ? weaponManager.incomingMissileVessel : null)
-                || v.GetTotalMass() < AvoidMass || (v.rootPart != null && v.rootPart.FindModuleImplementing<MissileBase>() != null)) //evasive will handle avoiding missiles
+                || v.GetTotalMass() < AvoidMass || relativeVelocity < 7 || //most parts have a crashTolerance of at least this, stuff moving slower than this not an issue.
+                (v.rootPart != null && v.rootPart.FindModuleImplementing<MissileBase>() != null)) //evasive will handle avoiding missiles
             {
                 badDirection = Vector3.zero;
                 return false;
