@@ -10,6 +10,8 @@
 	- Add "Attack Uncontrolled Tgt." Weight to the Weapon Manager, setting this to negative makes the AI prioritize targets under control, thus avoiding wasting ammo on vehicles with knocked out crews. NOTE: Be cautious when using this on aircraft, this includes g-loc'd pilots!
 	- Fix AI not accurately locking targets via the targeting pod while moving at speed.
 	- Fix various NREs in GuardMissileRoutine that would potentially lock out a vessel from firing missiles.
+	- Add an option to set a minimum mass for avoidance logic in the pilot and VTOL AIs (was already an option in the surface AI).
+	- Pilot AI will now ignore other vessels already within its radius for avoidance purposes (to help with lodged debris and detaching parasite fighters).
 - Sensors:
   - Improvements to target camera target switching behavior, should no longer switch to a new target while current laser ordnance is still in the air.
   - Multiple target cam support, craft with multiple cams can now simultaneously engage multiple targets with laser ordnance, one per camera.
