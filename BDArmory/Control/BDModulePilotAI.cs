@@ -532,8 +532,9 @@ namespace BDArmory.Control
            UI_FloatRange(minValue = 0f, maxValue = 4f, stepIncrement = 0.1f, scene = UI_Scene.All)]
         public float vesselCollisionAvoidanceStrength = 2f; // 2° per frame (100°/s).
 
-        [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_AI_MinObstacleMass", advancedTweakable = true),//Min obstacle mass
-    UI_FloatRange(minValue = 0f, maxValue = 100f, stepIncrement = 1f, scene = UI_Scene.All),]
+        [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_AI_MinObstacleMass", advancedTweakable = true,//Min obstacle mass
+            groupName = "pilotAI_EvadeExtend", groupDisplayName = "#LOC_BDArmory_AI_EvadeExtend", groupStartCollapsed = true),
+            UI_FloatSemiLogRange(minValue = 0.1f, maxValue = 100f, sigFig = 2, withZero = true, scene = UI_Scene.All)]
         public float AvoidMass = 0f;
 
         [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_AI_StandoffDistance", advancedTweakable = true, //Min Approach Distance
@@ -698,7 +699,6 @@ namespace BDArmory.Control
             { nameof(evasionThreshold), 300f },
             { nameof(evasionTimeThreshold), 30f },
             { nameof(vesselStandoffDistance), 5000f },
-            { nameof(AvoidMass), 1000000f },
             { nameof(turnRadiusTwiddleFactorMin), 10f},
             { nameof(turnRadiusTwiddleFactorMax), 10f},
             { nameof(controlSurfaceDeploymentTime), 10f },
@@ -736,6 +736,7 @@ namespace BDArmory.Control
         };
         Dictionary<string, (float, float, float)> altSemiLogValues = new Dictionary<string, (float, float, float)> {
             { nameof(evasionMinRangeThreshold), (1f, 1000000f, 1f) },
+            { nameof(AvoidMass), (10f, 1000000f, 2f) },
         };
 
         void TurnItUpToEleven(BaseField _field = null, object _obj = null)
@@ -2293,21 +2294,16 @@ namespace BDArmory.Control
             }
         }
 
-        bool PredictCollisionWithVessel(Vessel v, float maxTime, out Vector3 badDirection)
+        bool PredictCollisionWithVessel(Vessel v, float maxTime, out Vector3 badDirection, float selfRadius)
         {
             var weaponManager = WeaponManager;
             float relativeVelocity = (float)(vessel.srf_velocity - v.srf_velocity).magnitude;
             if (vessel == null || v == null || v == (weaponManager != null ? weaponManager.incomingMissileVessel : null)
                 || v.GetTotalMass() < AvoidMass || //relativeVelocity < 7 || //most parts have a crashTolerance of at least this, stuff moving slower than this not an issue.
+                Vector3.SqrMagnitude(v.CoM - vessel.CoM) < selfRadius || //something within vessel radius, no chance to evade at this point. Should cover parasite fighters detaching/debris stuck on something
                 (v.rootPart != null && v.rootPart.FindModuleImplementing<MissileBase>() != null)) //evasive will handle avoiding missiles
             {
                 badDirection = Vector3.zero;
-                return false;
-            }
-			var selfRadius = vessel.GetRadius();
-			if (Vector3.SqrMagnitude(v.CoM - vessel.CoM) < selfRadius * selfRadius)
-			{
-                badDirection = Vector3.zero; //something within vessel radius, no chance to evade at this point. Should cover parasite fighters detaching/debris stuck on something
                 return false;
             }
             // Adjust some values for asteroids.
@@ -4110,13 +4106,15 @@ namespace BDArmory.Control
         bool FlyAvoidOthers(FlightCtrlState s) // Check for collisions with other vessels and try to avoid them.
         {
             if (vesselCollisionAvoidanceStrength == 0 || collisionAvoidanceThreshold == 0) return false;
+            float ignoreMinDistanceSqr = vessel.GetRadius();
+            ignoreMinDistanceSqr *= ignoreMinDistanceSqr;
             if (currentlyAvoidedVessel != null) // Avoidance has been triggered.
             {
                 SetStatus("AvoidCollision");
                 if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) debugString.AppendLine($"Avoiding Collision");
 
                 // Monitor collision avoidance, adjusting or stopping as necessary.
-                if (currentlyAvoidedVessel != null && PredictCollisionWithVessel(currentlyAvoidedVessel, vesselCollisionAvoidanceLookAheadPeriod * 1.2f, out collisionAvoidDirection)) // *1.2f for hysteresis.
+                if (currentlyAvoidedVessel != null && PredictCollisionWithVessel(currentlyAvoidedVessel, vesselCollisionAvoidanceLookAheadPeriod * 1.2f, out collisionAvoidDirection, ignoreMinDistanceSqr)) // *1.2f for hysteresis.
                 {
                     FlyAvoidVessel(s);
                     return true;
@@ -4144,7 +4142,7 @@ namespace BDArmory.Control
                         if (vs.Current == null) continue;
                         if (vs.Current.vesselType == VesselType.Debris) continue; // Ignore debris on the first pass.
                         if (vs.Current == vessel || vs.Current.Landed) continue;
-                        if (!PredictCollisionWithVessel(vs.Current, vesselCollisionAvoidanceLookAheadPeriod, out Vector3 collisionAvoidDir)) continue;
+                        if (!PredictCollisionWithVessel(vs.Current, vesselCollisionAvoidanceLookAheadPeriod, out Vector3 collisionAvoidDir, ignoreMinDistanceSqr)) continue;
                         if (!VesselModuleRegistry.IgnoredVesselTypes.Contains(vs.Current.vesselType))
                         {
                             var ibdaiControl = vs.Current.ActiveController().AI;
@@ -4167,7 +4165,7 @@ namespace BDArmory.Control
                         if (vs.Current == null) continue;
                         if (vs.Current.vesselType != VesselType.Debris) continue; // Only consider debris on the second pass.
                         if (vs.Current == vessel || vs.Current.Landed) continue;
-                        if (!PredictCollisionWithVessel(vs.Current, vesselCollisionAvoidanceLookAheadPeriod, out Vector3 collisionAvoidDir)) continue;
+                        if (!PredictCollisionWithVessel(vs.Current, vesselCollisionAvoidanceLookAheadPeriod, out Vector3 collisionAvoidDir, ignoreMinDistanceSqr)) continue;
                         var collisionTargetSize = vs.Current.vesselSize.sqrMagnitude;
                         if (collisionTargetSize < collisionTargetLargestSize) continue; // Avoid the largest debris object.
                         vesselCollision = true;

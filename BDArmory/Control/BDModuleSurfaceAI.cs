@@ -147,7 +147,7 @@ namespace BDArmory.Control
         public bool ManeuverRCS = false;
 
         [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_AI_MinObstacleMass", advancedTweakable = true),//Min obstacle mass
-            UI_FloatRange(minValue = 0f, maxValue = 100f, stepIncrement = 1f, scene = UI_Scene.All),]
+            UI_FloatSemiLogRange(minValue = 0.1f, maxValue = 100f, sigFig = 2, withZero = true, scene = UI_Scene.All)]
         public float AvoidMass = 0f;
 
         [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_AI_PreferredBroadsideDirection", advancedTweakable = true),//Preferred broadside direction
@@ -174,9 +174,10 @@ namespace BDArmory.Control
             { nameof(steerDamping), 100f },
             { nameof(MinEngagementRange), 20000f },
             { nameof(MaxEngagementRange), 30000f },
-            { nameof(AvoidMass), 1000000f },
         };
-
+        Dictionary<string, (float, float, float)> altSemiLogValues = new Dictionary<string, (float, float, float)> {
+            { nameof(AvoidMass), (10f, 1000000f, 2f) },
+        };
         #endregion Declarations
 
         #region RMB info in editor
@@ -886,7 +887,7 @@ namespace BDArmory.Control
                             SetStatus($"Lap {activeWaypointLap}, Waypoint {activeWaypointIndex} ({waypointRange:F0}m)");
                         else
                             SetStatus($"Waypoint {activeWaypointIndex} ({waypointRange:F0}m)");
-                    }
+                    }                   
                     return;
                 }
 

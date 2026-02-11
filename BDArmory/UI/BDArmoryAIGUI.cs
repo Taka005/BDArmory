@@ -1422,7 +1422,7 @@ StringUtils.Localize("#LOC_BDArmory_AIWindow_DiveBomb"), AI.divebombing ? BDArmo
                                     evadeLines = ContentEntry(ContentType.FloatSlider, evadeLines, contentWidth, ref AI.vesselCollisionAvoidanceLookAheadPeriod, nameof(AI.vesselCollisionAvoidanceLookAheadPeriod), "CollisionAvoidanceLookAheadPeriod", $"{AI.vesselCollisionAvoidanceLookAheadPeriod:0.0}s");
                                     evadeLines = ContentEntry(ContentType.FloatSlider, evadeLines, contentWidth, ref AI.vesselCollisionAvoidanceStrength, nameof(AI.vesselCollisionAvoidanceStrength), "CollisionAvoidanceStrength", $"{AI.vesselCollisionAvoidanceStrength:0.0} ({AI.vesselCollisionAvoidanceStrength / Time.fixedDeltaTime:0}°/s)");
                                     evadeLines = ContentEntry(ContentType.FloatSlider, evadeLines, contentWidth, ref AI.vesselStandoffDistance, nameof(AI.vesselStandoffDistance), "StandoffDistance", $"{AI.vesselStandoffDistance:0}m");
-                                    evadeLines = ContentEntry(ContentType.FloatSlider, evadeLines, contentWidth, ref AI.AvoidMass, nameof(AI.AvoidMass), "MinObstacleMass", $"{AI.AvoidMass:0}t");
+                                    evadeLines = ContentEntry(ContentType.SemiLogSlider, evadeLines, contentWidth, ref AI.AvoidMass, nameof(AI.AvoidMass), "MinObstacleMass", AI.AvoidMass < 10 ? $"{AI.AvoidMass:0.0}t" : $"{AI.AvoidMass:0}t");
                                     #endregion
 
                                     #region Extending
@@ -1758,7 +1758,7 @@ StringUtils.Localize("#LOC_BDArmory_AIWindow_DiveBomb"), AI.divebombing ? BDArmo
                                         line = ContentEntry(ContentType.FloatSlider, line, contentWidth, ref AI.TargetPitch, nameof(AI.TargetPitch), "TargetPitch", $"{AI.TargetPitch:0.0}°");
                                         line = ContentEntry(ContentType.FloatSlider, line, contentWidth, ref AI.BankAngle, nameof(AI.BankAngle), "BankAngle", $"{AI.BankAngle:0}°");
                                         line = ContentEntry(ContentType.FloatSlider, line, contentWidth, ref AI.AvoidMass, nameof(AI.AvoidMass), "MinObstacleMass", $"{AI.AvoidMass:0}t");
-
+                                        line = ContentEntry(ContentType.SemiLogSlider, line, contentWidth, ref AI.AvoidMass, nameof(AI.AvoidMass), "MinObstacleMass", AI.AvoidMass < 10 ? $"{AI.AvoidMass:0.0}t" : $"{AI.AvoidMass:0}t");
                                         if (broadsideDir != (broadsideDir = Mathf.RoundToInt(GUI.HorizontalSlider(SettingSliderRect(line, contentWidth), broadsideDir, 0, AI.orbitDirections.Length - 1))))
                                         {
                                             AI.SetBroadsideDirection(AI.orbitDirections[broadsideDir]);
@@ -1998,12 +1998,12 @@ StringUtils.Localize("#LOC_BDArmory_AIWindow_DiveBomb"), AI.divebombing ? BDArmo
                                     AI.ManeuverRCS = GUI.Toggle(ToggleButtonRect(line, contentWidth), AI.ManeuverRCS,
                                         StringUtils.Localize("#LOC_BDArmory_AIWindow_ManeuverRCS") + " : " + (AI.ManeuverRCS ? StringUtils.Localize("#LOC_BDArmory_AI_ManeuverRCS_enabledText") : StringUtils.Localize("#LOC_BDArmory_AI_ManeuverRCS_disabledText")),
                                         AI.ManeuverRCS ? BDArmorySetup.BDGuiSkin.box : BDArmorySetup.BDGuiSkin.button);
-                                    line += 1f;
+                                    line += 1.25f;
                                     if (contextTipsEnabled)
                                     {
                                         GUI.Label(ContextLabelRect(line++), StringUtils.Localize("#LOC_BDArmory_AIWindow_ManeuverRCS_Context"), contextLabel);
                                     }
-                                    line = ContentEntry(ContentType.FloatSlider, line, contentWidth, ref AI.AvoidMass, nameof(AI.AvoidMass), "MinObstacleMass", $"{AI.AvoidMass:0}t");
+                                    line = ContentEntry(ContentType.SemiLogSlider, line, contentWidth, ref AI.AvoidMass, nameof(AI.AvoidMass), "MinObstacleMass", AI.AvoidMass < 10 ? $"{AI.AvoidMass:0.0}t" : $"{AI.AvoidMass:0}t");
                                     line += 0.25f;
                                     GUI.EndGroup();
                                     sectionHeights[Section.Control] = Mathf.Lerp(sectionHeight, line, 0.15f);
