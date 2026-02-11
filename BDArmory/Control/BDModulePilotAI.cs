@@ -2064,7 +2064,7 @@ namespace BDArmory.Control
                 if (BDArmorySettings.DEBUG_AI) Debug.Log("[BDArmory.BDModulePilotAI]: " + vessel.vesselName + " is no longer inhibiting gain alt");
             }
 
-            if (!hardMinAltitude && !gainAltInhibited && belowMinAltitude && (isBombing || currentStatusMode == StatusMode.Engaging || currentStatusMode == StatusMode.Evading || currentStatusMode == StatusMode.RammingSpeed) && !vessel.InNearVacuum())
+            if (!gainAltInhibited && belowMinAltitude && (!hardMinAltitude && (isBombing || currentStatusMode == StatusMode.Engaging || currentStatusMode == StatusMode.Evading) || currentStatusMode == StatusMode.RammingSpeed) && !vessel.InNearVacuum())
             { // Vessel went below minimum altitude while "Engaging", "Bombing", "Evading" or "Ramming speed!", enable the gain altitude inhibitor.
                 gainAltInhibited = true;
                 if (BDArmorySettings.DEBUG_AI) Debug.Log("[BDArmory.BDModulePilotAI]: " + vessel.vesselName + " was " + currentStatus + " and went below min altitude, inhibiting gain alt.");
