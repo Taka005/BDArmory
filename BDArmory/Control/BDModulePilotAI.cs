@@ -2294,14 +2294,13 @@ namespace BDArmory.Control
             }
         }
 
-        bool PredictCollisionWithVessel(Vessel v, float maxTime, out Vector3 badDirection, float selfRadius)
+        bool PredictCollisionWithVessel(Vessel v, float maxTime, out Vector3 badDirection, float ignoreMinDistanceSqr)
         {
             var weaponManager = WeaponManager;
-            float relativeVelocity = (float)(vessel.srf_velocity - v.srf_velocity).magnitude;
             if (vessel == null || v == null || v == (weaponManager != null ? weaponManager.incomingMissileVessel : null)
-                || v.GetTotalMass() < AvoidMass || //relativeVelocity < 7 || //most parts have a crashTolerance of at least this, stuff moving slower than this not an issue.
-                Vector3.SqrMagnitude(v.CoM - vessel.CoM) < selfRadius || //something within vessel radius, no chance to evade at this point. Should cover parasite fighters detaching/debris stuck on something
-                (v.rootPart != null && v.rootPart.FindModuleImplementing<MissileBase>() != null)) //evasive will handle avoiding missiles
+                || v.GetTotalMass() < AvoidMass
+                || (vessel.CoM - v.CoM).sqrMagnitude < ignoreMinDistanceSqr //something within vessel radius, no chance to evade at this point. Should cover parasite fighters detaching/debris stuck on something
+                || (v.rootPart != null && v.rootPart.FindModuleImplementing<MissileBase>() != null)) //evasive will handle avoiding missiles
             {
                 badDirection = Vector3.zero;
                 return false;
@@ -4897,7 +4896,7 @@ namespace BDArmory.Control
             GUIUtils.DrawLineBetweenWorldPositions(vesselTransformPos + (0.05f * vesselTransform.right), vesselTransformPos + (0.05f * vesselTransform.right) + angVelRollTarget, 2, Color.green);
 
             Vector3 vesseltPos = vessel.transform.position; // Not quite sure if there's a difference between this and vesselTransform.position
-            
+
             if (avoidingTerrain)
             {
                 GUIUtils.DrawLineBetweenWorldPositions(vesseltPos, terrainAlertDebugPos, 2, Color.cyan);

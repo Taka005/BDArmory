@@ -145,7 +145,7 @@ UI_Toggle(enabledText = "#LOC_BDArmory_true", disabledText = "#LOC_BDArmory_fals
             UI_Toggle(enabledText = "#LOC_BDArmory_AI_ManeuverRCS_enabledText", disabledText = "#LOC_BDArmory_AI_ManeuverRCS_disabledText", scene = UI_Scene.All),]//Maneuvers--Combat
         public bool ManeuverRCS = false;
 
-        [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_AI_MinObstacleMass"),
+        [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "#LOC_BDArmory_AI_MinObstacleMass"),//Min obstacle mass
             UI_FloatSemiLogRange(minValue = 0.1f, maxValue = 100f, sigFig = 2, withZero = true, scene = UI_Scene.All)]
         public float AvoidMass = 0f;
 
@@ -309,6 +309,15 @@ UI_Toggle(enabledText = "#LOC_BDArmory_true", disabledText = "#LOC_BDArmory_fals
                 (altMaxValues[s.Current], euic.maxValue) = (euic.maxValue, altMaxValues[s.Current]);
                 StartCoroutine(SetVar(s.Current, (float)typeof(BDModuleVTOLAI).GetField(s.Current).GetValue(this))); // change the value back to what it is now after fixed update, because changing the max value will clamp it down
             }
+            foreach (var fieldName in altSemiLogValues.Keys.ToList())
+            {
+                var field = (UI_FloatSemiLogRange)(HighLogic.LoadedSceneIsFlight ? Fields[fieldName].uiControlFlight : Fields[fieldName].uiControlEditor);
+                var temp = (field.minValue, field.maxValue, field.sigFig);
+                var altValues = altSemiLogValues[fieldName];
+                if (BDArmorySettings.DEBUG_AI) Debug.Log($"[BDArmory.BDModuleVTOLAI]: Swapping semiLog limits of {fieldName} from {temp} to {altValues}");
+                field.UpdateLimits(altValues.Item1, altValues.Item2, altValues.Item3);
+                altSemiLogValues[fieldName] = temp;
+            }
         }
 
         IEnumerator SetVar(string name, float value)
@@ -471,7 +480,7 @@ UI_Toggle(enabledText = "#LOC_BDArmory_true", disabledText = "#LOC_BDArmory_fals
                         targetAltitude = CombatAltitude;
                         SetStatus($"Extending");
                         return;
-                    }      
+                    }
                     else
                     {
                         extendingTarget = null;
@@ -761,7 +770,7 @@ UI_Toggle(enabledText = "#LOC_BDArmory_true", disabledText = "#LOC_BDArmory_fals
                 targetRoll = VectorUtils.GetAngleOnPlane(rollTarget, upDir, vesselTransform.right);
             }
             else
-                rollTarget = Vector3.RotateTowards(upDir, -vesselTransform.right, targetRoll * Mathf.PI / 180f, 0f); 
+                rollTarget = Vector3.RotateTowards(upDir, -vesselTransform.right, targetRoll * Mathf.PI / 180f, 0f);
 
             float rollError = targetRoll - bank;
             if (BDArmorySettings.DEBUG_TELEMETRY || BDArmorySettings.DEBUG_AI) DebugLine($"target lat vel: {targetLatVelocity}, lat vel accel: {latAccel}; lateral vel: {latVel}, lat vel error: {latError}, target roll: {targetRoll}, bank: {bank}, roll error: {rollError}");

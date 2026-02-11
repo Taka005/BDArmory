@@ -331,6 +331,15 @@ namespace BDArmory.Control
                 (altMaxValues[s.Current], euic.maxValue) = (euic.maxValue, altMaxValues[s.Current]);
                 StartCoroutine(SetVar(s.Current, (float)typeof(BDModuleSurfaceAI).GetField(s.Current).GetValue(this))); // change the value back to what it is now after fixed update, because changing the max value will clamp it down
             }
+            foreach (var fieldName in altSemiLogValues.Keys.ToList())
+            {
+                var field = (UI_FloatSemiLogRange)(HighLogic.LoadedSceneIsFlight ? Fields[fieldName].uiControlFlight : Fields[fieldName].uiControlEditor);
+                var temp = (field.minValue, field.maxValue, field.sigFig);
+                var altValues = altSemiLogValues[fieldName];
+                if (BDArmorySettings.DEBUG_AI) Debug.Log($"[BDArmory.BDModuleSurfaceAI]: Swapping semiLog limits of {fieldName} from {temp} to {altValues}");
+                field.UpdateLimits(altValues.Item1, altValues.Item2, altValues.Item3);
+                altSemiLogValues[fieldName] = temp;
+            }
         }
 
         IEnumerator SetVar(string name, float value)
