@@ -2298,13 +2298,18 @@ namespace BDArmory.Control
             var weaponManager = WeaponManager;
             float relativeVelocity = (float)(vessel.srf_velocity - v.srf_velocity).magnitude;
             if (vessel == null || v == null || v == (weaponManager != null ? weaponManager.incomingMissileVessel : null)
-                || v.GetTotalMass() < AvoidMass || relativeVelocity < 7 || //most parts have a crashTolerance of at least this, stuff moving slower than this not an issue.
+                || v.GetTotalMass() < AvoidMass || //relativeVelocity < 7 || //most parts have a crashTolerance of at least this, stuff moving slower than this not an issue.
                 (v.rootPart != null && v.rootPart.FindModuleImplementing<MissileBase>() != null)) //evasive will handle avoiding missiles
             {
                 badDirection = Vector3.zero;
                 return false;
             }
-
+			var selfRadius = vessel.GetRadius();
+			if (Vector3.SqrMagnitude(v.CoM - vessel.CoM) < selfRadius * selfRadius)
+			{
+                badDirection = Vector3.zero; //something within vessel radius, no chance to evade at this point. Should cover parasite fighters detaching/debris stuck on something
+                return false;
+            }
             // Adjust some values for asteroids.
             var targetRadius = v.GetRadius();
             var threshold = collisionAvoidanceThreshold + targetRadius; // Add the target's average radius to the threshold.
