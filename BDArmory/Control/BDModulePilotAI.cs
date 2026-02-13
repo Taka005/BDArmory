@@ -986,7 +986,7 @@ namespace BDArmory.Control
         Vector3 upDirection = Vector3.up;
 
         #region Status / Steer Mode
-        enum StatusMode { Free, Orbiting, Engaging, Evading, Extending, TerrainAvoidance, CollisionAvoidance, RammingSpeed, TakingOff, GainingAltitude, Custom }
+        enum StatusMode { Free, Orbiting, Engaging, Evading, Extending, TerrainAvoidance, CollisionAvoidance, RammingSpeed, TakingOff, GainingAltitude, Retreating, Custom }
         StatusMode currentStatusMode = StatusMode.Free;
         StatusMode lastStatusMode = StatusMode.Free;
         protected override void SetStatus(string status)
@@ -1002,6 +1002,7 @@ namespace BDArmory.Control
             else if (status.StartsWith("Gain Alt")) currentStatusMode = StatusMode.GainingAltitude;
             else if (status.StartsWith("Terrain")) currentStatusMode = StatusMode.TerrainAvoidance;
             else if (status.StartsWith("AvoidCollision")) currentStatusMode = StatusMode.CollisionAvoidance;
+            else if (status.StartsWith("Retreating")) currentStatusMode = StatusMode.Retreating;
             else currentStatusMode = StatusMode.Custom;
         }
 
@@ -1169,6 +1170,9 @@ namespace BDArmory.Control
         Vessel incomingMissileVessel;
         enum KinematicEvasionStates { None, ToTarget, Crank, Notch, TurnAway, NotchDive }
         KinematicEvasionStates kinematicEvasionState = KinematicEvasionStates.None;
+
+        // Retreating
+        bool retreating = false;
         #endregion
 
         #region Speed Controller / Steering / Altitude
@@ -2169,7 +2173,7 @@ namespace BDArmory.Control
 
             Vector3 vesselTransformPosition = vesselTransform.position;
 
-            // If we're currently evading or a threat is significant and we're not ramming.
+            // If we're currently evading or a threat is significant.
             if ((evasiveTimer < minimumEvasionTime && evasiveTimer != 0) || threatRating < evasionThreshold)
             {
                 if (evasiveTimer < minimumEvasionTime)
@@ -2216,7 +2220,7 @@ namespace BDArmory.Control
             }
             else if (!extending && weaponManager && targetVessel != null && targetVessel.transform != null)
             {
-                evasiveTimer = 0;
+                // Check if we need to extend.
                 if (!targetVessel.LandedOrSplashed)
                 {
                     Vector3 targetVesselRelPos = targetVessel.CoM - vesselTransformPosition;
@@ -2259,7 +2263,7 @@ namespace BDArmory.Control
 
                 if (!extending)
                 {
-                    if (weaponManager.HasWeaponsAndAmmo() || !RamTarget(s, targetVessel)) // If we're out of ammo, see if we can ram someone, otherwise, behave as normal.
+                    if (weaponManager.HasWeaponsAndAmmo()) // Let's shoot something.
                     {
                         ramming = false;
                         SetStatus("Engaging");
@@ -2267,28 +2271,54 @@ namespace BDArmory.Control
                         FlyToTargetVessel(s, targetVessel);
                         return;
                     }
-                }
-            }
-            else
-            {
-                evasiveTimer = 0;
-                if (!extending)
-                {
-                    if (ResumeCommand())
+                    else if (RamTarget(s, targetVessel)) // If we're out of ammo, see if we can ram someone.
                     {
-                        UpdateCommand(s);
                         return;
                     }
-                    SetStatus("Orbiting");
-                    FlyOrbit(s, assignedPositionGeo, 2000, idleSpeed, ClockwiseOrbit);
+                    // Otherwise, fall back to orbiting below.
+                }
+            }
+            if (!extending)
+            {
+                // Under fire while orbiting => retreat away from the threat for a bit.
+                if (BDArmorySettings.ALLOW_RETREAT_IF_ORBITING && weaponManager != null && (retreating || weaponManager.underFire && weaponManager.incomingThreatVessel != null && weaponManager.incomingMissDistance < 2 * vessel.GetRadius() + evasionThreshold))
+                {
+                    Vector3 flyTo;
+                    if (weaponManager.incomingThreatVessel != null)
+                    {
+                        flyTo = vessel.CoM + (vessel.CoM - weaponManager.incomingThreatVessel.CoM).ProjectOnPlanePreNormalized(upDirection).normalized * 4000; // Aim for 4km away.
+                        flyTo += (float)(defaultAltitude - BodyUtils.GetRadarAltitudeAtPos(flyTo)) * upDirection; // Aim for the default altitude.
+                        assignedPositionWorld = flyTo; // Update the orbiting position for once we've finished retreating.
+                    }
+                    else
+                    {
+                        flyTo = assignedPositionWorld;
+                    }
+                    var distanceSqr = (flyTo - vessel.CoM).sqrMagnitude;
+                    if (distanceSqr > 9e6f) // But stop retreating once within 3km of the target position (orbit radius is 2km, so this ought to give a smoother transition).
+                    {
+                        retreating = true;
+                        var retreatDistance = BDAMath.Sqrt(distanceSqr) - 3000;
+                        SetStatus($"Retreating {Mathf.Min(retreatDistance, 1000):0}{(retreatDistance >= 1000 ? "+" : "")}m");
+                        AdjustThrottle(maxSpeed, false);
+                        FlyToPosition(s, flyTo);
+                        return;
+                    }
+                }
+                retreating = false;
+                if (ResumeCommand())
+                {
+                    UpdateCommand(s);
                     return;
                 }
+                SetStatus("Orbiting");
+                FlyOrbit(s, assignedPositionGeo, 2000, idleSpeed, ClockwiseOrbit);
+                return;
             }
 
             if (CheckExtend())
             {
                 weaponManager.ForceScan();
-                evasiveTimer = 0;
                 FlyExtend(s, lastExtendTargetPosition);
                 return;
             }
