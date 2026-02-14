@@ -329,7 +329,8 @@ namespace BDArmory.UI
                 Debug.Log("[BDTeamIcons]=== Loading settings.cfg ===");
 
                 SettingsDataField.Load();
-                if (BDTISettings.MAX_DISTANCE_THRESHOLD < 1 || BDTISettings.MAX_DISTANCE_THRESHOLD > BDArmorySettings.MAX_GUARD_VISUAL_RANGE) BDTISettings.MAX_DISTANCE_THRESHOLD = BDArmorySettings.MAX_GUARD_VISUAL_RANGE;
+                if (BDTISettings.MAX_DISTANCE_THRESHOLD < 1) // || BDTISettings.MAX_DISTANCE_THRESHOLD > BDArmorySettings.MAX_GUARD_VISUAL_RANGE) //unlink icon range from vis range
+                    BDTISettings.MAX_DISTANCE_THRESHOLD = BDArmorySettings.MAX_GUARD_VISUAL_RANGE;
             }
             catch (NullReferenceException)
             {

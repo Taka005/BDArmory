@@ -3729,7 +3729,7 @@ namespace BDArmory.Control
                         {
                             designatedGPSInfo = new GPSTargetInfo(foundCam.bodyRelativeGTP, "Guard Target");
                         }
-                        FireCurrentMissile(CurrentMissile, true);
+                        FireCurrentMissile(CurrentMissile, true, guardTarget);
                         timeBombReleased = Time.time;
                         yield return new WaitForSecondsFixed(rippleFire ? 60f / rippleRPM : 0.06f);
                         if (firedMissiles >= maxMissilesOnTarget) // If not, continue bombing until overshooting.
@@ -6790,15 +6790,13 @@ namespace BDArmory.Control
                                                 CheckAntiRadStatus(targetVessel, out RWRTypes);
                                                 skipRWRCheck = true;
                                             }
-
                                             bool foundAntiRad = false;
                                             if ((RWRTypes & mlauncher.antiradTargets) != 0)
                                             {
                                                 foundAntiRad = true;
-                                                break;
                                             }
 
-                                            if (!foundAntiRad) candidateTDPS *= 0.001f;
+                                            if (!foundAntiRad) continue; //candidateTDPS *= 0.001f; //ARads have no support for unguided fire, so don't allow selecting them if nothing else available
                                         }
                                         if (mlauncher.TargetingMode == MissileBase.TargetingModes.Laser && targetingPods.Count <= 0)
                                         {
@@ -7447,8 +7445,7 @@ namespace BDArmory.Control
                                             if ((RWRTypes & Missile.antiradTargets) != 0)
                                             {
                                                 candidateAntiRad = true;
-                                                candidateYield *= 2; // Prioritize anti-rad missiles for hostile radar sources
-                                                break;
+                                                candidateYield *= 2; // Prioritize anti-rad missiles for hostile radar sources                                                
                                             }
 
                                             if (candidateAntiRad)
