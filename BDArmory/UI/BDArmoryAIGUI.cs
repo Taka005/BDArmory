@@ -1757,8 +1757,8 @@ StringUtils.Localize("#LOC_BDArmory_AIWindow_DiveBomb"), AI.divebombing ? BDArmo
                                         line = ContentEntry(ContentType.FloatSlider, line, contentWidth, ref AI.MaxDrift, nameof(AI.MaxDrift), "MaxDrift", $"{AI.MaxDrift:0}°");
                                         line = ContentEntry(ContentType.FloatSlider, line, contentWidth, ref AI.TargetPitch, nameof(AI.TargetPitch), "TargetPitch", $"{AI.TargetPitch:0.0}°");
                                         line = ContentEntry(ContentType.FloatSlider, line, contentWidth, ref AI.BankAngle, nameof(AI.BankAngle), "BankAngle", $"{AI.BankAngle:0}°");
-                                        line = ContentEntry(ContentType.FloatSlider, line, contentWidth, ref AI.AvoidMass, nameof(AI.AvoidMass), "MinObstacleMass", $"{AI.AvoidMass:0}t");
                                         line = ContentEntry(ContentType.SemiLogSlider, line, contentWidth, ref AI.AvoidMass, nameof(AI.AvoidMass), "MinObstacleMass", AI.AvoidMass < 10 ? $"{AI.AvoidMass:0.0}t" : $"{AI.AvoidMass:0}t");
+
                                         if (broadsideDir != (broadsideDir = Mathf.RoundToInt(GUI.HorizontalSlider(SettingSliderRect(line, contentWidth), broadsideDir, 0, AI.orbitDirections.Length - 1))))
                                         {
                                             AI.SetBroadsideDirection(AI.orbitDirections[broadsideDir]);
