@@ -1654,11 +1654,12 @@ namespace BDArmory.Weapons.Missiles
                 else
                 {
                     if (weaponClass == WeaponClasses.Bomb && useSymCounterpart)
-                    {                        
-                        if (SymTwinlaunch) 
+                    {
+                        if (SymTwinlaunch)
                         {
                             SymTwinlaunch = false;
                             MissileFire.TargetData targetData = TargetAcquired ? new MissileFire.TargetData(targetGPSCoords, TimeOfLastINS, INStimetogo) : null;
+                            List<MissileLauncher> symBombs = new List<MissileLauncher>();
                             using (List<Part>.Enumerator pSym = part.symmetryCounterparts.GetEnumerator())
                                 while (pSym.MoveNext())
                                 {
@@ -1672,10 +1673,15 @@ namespace BDArmory.Weapons.Missiles
                                         if (launcher != null)
                                         {
                                             if (launcher.HasFired || launcher.launched) continue;
-                                            launcher.FireMissile();
+                                            launcher.SymTwinlaunch = false;
+                                            symBombs.Add(launcher);                                            
                                         }
                                     }
                                 }
+                            foreach (MissileLauncher bomb in symBombs)
+                            {
+                                bomb.FireMissile();
+                            }
                         }
                     }
                     TimeFired = Time.time;
