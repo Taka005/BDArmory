@@ -886,6 +886,8 @@ namespace BDArmory.UI
                                 if (CustomTemplateSpawning.Instance.ConfigureTemplate(true))
                                 {
                                     CustomTemplateSpawning.Instance.SpawnCustomTemplate(CustomTemplateSpawning.customSpawnConfig);
+                                    TournamentCoordinator.Instance.Configure(null, new WaypointFollowingStrategy(course), null);
+                                    TournamentCoordinator.Instance.Run();
                                 }
                             }
                             else
@@ -912,9 +914,9 @@ namespace BDArmory.UI
                                     new WaypointFollowingStrategy(course),
                                     CircularSpawning.Instance
                                 );
+                                // Run the waypoint competition.
+                                TournamentCoordinator.Instance.Run();
                             }
-                            // Run the waypoint competition.
-                            TournamentCoordinator.Instance.Run();
                         }
                         else
                         {

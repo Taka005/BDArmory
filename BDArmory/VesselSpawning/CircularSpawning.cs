@@ -225,9 +225,9 @@ namespace BDArmory.VesselSpawning
             var vesselSpawnConfigs = new List<VesselSpawnConfig>();
             if (BDArmorySettings.WAYPOINTS_MODE && !BDArmorySettings.WAYPOINTS_ONE_AT_A_TIME && !spawnAirborne)
             {
+                //TODO - move over to SpawnCustomTemplate once TournamentCoordinator deprecated
                     var direction = (Quaternion.AngleAxis(0, radialUnitVector) * refDirection).ProjectOnPlanePreNormalized(radialUnitVector).normalized;
 
-                    int SpawnCount = 0;
                     float craftSeparation = Mathf.Min(20f * Mathf.Log10(spawnDistance), 4f * BDAMath.Sqrt(spawnDistance));
                     var spreadDirection = Vector3.Cross(radialUnitVector, direction);
                     var facingDirection = direction;
