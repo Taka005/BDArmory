@@ -11,6 +11,11 @@
 	- Add "Attack Uncontrolled Tgt." Weight to the Weapon Manager, setting this to negative makes the AI prioritize targets under control, thus avoiding wasting ammo on vehicles with knocked out crews. NOTE: Be cautious when using this on aircraft, this includes g-loc'd pilots!
 	- Fix AI not accurately locking targets via the targeting pod while moving at speed.
 	- Fix various NREs in GuardMissileRoutine that would potentially lock out a vessel from firing missiles.
+	- Add an option to set a minimum mass for avoidance logic in the pilot and VTOL AIs (was already an option in the surface AI).
+	- Pilot AI will now ignore other vessels already within its radius for avoidance purposes (to help with lodged debris and detaching parasite fighters).
+	- Pilot AI now ignores "Hard Min Altitude" when ramming.
+	- Add a gameplay option (enabled by default) to allow pilot AIs to retreat a few extra km from a threat if they're orbiting and come under fire.
+	- Prevent pilot AIs from chasing targets when they have no weapons and aren't allowed to ram them.
 	- Fix AI weapon selection softlocking on AntiRad ordnance when no hostile radar sources present.
 	- Fix AI not respecting Max Missiles Per Target setting when dropping bombs.
 	- Fix Surface AI circling last waypoint when it finishes a WP race
