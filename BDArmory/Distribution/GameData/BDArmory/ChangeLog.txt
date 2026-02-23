@@ -5,6 +5,7 @@
 - UI:
 	- Updated German localisation from EzBro.
 	- Fix infolink explanation of Extend Abort Time / Extend Min Gain Rate.
+	- BDA UI Icon draw distance (MAX_DISTANCE_THRESHOLD) no longer clamped to a max of MAX_GUARD_VISUAL_RANGE.
 - AI / WM:
 	- Fix Guard Mode using incorrect heat signature value for IR missile selection.
 	- Add "Attack Uncontrolled Tgt." Weight to the Weapon Manager, setting this to negative makes the AI prioritize targets under control, thus avoiding wasting ammo on vehicles with knocked out crews. NOTE: Be cautious when using this on aircraft, this includes g-loc'd pilots!
@@ -15,11 +16,15 @@
 	- Pilot AI now ignores "Hard Min Altitude" when ramming.
 	- Add a gameplay option (enabled by default) to allow pilot AIs to retreat a few extra km from a threat if they're orbiting and come under fire.
 	- Prevent pilot AIs from chasing targets when they have no weapons and aren't allowed to ram them.
+	- Fix AI weapon selection softlocking on AntiRad ordnance when no hostile radar sources present.
+	- Fix AI not respecting Max Missiles Per Target setting when dropping bombs.
+	- Fix Surface AI circling last waypoint when it finishes a WP race.
 - Sensors:
   - Improvements to target camera target switching behavior, should no longer switch to a new target while current laser ordnance is still in the air.
   - Multiple target cam support, craft with multiple cams can now simultaneously engage multiple targets with laser ordnance, one per camera.
 	  - Under manual control the active camera can be cycled via the new < #n > buttons below the FOV controls.
-  -Target Cameras now respects subsystem targeting options and will paint specific part(s) of a target craft if non-CoM targeting enabled.
+  - Target Cameras now respect subsystem targeting options and will paint specific part(s) of a target craft if non-CoM targeting enabled.
+  - Fix Laser missile LoS checks using vessel root instead of missile position for determining terrain occlusion of target.
 - Weapons:
 	- Turrets:
 		- Added "baseTransformName" field to turrets, while this was previously unclear, the parent transform of yawTransform was previously being used to determine the turret's center of rotation and the orientation of its axes. This has now been made into an explicit field to allow modders to better control this behavior. Unless specified, the transform will be set to the parent of the yawTransform.
@@ -34,6 +39,8 @@
 		- Rename incorrectly named "Implosive Damage Multiplier" setting to "Exp. Impulse Multiplier". This setting modifies the force with which explosions push vessels (the ones that aren't blown up at least...).
 	- Warheads:
 		- Add "bulletDmgMult" field to BDCustomWarhead modules, allowing their damage to be tuned.
+	- Bombs:
+		- Add Symmetrical Firing option to bombs to enable simultaneously dropping a symmetry twin bomb at the same time the selected bomb is dropped. 
 	- Missiles:
 		- Fix graphical glitch where Helmet Mounted Display/Sight appearing in WM modules despite there not being a cockpit with a HMD.
 		- Fix NREs that would occur when a CLOS missile has its guiding targeting pod destroyed.
@@ -51,6 +58,9 @@
 			- Fix custom turrets with no radar failing the launch authorization check.
       - Fix custom turrets incorporating guns with turrets (M102 howitzer, etc.) not targeting aircraft.
 		- Improved debug telemetry output format.
+	- Competition:
+		- Fix Waypoint mode immediately moving to next heat on start when running a surface AI WP race with multiple racers when Activate Guard After Gate is disabled.
+		- Groundspawn Waypoint Races will now spawn racers in a grid start arrangement instead of circle spawn.
 
 v1.12.1.0
 IMPROVEMENTS / FIXES
