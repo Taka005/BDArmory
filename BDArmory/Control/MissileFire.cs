@@ -3730,7 +3730,7 @@ namespace BDArmory.Control
                         {
                             designatedGPSInfo = new GPSTargetInfo(foundCam.bodyRelativeGTP, "Guard Target");
                         }
-                        FireCurrentMissile(CurrentMissile, true, guardTarget != null ? guardTarget : null);
+                        FireCurrentMissile(CurrentMissile, true, guardTarget);
                         timeBombReleased = Time.time;
                         yield return new WaitForSecondsFixed(rippleFire ? 60f / rippleRPM : 0.06f);
                         if (firedMissiles >= maxMissilesOnTarget) // If not, continue bombing until overshooting.
