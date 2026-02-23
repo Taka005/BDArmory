@@ -18,7 +18,7 @@
 	- Prevent pilot AIs from chasing targets when they have no weapons and aren't allowed to ram them.
 	- Fix AI weapon selection softlocking on AntiRad ordnance when no hostile radar sources present.
 	- Fix AI not respecting Max Missiles Per Target setting when dropping bombs.
-	- Fix Surface AI circling last waypoint when it finishes a WP race
+	- Fix Surface AI circling last waypoint when it finishes a WP race.
 - Sensors:
   - Improvements to target camera target switching behavior, should no longer switch to a new target while current laser ordnance is still in the air.
   - Multiple target cam support, craft with multiple cams can now simultaneously engage multiple targets with laser ordnance, one per camera.
@@ -58,8 +58,8 @@
 			- Fix custom turrets with no radar failing the launch authorization check.
       - Fix custom turrets incorporating guns with turrets (M102 howitzer, etc.) not targeting aircraft.
 		- Improved debug telemetry output format.
-	- Competition
-		- Fix Waypoint mode immediately moving to next heat on start when running a surface AI WP race with multiple racers when Activate Guard Aftter Gate is disabled.
+	- Competition:
+		- Fix Waypoint mode immediately moving to next heat on start when running a surface AI WP race with multiple racers when Activate Guard After Gate is disabled.
 		- Groundspawn Waypoint Races will now spawn racers in a grid start arrangement instead of circle spawn.
 
 v1.12.1.0
