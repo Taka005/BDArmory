@@ -2411,7 +2411,7 @@ namespace BDArmory.Radar
                                 }
 
                                 // No MWS/visual detection, check RWR
-                                if ((missileBase.TargetingMode != MissileBase.TargetingModes.Radar || missileBase.TargetingModeTerminal != MissileBase.TargetingModes.Radar) || // Must be radar missile
+                                if ((missileBase.TargetingMode != MissileBase.TargetingModes.Radar) || // Must be radar missile
                                     ((missileBase.ActiveRadar || missileBase.radarLOALSearching) && // if active radar
                                     ((missileBase.activeRadarRange * missileBase.activeRadarRange * 4f < vesselDistanceSqr) || !RWR.IsRadarMissileDetected(loadedvessels.Current))) || // Active radar must be within range and detected
                                     (!missileBase.ActiveRadar && !missileBase.vrd)) // Or if SARH, must have an active SARH track, note strictly speaking there's more nuance to be had here with regards to detection, but we want AI to know that they've been launched at
