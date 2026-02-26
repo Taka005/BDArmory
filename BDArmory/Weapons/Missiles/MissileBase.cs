@@ -1395,7 +1395,7 @@ UI_FloatRange(minValue = 0f, maxValue = 20f, stepIncrement = 1, scene = UI_Scene
             if (ti == null) return false;
             return (ti.isMissile && engageMissile) ||
                     (!ti.isMissile && ti.isFlying && engageAir) ||
-                    ((ti.isLandedOrSurfaceSplashed || ti.isSplashed) && engageGround) ||
+                    (ti.isLandedOrSurfaceSplashed && engageGround) ||
                     (ti.isUnderwater && engageSLW);
         }
 
