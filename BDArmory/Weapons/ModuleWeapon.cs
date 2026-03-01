@@ -295,7 +295,7 @@ namespace BDArmory.Weapons
             {
                 if (turret)
                 {
-                    return turret.yawTransform.parent;
+                    return turret.baseTransform;
                 }
                 else
                 {
@@ -5782,7 +5782,8 @@ namespace BDArmory.Weapons
                     if (targetData.exists)
                     {
                         targetVelocity = targetData.velocity - BDKrakensbane.FrameVelocityV3f;
-                        targetPosition = targetData.predictedPositionWithChaffFactor(targetData.lockedByRadar.radarChaffClutterFactor);
+                        ModuleRadar lockingRadar = targetData.lockedByRadar;
+                        targetPosition = targetData.predictedPositionWithChaffFactor(lockingRadar.radarChaffClutterFactor, lockingRadar._radarChaffNotchVFac, lockingRadar._radarChaffNotchRFac);
                         targetRadius = 35;
                         targetAcceleration = targetData.acceleration;
                         targetIsLandedOrSplashed = false;
@@ -5806,7 +5807,9 @@ namespace BDArmory.Weapons
                         {
                             if (weaponManager.slavingTurrets) slaved = true;
                             targetRadius = isVessel ? weaponManager.slavedTarget.vessel.GetRadius() : 35f;
-                            targetPosition = weaponManager.slavedPosition != Vector3.zero ? weaponManager.slavedPosition : weaponManager.vesselRadarData.lockedTargetData.targetData.predictedPositionWithChaffFactor(weaponManager.vesselRadarData.lockedTargetData.detectedByRadar.radarChaffClutterFactor);
+                            TargetSignatureData tData;
+                            ModuleRadar lockingRadar;
+                            targetPosition = weaponManager.slavedPosition != Vector3.zero ? weaponManager.slavedPosition : (tData = weaponManager.vesselRadarData.lockedTargetData.targetData).predictedPositionWithChaffFactor((lockingRadar = tData.lockedByRadar).radarChaffClutterFactor, lockingRadar._radarChaffNotchVFac, lockingRadar._radarChaffNotchRFac);
                             targetVelocity = isVessel ? weaponManager.slavedTarget.vessel.rb_velocity : weaponManager.vesselRadarData.lockedTargetData.targetData.velocity - BDKrakensbane.FrameVelocityV3f;
                             targetAcceleration = isVessel ? weaponManager.slavedAcceleration : weaponManager.vesselRadarData.lockedTargetData.targetData.acceleration;
                             if (isVessel) targetIsLandedOrSplashed = weaponManager.slavedTarget.vessel.LandedOrSplashed;

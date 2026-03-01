@@ -95,6 +95,7 @@ namespace BDArmory.Settings
         [BDAPersistentSettingsField] public static bool SHOW_CATEGORIES = true;
         [BDAPersistentSettingsField] public static bool IGNORE_TERRAIN_CHECK = false;
         [BDAPersistentSettingsField] public static bool CHECK_WATER_TERRAIN = false;
+        [BDAPersistentSettingsField] public static bool ALLOW_RETREAT_IF_ORBITING = true; // Allow retreating if under fire while orbiting.
         [BDAPersistentSettingsField] public static bool RADAR_NOTCHING = false;
         [BDAPersistentSettingsField] public static bool RADAR_ALLOW_SURFACE_WARFARE = true;
         [BDAPersistentSettingsField] public static float RADAR_NOTCHING_FACTOR = 1f;
@@ -197,6 +198,8 @@ namespace BDArmory.Settings
         [BDAPersistentSettingsField] public static float EXP_DMG_MOD_MISSILE = 6.75f;           // Missile explosion damage multiplier
         [BDAPersistentSettingsField] public static float EXP_DMG_MOD_ROCKET = 1f;               // Rocket explosion damage multiplier (FIXME needs tuning; Note: rockets used Ballistic mod before, but probably ought to be more like missiles)
         [BDAPersistentSettingsField] public static float EXP_DMG_MOD_BATTLE_DAMAGE = 1f;        // Battle damage explosion damage multiplier (FIXME needs tuning; Note: CASE-0 explosions used Missile mod, while CASE-1, CASE-2 and fuel explosions used Ballistic mod)
+        [BDAPersistentSettingsField] public static float EXP_DMG_MOD_HEAT = 1f;                 // HEAT warhead spall damage mult
+        [BDAPersistentSettingsField] public static float HEAT_SPALL_MAX_RED = 0.5f;              // Max amount of spall that can be reduced by a spall liner layer (since the shaped charge pens, there's gonna be an upper limit to this)
         [BDAPersistentSettingsField] public static float EXP_IMP_MOD = 0.25f;
         [BDAPersistentSettingsField] public static float BUILDING_DMG_MULTIPLIER = 1f;
         [BDAPersistentSettingsField] public static bool EXTRA_DAMAGE_SLIDERS = false;
@@ -205,6 +208,7 @@ namespace BDArmory.Settings
         [BDAPersistentSettingsField] public static float ZOMBIE_DMG_MULT = 0.1f;
         [BDAPersistentSettingsField] public static float ARMOR_MASS_MOD = 1f;                   //Armor mass multiplier
         [BDAPersistentSettingsField] public static bool KERBAL_ERA = true;
+        [BDAPersistentSettingsField] public static float HMDCost = 2000f;
         #endregion
 
         #region FX
@@ -354,6 +358,7 @@ namespace BDArmory.Settings
         [BDAPersistentSettingsField] public static bool VESSEL_SPAWN_START_COMPETITION_AUTOMATICALLY = false; // Automatically start a competition after spawning succeeds.
         [BDAPersistentSettingsField] public static bool VESSEL_SPAWN_INITIAL_VELOCITY = false;     // Set planes at their idle speed after dropping them at the start of a competition.
         [BDAPersistentSettingsField] public static bool VESSEL_SPAWN_CS_FOLLOWS_CENTROID = false;  // The continuous spawning spawn point follows the brawl centroid with bias back to the original spawn point.
+        [BDAPersistentSettingsField] public static int VESSEL_SPAWN_DEFAULT_KERBAL_SUIT = 0;
         #endregion
 
         #region Vessel Mover settings

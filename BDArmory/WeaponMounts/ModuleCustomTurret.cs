@@ -53,7 +53,7 @@ namespace BDArmory.WeaponMounts
         public Vector3 yawNormal;
 
         public Vector3 slavedTargetPosition;
-        public bool slaved;
+        public bool slaved = false;
         public bool manuallyControlled = false;
         public bool isYawRotor => Servo != null;
         MissileFire WeaponManager
@@ -149,26 +149,59 @@ namespace BDArmory.WeaponMounts
             */
         }
 
+        public bool slavedGuard
+        {
+            get
+            {
+                if (!_slavedGuard) return false;
+
+                if (!_slavedGuardMissile || _slavedGuardMissile.vessel != vessel)
+                {
+                    _slavedGuard = false;
+                    return false;
+                }
+
+                return _slavedGuard;
+            }
+        }
+
+        bool _slavedGuard = false;
+        MissileBase _slavedGuardMissile = null;
+
+        public void SetSlavedGuard(bool slavedGuard, MissileBase ml)
+        {
+            _slavedGuard = slavedGuard;
+            if (slavedGuard)
+            {
+                _slavedGuardMissile = ml;
+            }
+        }
+
         void FixedUpdate()
         {
-            if (!HighLogic.LoadedSceneIsFlight) return;
-            var wm = WeaponManager;
-            if (wm && wm.CurrentMissile && wm.CurrentMissile.customTurret.Count > 0 && wm.CurrentMissile.customTurret.Contains(this))
+            if (!HighLogic.LoadedSceneIsFlight || turretID == 0) return;
+
+            slaved = false;
+
+            MissileFire wm = WeaponManager;
+            MissileBase currMissile;
+            if (wm && !(_slavedGuard = wm.guardMode && slavedGuard) && (currMissile = wm.CurrentMissile) && currMissile.customTurret.Count > 0 && currMissile.customTurret.Contains(this))
             {
                 if (wm.slavingTurrets)
                 {
                     slaved = true;
-                    slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(wm.CurrentMissile, wm.slavedPosition, wm.slavedVelocity,
-                        (wm.CurrentMissile.GuidanceMode == GuidanceModes.AAMLoft || wm.CurrentMissile.GuidanceMode == GuidanceModes.Kappa));
+                    slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(currMissile, wm.slavedPosition, wm.slavedVelocity,
+                        currMissile.customTurretLoft, currMissile.customTurretLoftFac);
                 }
                 else if (wm.mainTGP != null && ModuleTargetingCamera.windowIsOpen && wm.mainTGP.slaveTurrets)
                 {
                     slaved = true;
                     slavedTargetPosition = MissileGuidance.GetAirToAirFireSolution(wm.CurrentMissile, wm.mainTGP.targetPointPosition, wm.mainTGP.lockedVessel ? wm.mainTGP.lockedVessel.Velocity() : Vector3.zero,
-                        (wm.CurrentMissile.GuidanceMode == GuidanceModes.AAMLoft || wm.CurrentMissile.GuidanceMode == GuidanceModes.Kappa));
+                        currMissile.customTurretLoft, currMissile.customTurretLoftFac);
                 }
             }
-            if (slaved)
+
+            if (slaved || _slavedGuard)
             {
                 AimToTarget(slavedTargetPosition);
             }

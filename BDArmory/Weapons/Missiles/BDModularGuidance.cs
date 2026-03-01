@@ -15,6 +15,7 @@ using System;
 using System.Collections.Generic;
 using UniLinq;
 using UnityEngine;
+using static BDArmory.Radar.RadarWarningReceiver;
 
 namespace BDArmory.Weapons.Missiles
 {
@@ -577,7 +578,7 @@ namespace BDArmory.Weapons.Missiles
             MissileState = MissileStates.Cruise;
 
             _missileIgnited = true;
-            RadarWarningReceiver.WarnMissileLaunch(MissileReferenceTransform.position, GetForwardTransform(), TargetingMode == TargetingModes.Radar);
+            RadarWarningReceiver.WarnMissileLaunch(MissileReferenceTransform.position, GetForwardTransform(), TargetingMode == TargetingModes.Radar, vessel);
         }
 
         private bool ShouldExecuteNextStage()
@@ -635,6 +636,8 @@ namespace BDArmory.Weapons.Missiles
             return false;
         }
 
+        public static readonly int modularGuidanceAntiRadTargetTypes = new[] { RWRThreatTypes.SAM, RWRThreatTypes.Detection }.ToBits();
+
         public override void OnStart(StartState state)
         {
             base.OnStart(state);
@@ -647,6 +650,8 @@ namespace BDArmory.Weapons.Missiles
 
             part.force_activate();
             RefreshGuidanceMode();
+
+            antiradTargets = modularGuidanceAntiRadTargetTypes;
 
             UpdateTargetingMode((TargetingModes)Enum.Parse(typeof(TargetingModes), _targetingLabel));
 
@@ -677,6 +682,8 @@ namespace BDArmory.Weapons.Missiles
             }
             activeRadarRange = ActiveRadarRange;
             chaffEffectivity = ChaffEffectivity;
+            chaffNotchVFac = ChaffEffectivity;
+            chaffNotchRFac = ChaffEffectivity;
             missileCMRange = MissileCMRange;
             missileCMInterval = MissileCMInterval;
             hasIFF = HasIFF;
@@ -1128,7 +1135,7 @@ namespace BDArmory.Weapons.Missiles
                     }
                     else // Kill relative velocity to target
                         relVel = vessel.Velocity() - targetVelocity;
-                    rcsVector = -Vector3.ProjectOnPlane(relVel, forwardDir);
+                    rcsVector = -relVel.ProjectOnPlane(forwardDir);
                 }
             }
             else
@@ -1186,7 +1193,7 @@ namespace BDArmory.Weapons.Missiles
             Vector3 roll = referenceRoll != direction.normalized ? referenceRoll : commander.transform.forward;
 
             // Orient the control point towards direction (finger) with perpendicular as the up vector (thumb).
-            Vector3 perpendicular = Vector3.ProjectOnPlane(roll, direction.normalized);
+            Vector3 perpendicular = roll.ProjectOnPlanePreNormalized(direction.normalized);
             dynamic.transform.rotation = Quaternion.LookRotation(perpendicular, direction.normalized); // VAB orientation.
         }
 
@@ -1302,7 +1309,7 @@ namespace BDArmory.Weapons.Missiles
             TargetAcquired = false;
             TimeFired = -1;
             _missileIgnited = false;
-            lockFailTimer = -1;
+            _lockFailTimer = -1;
             guidanceActive = false;
             HasMissed = false;
             HasExploded = false;

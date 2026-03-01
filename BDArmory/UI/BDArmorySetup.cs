@@ -247,6 +247,7 @@ namespace BDArmory.UI
 
         public static string textureDir = "BDArmory/Textures/";
 
+        bool cursorOnGUI = false;
         bool drawCursor;
         Texture2D cursorTexture = GameDatabase.Instance.GetTexture(textureDir + "aimer", false);
         bool temporarilyShowMouse = false;
@@ -318,12 +319,16 @@ namespace BDArmory.UI
             get { return lgct ? lgct : lgct = GameDatabase.Instance.GetTexture(textureDir + "greenCircle3", false); }
         }
 
+        public const float largeGreenCircleScale = 256f / 230f; // Circle is 230 pixels in diameter vs. 256 texture size
+
         private Texture2D gct;
 
         public Texture2D greenCircleTexture
         {
             get { return gct ? gct : gct = GameDatabase.Instance.GetTexture(textureDir + "greenCircle2", false); }
         }
+
+        public const float greenCircleScale = 128f / 64f; // Circle is 64 pixels in diameter vs. 128 texture size
 
         private Texture2D gpct;
 
@@ -726,6 +731,7 @@ namespace BDArmory.UI
                 if (BDInputUtils.GetKeyDown(BDInputSettingsFields.DEBUG_CLEAR_DEV_CONSOLE)) Debug.ClearDeveloperConsole();
 #endif
                 if (temporarilyShowMouse != (temporarilyShowMouse = BDInputUtils.GetKey(BDInputSettingsFields.TEMPORARILY_SHOW_MOUSE))) UpdateCursorState();
+                if (cursorOnGUI && !GUIUtils.CheckMouseIsOnGui()) UpdateCursorState();
             }
             else if (HighLogic.LoadedSceneIsEditor)
             {
@@ -793,7 +799,8 @@ namespace BDArmory.UI
             if (HighLogic.LoadedSceneIsFlight)
             {
                 drawCursor = false;
-                if (!MapView.MapIsEnabled && !GUIUtils.CheckMouseIsOnGui() && !PauseMenu.isOpen)
+                cursorOnGUI = GUIUtils.CheckMouseIsOnGui();
+                if (!MapView.MapIsEnabled && !cursorOnGUI && !PauseMenu.isOpen)
                 {
                     if (weaponManager.selectedWeapon != null && weaponManager.weaponIndex > 0 &&
                         !weaponManager.guardMode)
@@ -817,6 +824,12 @@ namespace BDArmory.UI
                     {
                         Cursor.visible = false;
                         drawCursor = false;
+                        return;
+                    }
+
+                    if (!weaponManager.guardMode && weaponManager.isHMDEnabled)
+                    {
+                        Cursor.visible = false;
                         return;
                     }
                 }
@@ -863,6 +876,7 @@ namespace BDArmory.UI
                 { "targetWeightProtectTeammate", gameObject.AddComponent<NumericInputField>().Initialise(0, weaponManager.targetWeightProtectTeammate, -10, 10) },
                 { "targetWeightProtectVIP", gameObject.AddComponent<NumericInputField>().Initialise(0, weaponManager.targetWeightProtectVIP, -10, 10) },
                 { "targetWeightAttackVIP", gameObject.AddComponent<NumericInputField>().Initialise(0, weaponManager.targetWeightAttackVIP, -10, 10) },
+                { "targetWeightUncontrolled", gameObject.AddComponent<NumericInputField>().Initialise(0, weaponManager.targetWeightUncontrolled, -10, 10) },
             };
         }
 
@@ -1888,6 +1902,19 @@ namespace BDArmory.UI
                         OnGUIWM.targetWeightAttackVIP = (float)field.currentValue;
                     }
 
+                    GUI.Label(LabelRect(++priorityLines, priorityLabelWidth), StringUtils.Localize("#LOC_BDArmory_WMWindow_targetUncontrolled"), leftLabel); //target controllable
+                    if (!NumFieldsEnabled)
+                    {
+                        OnGUIWM.targetWeightUncontrolled = BDAMath.RoundToUnit(GUI.HorizontalSlider(SliderRect(priorityLines, priorityLabelWidth), OnGUIWM.targetWeightUncontrolled, -10, 10), 0.1f);
+                        GUI.Label(RightLabelRect(priorityLines), OnGUIWM.targetWeightUncontrolled.ToString(), leftLabel);
+                    }
+                    else
+                    {
+                        var field = textNumFields["targetWeightUncontrolled"];
+                        field.tryParseValue(GUI.TextField(InputFieldRect(priorityLines, priorityLabelWidth), field.possibleValue, 4, field.style));
+                        OnGUIWM.targetWeightUncontrolled = (float)field.currentValue;
+                    }
+
                     priorityLines += 1.1f;
                     GUI.EndGroup();
                 }
@@ -1914,6 +1941,19 @@ namespace BDArmory.UI
                             OnGUIWM.DynamicRadarOverride = !OnGUIWM.DynamicRadarOverride;
                         }
                         moduleLines += 1.1f;
+                    }
+
+                    if (OnGUIWM.HMD && OnGUIWM.hasHMD)
+                    {
+                        numberOfModules++;
+                        bool isEnabled = OnGUIWM.isHMDEnabled;
+                        string label = StringUtils.Localize("#LOC_BDArmory_WMWindow_HMD");
+                        Rect HMDRect = new Rect(leftIndent, +(moduleLines * entryHeight), columnWidth - 2 * leftIndent, entryHeight);
+                        if (GUI.Button(HMDRect, label, isEnabled ? centerLabelOrange : centerLabel))
+                        {
+                            OnGUIWM.ToggleHMD();
+                        }
+                        moduleLines++;
                     }
 
                     //RWR
@@ -3146,6 +3186,7 @@ namespace BDArmory.UI
                         BDArmorySettings.APS_THRESHOLD = Mathf.RoundToInt(GUI.HorizontalSlider(SRightSliderRect(line), BDArmorySettings.APS_THRESHOLD, 1f, 356f));
                     }
                     BDArmorySettings.IGNORE_TERRAIN_CHECK = GUI.Toggle(SLeftRect(++line), BDArmorySettings.IGNORE_TERRAIN_CHECK, StringUtils.Localize("#LOC_BDArmory_Settings_IGNORE_TERRAIN_CHECK")); // Ignore Terrain Check
+                    BDArmorySettings.ALLOW_RETREAT_IF_ORBITING = GUI.Toggle(SRightRect(line), BDArmorySettings.ALLOW_RETREAT_IF_ORBITING, StringUtils.Localize("#LOC_BDArmory_Settings_RETREAT_IF_ORBITING")); // Allow retreat if orbiting.
                     BDArmorySettings.CHECK_WATER_TERRAIN = GUI.Toggle(SLeftRect(++line), BDArmorySettings.CHECK_WATER_TERRAIN, StringUtils.Localize("#LOC_BDArmory_Settings_CHECK_WATER_TERRAIN")); // Check Water
                     BDArmorySettings.RADAR_NOTCHING = GUI.Toggle(SLeftRect(++line), BDArmorySettings.RADAR_NOTCHING, StringUtils.Localize("#LOC_BDArmory_Settings_RADAR_NOTCHING")); // Radar Notching Toggle
                     if (BDArmorySettings.RADAR_NOTCHING)
@@ -3191,7 +3232,10 @@ namespace BDArmory.UI
                         GUI.Label(SLeftSliderRect(++line), $"{StringUtils.Localize("#LOC_BDArmory_Settings_MissileExplosiveDamageMultiplier")}:  ({BDArmorySettings.EXP_DMG_MOD_MISSILE})", leftLabel);
                         BDArmorySettings.EXP_DMG_MOD_MISSILE = BDAMath.RoundToUnit(GUI.HorizontalSlider(SRightSliderRect(line), BDArmorySettings.EXP_DMG_MOD_MISSILE, 0f, 10f), 0.25f);
 
-                        GUI.Label(SLeftSliderRect(++line), $"{StringUtils.Localize("#LOC_BDArmory_Settings_ImplosiveDamageMultiplier")}:  ({BDArmorySettings.EXP_IMP_MOD})", leftLabel);
+                        GUI.Label(SLeftSliderRect(++line), $"{StringUtils.Localize("#LOC_BDArmory_Settings_HEATExplosiveDamageMultiplier")}:  ({BDArmorySettings.EXP_DMG_MOD_HEAT})", leftLabel);
+                        BDArmorySettings.EXP_DMG_MOD_HEAT = BDAMath.RoundToUnit(GUI.HorizontalSlider(SRightSliderRect(line), BDArmorySettings.EXP_DMG_MOD_HEAT, 0f, 10f), 0.25f);
+
+                        GUI.Label(SLeftSliderRect(++line), $"{StringUtils.Localize("#LOC_BDArmory_Settings_ExplosionImpulseMultiplier")}:  ({BDArmorySettings.EXP_IMP_MOD})", leftLabel);
                         BDArmorySettings.EXP_IMP_MOD = BDAMath.RoundToUnit(GUI.HorizontalSlider(SRightSliderRect(line), BDArmorySettings.EXP_IMP_MOD, 0f, 1f), 0.05f);
 
 
